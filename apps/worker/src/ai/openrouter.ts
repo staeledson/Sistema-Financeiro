@@ -58,6 +58,23 @@ export class OpenRouterGateway {
     ]);
   }
 
+  async narrate(prompt: string): Promise<string> {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.apiKey}` },
+      body: JSON.stringify({
+        model: this.textModel,
+        messages: [
+          { role: "system", content: "Você é um assistente financeiro. Responda em pt-BR, de forma breve e amigável." },
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    return (data.choices?.[0]?.message?.content ?? "") as string;
+  }
+
   async parseInvoiceText(text: string): Promise<{ lines: InvoiceLine[]; costTokens: number | null }> {
     const res = await fetch(ENDPOINT, {
       method: "POST",

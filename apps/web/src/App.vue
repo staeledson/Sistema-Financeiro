@@ -7,10 +7,13 @@ import TransactionsView from "./views/TransactionsView.vue";
 import IngestView from "./views/IngestView.vue";
 import ReviewView from "./views/ReviewView.vue";
 import ImportView from "./views/ImportView.vue";
+import InsightsView from "./views/InsightsView.vue";
+import BudgetsView from "./views/BudgetsView.vue";
+import GoalsView from "./views/GoalsView.vue";
 import { useAuthStore } from "./stores/auth";
 
 const auth = useAuthStore();
-const tab = ref<"dashboard" | "accounts" | "transactions" | "ingest" | "review" | "import">("dashboard");
+const tab = ref<"dashboard" | "accounts" | "transactions" | "ingest" | "review" | "import" | "insights" | "budgets" | "goals">("dashboard");
 </script>
 
 <template>
@@ -26,6 +29,9 @@ const tab = ref<"dashboard" | "accounts" | "transactions" | "ingest" | "review" 
         <button :class="{ active: tab === 'ingest' }" @click="tab = 'ingest'">Lançar por IA</button>
         <button :class="{ active: tab === 'review' }" @click="tab = 'review'">Revisar</button>
         <button :class="{ active: tab === 'import' }" @click="tab = 'import'">Importar</button>
+        <button :class="{ active: tab === 'insights' }" @click="tab = 'insights'">Insights</button>
+        <button :class="{ active: tab === 'budgets' }" @click="tab = 'budgets'">Orçamentos</button>
+        <button :class="{ active: tab === 'goals' }" @click="tab = 'goals'">Metas</button>
       </div>
       <button class="btn-signout" @click="auth.signOut()">Sair</button>
     </nav>
@@ -37,6 +43,9 @@ const tab = ref<"dashboard" | "accounts" | "transactions" | "ingest" | "review" 
       <IngestView v-else-if="tab === 'ingest'" />
       <ReviewView v-else-if="tab === 'review'" />
       <ImportView v-else-if="tab === 'import'" />
+      <InsightsView v-else-if="tab === 'insights'" />
+      <BudgetsView v-else-if="tab === 'budgets'" />
+      <GoalsView v-else-if="tab === 'goals'" />
     </main>
   </div>
 </template>

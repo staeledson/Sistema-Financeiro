@@ -116,3 +116,28 @@ export type AiJob = Prisma.AiJobModel
  * 
  */
 export type TransactionDraft = Prisma.TransactionDraftModel
+/**
+ * Model CategoryRule
+ * 
+ */
+export type CategoryRule = Prisma.CategoryRuleModel
+/**
+ * Model Insight
+ * 
+ */
+export type Insight = Prisma.InsightModel
+/**
+ * Model Budget
+ * 
+ */
+export type Budget = Prisma.BudgetModel
+/**
+ * Model Goal
+ * 
+ */
+export type Goal = Prisma.GoalModel
+/**
+ * Model GoalContribution
+ * 
+ */
+export type GoalContribution = Prisma.GoalContributionModel

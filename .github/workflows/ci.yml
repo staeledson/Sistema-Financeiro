@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, fase-0-fundacao, fase-1-nucleo-financeiro, fase-2-ingestao-ia, fase-3-import]
+    branches: [main, fase-0-fundacao, fase-1-nucleo-financeiro, fase-2-ingestao-ia, fase-3-import, fase-4-inteligencia]
   pull_request:
     branches: [main]
 

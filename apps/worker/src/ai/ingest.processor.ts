@@ -7,12 +7,15 @@ import { GroqSttGateway } from "./stt-groq";
 import { mapCategory } from "./category-map";
 import { AI_QUEUE } from "../queue";
 import { processPdfInvoice } from "../import/pdf.processor";
+import { processCategorize } from "./categorize.processor";
+import { computeInsights } from "../insights/compute.processor";
+import { computeCashflowForecast } from "../insights/cashflow.processor";
 
 export interface IngestJobData {
   jobId: string;
   workspaceId: string;
   userId: string;
-  kind: "parse_text" | "parse_image" | "parse_audio" | "parse_invoice";
+  kind: "parse_text" | "parse_image" | "parse_audio" | "parse_invoice" | "categorize" | "compute_insights";
   text?: string;
   storagePath?: string;
 }
@@ -35,6 +38,19 @@ export function registerIngestWorker(
 
       try {
         // PDF invoice → multiple drafts; handled separately
+        if (kind === "categorize") {
+          await processCategorize({ jobId, workspaceId }, { ai: deps.ai });
+          await prisma.aiJob.update({ where: { id: jobId }, data: { status: "done" } });
+          return { ok: true };
+        }
+
+        if (kind === "compute_insights") {
+          await computeInsights({ workspaceId });
+          await computeCashflowForecast({ workspaceId }, { ai: deps.ai });
+          await prisma.aiJob.update({ where: { id: jobId }, data: { status: "done" } });
+          return { ok: true };
+        }
+
         if (kind === "parse_invoice") {
           await processPdfInvoice(
             { jobId, workspaceId, userId, storagePath: storagePath! },

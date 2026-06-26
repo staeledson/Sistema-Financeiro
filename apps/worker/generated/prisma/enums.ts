@@ -9,6 +9,44 @@
 * 🟢 You can import this file directly.
 */
 
+export const RuleMatchType = {
+  contains: 'contains',
+  equals: 'equals',
+  regex: 'regex'
+} as const
+
+export type RuleMatchType = (typeof RuleMatchType)[keyof typeof RuleMatchType]
+
+
+export const InsightType = {
+  spike: 'spike',
+  subscription: 'subscription',
+  forecast: 'forecast',
+  summary: 'summary',
+  budget_alert: 'budget_alert',
+  goal_alert: 'goal_alert'
+} as const
+
+export type InsightType = (typeof InsightType)[keyof typeof InsightType]
+
+
+export const BudgetMethod = {
+  fixed: 'fixed',
+  fifty_thirty_twenty: 'fifty_thirty_twenty'
+} as const
+
+export type BudgetMethod = (typeof BudgetMethod)[keyof typeof BudgetMethod]
+
+
+export const CategoryBucket = {
+  needs: 'needs',
+  wants: 'wants',
+  savings: 'savings'
+} as const
+
+export type CategoryBucket = (typeof CategoryBucket)[keyof typeof CategoryBucket]
+
+
 export const WorkspaceType = {
   personal: 'personal',
   family: 'family',
@@ -60,7 +98,9 @@ export const AiJobKind = {
   parse_text: 'parse_text',
   parse_image: 'parse_image',
   parse_audio: 'parse_audio',
-  parse_invoice: 'parse_invoice'
+  parse_invoice: 'parse_invoice',
+  categorize: 'categorize',
+  compute_insights: 'compute_insights'
 } as const
 
 export type AiJobKind = (typeof AiJobKind)[keyof typeof AiJobKind]

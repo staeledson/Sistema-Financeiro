@@ -30,7 +30,8 @@ model User {
   transactions   Transaction[]      @relation("TransactionCreator")
   aiJobs         AiJob[]            @relation("AiJobCreator")
   drafts         TransactionDraft[] @relation("DraftCreator")
-  importBatches  ImportBatch[]      @relation("ImportBatchCreator")
+  importBatches        ImportBatch[]       @relation("ImportBatchCreator")
+  goalContributions    GoalContribution[]  @relation("GoalContributor")
 
   @@map("user")
 }
@@ -81,6 +82,32 @@ model Verification {
 
 // --- Domínio ---
 
+enum RuleMatchType {
+  contains
+  equals
+  regex
+}
+
+enum InsightType {
+  spike
+  subscription
+  forecast
+  summary
+  budget_alert
+  goal_alert
+}
+
+enum BudgetMethod {
+  fixed
+  fifty_thirty_twenty
+}
+
+enum CategoryBucket {
+  needs
+  wants
+  savings
+}
+
 enum WorkspaceType {
   personal
   family
@@ -104,15 +131,19 @@ model Workspace {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  members       WorkspaceMember[]
-  bankAccounts  BankAccount[]
-  categories    Category[]
-  tags          Tag[]
-  transactions  Transaction[]
-  aiJobs        AiJob[]
-  drafts        TransactionDraft[]
-  importBatches ImportBatch[]
+  members        WorkspaceMember[]
+  bankAccounts   BankAccount[]
+  categories     Category[]
+  tags           Tag[]
+  transactions   Transaction[]
+  aiJobs         AiJob[]
+  drafts         TransactionDraft[]
+  importBatches  ImportBatch[]
   importMappings ImportMapping[]
+  categoryRules  CategoryRule[]
+  insights       Insight[]
+  budgets        Budget[]
+  goals          Goal[]
 
   @@map("workspaces")
 }
@@ -184,10 +215,13 @@ model Category {
   name        String
   icon        String?
   color       String?
+  bucket      CategoryBucket?
   isSystem    Boolean      @default(false)
 
-  transactions Transaction[]
-  drafts       TransactionDraft[]
+  transactions  Transaction[]
+  drafts        TransactionDraft[]
+  categoryRules CategoryRule[]
+  budgets       Budget[]
 
   @@index([workspaceId])
   @@map("categories")
@@ -288,6 +322,8 @@ enum AiJobKind {
   parse_image
   parse_audio
   parse_invoice
+  categorize
+  compute_insights
 }
 
 enum ImportFormat {
@@ -360,4 +396,82 @@ model TransactionDraft {
 
   @@index([workspaceId, status])
   @@map("transaction_drafts")
+}
+
+// --- Fase 4: Inteligência ---
+
+model CategoryRule {
+  id          String        @id @default(cuid())
+  workspaceId String
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  matchType   RuleMatchType
+  pattern     String
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  priority    Int           @default(100)
+  createdAt   DateTime      @default(now())
+
+  @@unique([workspaceId, matchType, pattern])
+  @@index([workspaceId, priority(sort: Desc)])
+  @@map("category_rules")
+}
+
+model Insight {
+  id          String      @id @default(cuid())
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type        InsightType
+  dedupKey    String
+  period      String      @default("")
+  payload     Json
+  read        Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+
+  @@unique([workspaceId, type, dedupKey, period])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@map("insights")
+}
+
+model Budget {
+  id          String       @id @default(cuid())
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  method      BudgetMethod
+  categoryId  String?
+  category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  limitCents  BigInt?
+  createdAt   DateTime     @default(now())
+
+  @@index([workspaceId])
+  @@map("budgets")
+}
+
+model Goal {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  targetCents BigInt
+  savedCents  BigInt   @default(0)
+  deadline    DateTime? @db.Date
+  createdAt   DateTime  @default(now())
+
+  contributions GoalContribution[]
+
+  @@index([workspaceId])
+  @@map("goals")
+}
+
+model GoalContribution {
+  id          String   @id @default(cuid())
+  goalId      String
+  goal        Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  amountCents BigInt
+  date        DateTime @db.Date
+  createdById String
+  createdBy   User     @relation("GoalContributor", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([goalId])
+  @@map("goal_contributions")
 }

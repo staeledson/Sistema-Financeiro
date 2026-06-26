@@ -32,6 +32,7 @@ export type CategoryMinAggregateOutputType = {
   name: string | null
   icon: string | null
   color: string | null
+  bucket: $Enums.CategoryBucket | null
   isSystem: boolean | null
 }
 
@@ -43,6 +44,7 @@ export type CategoryMaxAggregateOutputType = {
   name: string | null
   icon: string | null
   color: string | null
+  bucket: $Enums.CategoryBucket | null
   isSystem: boolean | null
 }
 
@@ -54,6 +56,7 @@ export type CategoryCountAggregateOutputType = {
   name: number
   icon: number
   color: number
+  bucket: number
   isSystem: number
   _all: number
 }
@@ -67,6 +70,7 @@ export type CategoryMinAggregateInputType = {
   name?: true
   icon?: true
   color?: true
+  bucket?: true
   isSystem?: true
 }
 
@@ -78,6 +82,7 @@ export type CategoryMaxAggregateInputType = {
   name?: true
   icon?: true
   color?: true
+  bucket?: true
   isSystem?: true
 }
 
@@ -89,6 +94,7 @@ export type CategoryCountAggregateInputType = {
   name?: true
   icon?: true
   color?: true
+  bucket?: true
   isSystem?: true
   _all?: true
 }
@@ -173,6 +179,7 @@ export type CategoryGroupByOutputType = {
   name: string
   icon: string | null
   color: string | null
+  bucket: $Enums.CategoryBucket | null
   isSystem: boolean
   _count: CategoryCountAggregateOutputType | null
   _min: CategoryMinAggregateOutputType | null
@@ -205,12 +212,15 @@ export type CategoryWhereInput = {
   name?: Prisma.StringFilter<"Category"> | string
   icon?: Prisma.StringNullableFilter<"Category"> | string | null
   color?: Prisma.StringNullableFilter<"Category"> | string | null
+  bucket?: Prisma.EnumCategoryBucketNullableFilter<"Category"> | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFilter<"Category"> | boolean
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
   parent?: Prisma.XOR<Prisma.CategoryNullableScalarRelationFilter, Prisma.CategoryWhereInput> | null
   children?: Prisma.CategoryListRelationFilter
   transactions?: Prisma.TransactionListRelationFilter
   drafts?: Prisma.TransactionDraftListRelationFilter
+  categoryRules?: Prisma.CategoryRuleListRelationFilter
+  budgets?: Prisma.BudgetListRelationFilter
 }
 
 export type CategoryOrderByWithRelationInput = {
@@ -221,12 +231,15 @@ export type CategoryOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   icon?: Prisma.SortOrderInput | Prisma.SortOrder
   color?: Prisma.SortOrderInput | Prisma.SortOrder
+  bucket?: Prisma.SortOrderInput | Prisma.SortOrder
   isSystem?: Prisma.SortOrder
   workspace?: Prisma.WorkspaceOrderByWithRelationInput
   parent?: Prisma.CategoryOrderByWithRelationInput
   children?: Prisma.CategoryOrderByRelationAggregateInput
   transactions?: Prisma.TransactionOrderByRelationAggregateInput
   drafts?: Prisma.TransactionDraftOrderByRelationAggregateInput
+  categoryRules?: Prisma.CategoryRuleOrderByRelationAggregateInput
+  budgets?: Prisma.BudgetOrderByRelationAggregateInput
 }
 
 export type CategoryWhereUniqueInput = Prisma.AtLeast<{
@@ -240,12 +253,15 @@ export type CategoryWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"Category"> | string
   icon?: Prisma.StringNullableFilter<"Category"> | string | null
   color?: Prisma.StringNullableFilter<"Category"> | string | null
+  bucket?: Prisma.EnumCategoryBucketNullableFilter<"Category"> | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFilter<"Category"> | boolean
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
   parent?: Prisma.XOR<Prisma.CategoryNullableScalarRelationFilter, Prisma.CategoryWhereInput> | null
   children?: Prisma.CategoryListRelationFilter
   transactions?: Prisma.TransactionListRelationFilter
   drafts?: Prisma.TransactionDraftListRelationFilter
+  categoryRules?: Prisma.CategoryRuleListRelationFilter
+  budgets?: Prisma.BudgetListRelationFilter
 }, "id">
 
 export type CategoryOrderByWithAggregationInput = {
@@ -256,6 +272,7 @@ export type CategoryOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   icon?: Prisma.SortOrderInput | Prisma.SortOrder
   color?: Prisma.SortOrderInput | Prisma.SortOrder
+  bucket?: Prisma.SortOrderInput | Prisma.SortOrder
   isSystem?: Prisma.SortOrder
   _count?: Prisma.CategoryCountOrderByAggregateInput
   _max?: Prisma.CategoryMaxOrderByAggregateInput
@@ -273,6 +290,7 @@ export type CategoryScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"Category"> | string
   icon?: Prisma.StringNullableWithAggregatesFilter<"Category"> | string | null
   color?: Prisma.StringNullableWithAggregatesFilter<"Category"> | string | null
+  bucket?: Prisma.EnumCategoryBucketNullableWithAggregatesFilter<"Category"> | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolWithAggregatesFilter<"Category"> | boolean
 }
 
@@ -282,12 +300,15 @@ export type CategoryCreateInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   workspace: Prisma.WorkspaceCreateNestedOneWithoutCategoriesInput
   parent?: Prisma.CategoryCreateNestedOneWithoutChildrenInput
   children?: Prisma.CategoryCreateNestedManyWithoutParentInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateInput = {
@@ -298,10 +319,13 @@ export type CategoryUncheckedCreateInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   children?: Prisma.CategoryUncheckedCreateNestedManyWithoutParentInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUpdateInput = {
@@ -310,12 +334,15 @@ export type CategoryUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutCategoriesNestedInput
   parent?: Prisma.CategoryUpdateOneWithoutChildrenNestedInput
   children?: Prisma.CategoryUpdateManyWithoutParentNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateInput = {
@@ -326,10 +353,13 @@ export type CategoryUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   children?: Prisma.CategoryUncheckedUpdateManyWithoutParentNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryCreateManyInput = {
@@ -340,6 +370,7 @@ export type CategoryCreateManyInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
 }
 
@@ -349,6 +380,7 @@ export type CategoryUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -360,6 +392,7 @@ export type CategoryUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -386,6 +419,7 @@ export type CategoryCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   icon?: Prisma.SortOrder
   color?: Prisma.SortOrder
+  bucket?: Prisma.SortOrder
   isSystem?: Prisma.SortOrder
 }
 
@@ -397,6 +431,7 @@ export type CategoryMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   icon?: Prisma.SortOrder
   color?: Prisma.SortOrder
+  bucket?: Prisma.SortOrder
   isSystem?: Prisma.SortOrder
 }
 
@@ -408,7 +443,13 @@ export type CategoryMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   icon?: Prisma.SortOrder
   color?: Prisma.SortOrder
+  bucket?: Prisma.SortOrder
   isSystem?: Prisma.SortOrder
+}
+
+export type CategoryScalarRelationFilter = {
+  is?: Prisma.CategoryWhereInput
+  isNot?: Prisma.CategoryWhereInput
 }
 
 export type CategoryCreateNestedManyWithoutWorkspaceInput = {
@@ -475,6 +516,10 @@ export type CategoryUncheckedCreateNestedManyWithoutParentInput = {
 
 export type EnumCategoryTypeFieldUpdateOperationsInput = {
   set?: $Enums.CategoryType
+}
+
+export type NullableEnumCategoryBucketFieldUpdateOperationsInput = {
+  set?: $Enums.CategoryBucket | null
 }
 
 export type CategoryUpdateOneWithoutChildrenNestedInput = {
@@ -547,17 +592,50 @@ export type CategoryUpdateOneWithoutDraftsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CategoryUpdateToOneWithWhereWithoutDraftsInput, Prisma.CategoryUpdateWithoutDraftsInput>, Prisma.CategoryUncheckedUpdateWithoutDraftsInput>
 }
 
+export type CategoryCreateNestedOneWithoutCategoryRulesInput = {
+  create?: Prisma.XOR<Prisma.CategoryCreateWithoutCategoryRulesInput, Prisma.CategoryUncheckedCreateWithoutCategoryRulesInput>
+  connectOrCreate?: Prisma.CategoryCreateOrConnectWithoutCategoryRulesInput
+  connect?: Prisma.CategoryWhereUniqueInput
+}
+
+export type CategoryUpdateOneRequiredWithoutCategoryRulesNestedInput = {
+  create?: Prisma.XOR<Prisma.CategoryCreateWithoutCategoryRulesInput, Prisma.CategoryUncheckedCreateWithoutCategoryRulesInput>
+  connectOrCreate?: Prisma.CategoryCreateOrConnectWithoutCategoryRulesInput
+  upsert?: Prisma.CategoryUpsertWithoutCategoryRulesInput
+  connect?: Prisma.CategoryWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CategoryUpdateToOneWithWhereWithoutCategoryRulesInput, Prisma.CategoryUpdateWithoutCategoryRulesInput>, Prisma.CategoryUncheckedUpdateWithoutCategoryRulesInput>
+}
+
+export type CategoryCreateNestedOneWithoutBudgetsInput = {
+  create?: Prisma.XOR<Prisma.CategoryCreateWithoutBudgetsInput, Prisma.CategoryUncheckedCreateWithoutBudgetsInput>
+  connectOrCreate?: Prisma.CategoryCreateOrConnectWithoutBudgetsInput
+  connect?: Prisma.CategoryWhereUniqueInput
+}
+
+export type CategoryUpdateOneWithoutBudgetsNestedInput = {
+  create?: Prisma.XOR<Prisma.CategoryCreateWithoutBudgetsInput, Prisma.CategoryUncheckedCreateWithoutBudgetsInput>
+  connectOrCreate?: Prisma.CategoryCreateOrConnectWithoutBudgetsInput
+  upsert?: Prisma.CategoryUpsertWithoutBudgetsInput
+  disconnect?: Prisma.CategoryWhereInput | boolean
+  delete?: Prisma.CategoryWhereInput | boolean
+  connect?: Prisma.CategoryWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CategoryUpdateToOneWithWhereWithoutBudgetsInput, Prisma.CategoryUpdateWithoutBudgetsInput>, Prisma.CategoryUncheckedUpdateWithoutBudgetsInput>
+}
+
 export type CategoryCreateWithoutWorkspaceInput = {
   id?: string
   type: $Enums.CategoryType
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   parent?: Prisma.CategoryCreateNestedOneWithoutChildrenInput
   children?: Prisma.CategoryCreateNestedManyWithoutParentInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateWithoutWorkspaceInput = {
@@ -567,10 +645,13 @@ export type CategoryUncheckedCreateWithoutWorkspaceInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   children?: Prisma.CategoryUncheckedCreateNestedManyWithoutParentInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryCreateOrConnectWithoutWorkspaceInput = {
@@ -610,6 +691,7 @@ export type CategoryScalarWhereInput = {
   name?: Prisma.StringFilter<"Category"> | string
   icon?: Prisma.StringNullableFilter<"Category"> | string | null
   color?: Prisma.StringNullableFilter<"Category"> | string | null
+  bucket?: Prisma.EnumCategoryBucketNullableFilter<"Category"> | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFilter<"Category"> | boolean
 }
 
@@ -619,11 +701,14 @@ export type CategoryCreateWithoutChildrenInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   workspace: Prisma.WorkspaceCreateNestedOneWithoutCategoriesInput
   parent?: Prisma.CategoryCreateNestedOneWithoutChildrenInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateWithoutChildrenInput = {
@@ -634,9 +719,12 @@ export type CategoryUncheckedCreateWithoutChildrenInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryCreateOrConnectWithoutChildrenInput = {
@@ -650,11 +738,14 @@ export type CategoryCreateWithoutParentInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   workspace: Prisma.WorkspaceCreateNestedOneWithoutCategoriesInput
   children?: Prisma.CategoryCreateNestedManyWithoutParentInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateWithoutParentInput = {
@@ -664,10 +755,13 @@ export type CategoryUncheckedCreateWithoutParentInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   children?: Prisma.CategoryUncheckedCreateNestedManyWithoutParentInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryCreateOrConnectWithoutParentInput = {
@@ -697,11 +791,14 @@ export type CategoryUpdateWithoutChildrenInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutCategoriesNestedInput
   parent?: Prisma.CategoryUpdateOneWithoutChildrenNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateWithoutChildrenInput = {
@@ -712,9 +809,12 @@ export type CategoryUncheckedUpdateWithoutChildrenInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUpsertWithWhereUniqueWithoutParentInput = {
@@ -739,11 +839,14 @@ export type CategoryCreateWithoutTransactionsInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   workspace: Prisma.WorkspaceCreateNestedOneWithoutCategoriesInput
   parent?: Prisma.CategoryCreateNestedOneWithoutChildrenInput
   children?: Prisma.CategoryCreateNestedManyWithoutParentInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateWithoutTransactionsInput = {
@@ -754,9 +857,12 @@ export type CategoryUncheckedCreateWithoutTransactionsInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   children?: Prisma.CategoryUncheckedCreateNestedManyWithoutParentInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryCreateOrConnectWithoutTransactionsInput = {
@@ -781,11 +887,14 @@ export type CategoryUpdateWithoutTransactionsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutCategoriesNestedInput
   parent?: Prisma.CategoryUpdateOneWithoutChildrenNestedInput
   children?: Prisma.CategoryUpdateManyWithoutParentNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateWithoutTransactionsInput = {
@@ -796,9 +905,12 @@ export type CategoryUncheckedUpdateWithoutTransactionsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   children?: Prisma.CategoryUncheckedUpdateManyWithoutParentNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryCreateWithoutDraftsInput = {
@@ -807,11 +919,14 @@ export type CategoryCreateWithoutDraftsInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   workspace: Prisma.WorkspaceCreateNestedOneWithoutCategoriesInput
   parent?: Prisma.CategoryCreateNestedOneWithoutChildrenInput
   children?: Prisma.CategoryCreateNestedManyWithoutParentInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateWithoutDraftsInput = {
@@ -822,9 +937,12 @@ export type CategoryUncheckedCreateWithoutDraftsInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
   children?: Prisma.CategoryUncheckedCreateNestedManyWithoutParentInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryCreateOrConnectWithoutDraftsInput = {
@@ -849,11 +967,14 @@ export type CategoryUpdateWithoutDraftsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutCategoriesNestedInput
   parent?: Prisma.CategoryUpdateOneWithoutChildrenNestedInput
   children?: Prisma.CategoryUpdateManyWithoutParentNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateWithoutDraftsInput = {
@@ -864,9 +985,172 @@ export type CategoryUncheckedUpdateWithoutDraftsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   children?: Prisma.CategoryUncheckedUpdateManyWithoutParentNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutCategoryNestedInput
+}
+
+export type CategoryCreateWithoutCategoryRulesInput = {
+  id?: string
+  type: $Enums.CategoryType
+  name: string
+  icon?: string | null
+  color?: string | null
+  bucket?: $Enums.CategoryBucket | null
+  isSystem?: boolean
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutCategoriesInput
+  parent?: Prisma.CategoryCreateNestedOneWithoutChildrenInput
+  children?: Prisma.CategoryCreateNestedManyWithoutParentInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutCategoryInput
+}
+
+export type CategoryUncheckedCreateWithoutCategoryRulesInput = {
+  id?: string
+  workspaceId: string
+  type: $Enums.CategoryType
+  parentId?: string | null
+  name: string
+  icon?: string | null
+  color?: string | null
+  bucket?: $Enums.CategoryBucket | null
+  isSystem?: boolean
+  children?: Prisma.CategoryUncheckedCreateNestedManyWithoutParentInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCategoryInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutCategoryInput
+}
+
+export type CategoryCreateOrConnectWithoutCategoryRulesInput = {
+  where: Prisma.CategoryWhereUniqueInput
+  create: Prisma.XOR<Prisma.CategoryCreateWithoutCategoryRulesInput, Prisma.CategoryUncheckedCreateWithoutCategoryRulesInput>
+}
+
+export type CategoryUpsertWithoutCategoryRulesInput = {
+  update: Prisma.XOR<Prisma.CategoryUpdateWithoutCategoryRulesInput, Prisma.CategoryUncheckedUpdateWithoutCategoryRulesInput>
+  create: Prisma.XOR<Prisma.CategoryCreateWithoutCategoryRulesInput, Prisma.CategoryUncheckedCreateWithoutCategoryRulesInput>
+  where?: Prisma.CategoryWhereInput
+}
+
+export type CategoryUpdateToOneWithWhereWithoutCategoryRulesInput = {
+  where?: Prisma.CategoryWhereInput
+  data: Prisma.XOR<Prisma.CategoryUpdateWithoutCategoryRulesInput, Prisma.CategoryUncheckedUpdateWithoutCategoryRulesInput>
+}
+
+export type CategoryUpdateWithoutCategoryRulesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutCategoriesNestedInput
+  parent?: Prisma.CategoryUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.CategoryUpdateManyWithoutParentNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutCategoryNestedInput
+}
+
+export type CategoryUncheckedUpdateWithoutCategoryRulesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  children?: Prisma.CategoryUncheckedUpdateManyWithoutParentNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutCategoryNestedInput
+}
+
+export type CategoryCreateWithoutBudgetsInput = {
+  id?: string
+  type: $Enums.CategoryType
+  name: string
+  icon?: string | null
+  color?: string | null
+  bucket?: $Enums.CategoryBucket | null
+  isSystem?: boolean
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutCategoriesInput
+  parent?: Prisma.CategoryCreateNestedOneWithoutChildrenInput
+  children?: Prisma.CategoryCreateNestedManyWithoutParentInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutCategoryInput
+}
+
+export type CategoryUncheckedCreateWithoutBudgetsInput = {
+  id?: string
+  workspaceId: string
+  type: $Enums.CategoryType
+  parentId?: string | null
+  name: string
+  icon?: string | null
+  color?: string | null
+  bucket?: $Enums.CategoryBucket | null
+  isSystem?: boolean
+  children?: Prisma.CategoryUncheckedCreateNestedManyWithoutParentInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCategoryInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutCategoryInput
+}
+
+export type CategoryCreateOrConnectWithoutBudgetsInput = {
+  where: Prisma.CategoryWhereUniqueInput
+  create: Prisma.XOR<Prisma.CategoryCreateWithoutBudgetsInput, Prisma.CategoryUncheckedCreateWithoutBudgetsInput>
+}
+
+export type CategoryUpsertWithoutBudgetsInput = {
+  update: Prisma.XOR<Prisma.CategoryUpdateWithoutBudgetsInput, Prisma.CategoryUncheckedUpdateWithoutBudgetsInput>
+  create: Prisma.XOR<Prisma.CategoryCreateWithoutBudgetsInput, Prisma.CategoryUncheckedCreateWithoutBudgetsInput>
+  where?: Prisma.CategoryWhereInput
+}
+
+export type CategoryUpdateToOneWithWhereWithoutBudgetsInput = {
+  where?: Prisma.CategoryWhereInput
+  data: Prisma.XOR<Prisma.CategoryUpdateWithoutBudgetsInput, Prisma.CategoryUncheckedUpdateWithoutBudgetsInput>
+}
+
+export type CategoryUpdateWithoutBudgetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutCategoriesNestedInput
+  parent?: Prisma.CategoryUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.CategoryUpdateManyWithoutParentNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutCategoryNestedInput
+}
+
+export type CategoryUncheckedUpdateWithoutBudgetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  children?: Prisma.CategoryUncheckedUpdateManyWithoutParentNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryCreateManyWorkspaceInput = {
@@ -876,6 +1160,7 @@ export type CategoryCreateManyWorkspaceInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
 }
 
@@ -885,11 +1170,14 @@ export type CategoryUpdateWithoutWorkspaceInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   parent?: Prisma.CategoryUpdateOneWithoutChildrenNestedInput
   children?: Prisma.CategoryUpdateManyWithoutParentNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateWithoutWorkspaceInput = {
@@ -899,10 +1187,13 @@ export type CategoryUncheckedUpdateWithoutWorkspaceInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   children?: Prisma.CategoryUncheckedUpdateManyWithoutParentNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -912,6 +1203,7 @@ export type CategoryUncheckedUpdateManyWithoutWorkspaceInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -922,6 +1214,7 @@ export type CategoryCreateManyParentInput = {
   name: string
   icon?: string | null
   color?: string | null
+  bucket?: $Enums.CategoryBucket | null
   isSystem?: boolean
 }
 
@@ -931,11 +1224,14 @@ export type CategoryUpdateWithoutParentInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutCategoriesNestedInput
   children?: Prisma.CategoryUpdateManyWithoutParentNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateWithoutParentInput = {
@@ -945,10 +1241,13 @@ export type CategoryUncheckedUpdateWithoutParentInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   children?: Prisma.CategoryUncheckedUpdateManyWithoutParentNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCategoryNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutCategoryNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateManyWithoutParentInput = {
@@ -958,6 +1257,7 @@ export type CategoryUncheckedUpdateManyWithoutParentInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bucket?: Prisma.NullableEnumCategoryBucketFieldUpdateOperationsInput | $Enums.CategoryBucket | null
   isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -970,12 +1270,16 @@ export type CategoryCountOutputType = {
   children: number
   transactions: number
   drafts: number
+  categoryRules: number
+  budgets: number
 }
 
 export type CategoryCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   children?: boolean | CategoryCountOutputTypeCountChildrenArgs
   transactions?: boolean | CategoryCountOutputTypeCountTransactionsArgs
   drafts?: boolean | CategoryCountOutputTypeCountDraftsArgs
+  categoryRules?: boolean | CategoryCountOutputTypeCountCategoryRulesArgs
+  budgets?: boolean | CategoryCountOutputTypeCountBudgetsArgs
 }
 
 /**
@@ -1009,6 +1313,20 @@ export type CategoryCountOutputTypeCountDraftsArgs<ExtArgs extends runtime.Types
   where?: Prisma.TransactionDraftWhereInput
 }
 
+/**
+ * CategoryCountOutputType without action
+ */
+export type CategoryCountOutputTypeCountCategoryRulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CategoryRuleWhereInput
+}
+
+/**
+ * CategoryCountOutputType without action
+ */
+export type CategoryCountOutputTypeCountBudgetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BudgetWhereInput
+}
+
 
 export type CategorySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1018,12 +1336,15 @@ export type CategorySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   name?: boolean
   icon?: boolean
   color?: boolean
+  bucket?: boolean
   isSystem?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   parent?: boolean | Prisma.Category$parentArgs<ExtArgs>
   children?: boolean | Prisma.Category$childrenArgs<ExtArgs>
   transactions?: boolean | Prisma.Category$transactionsArgs<ExtArgs>
   drafts?: boolean | Prisma.Category$draftsArgs<ExtArgs>
+  categoryRules?: boolean | Prisma.Category$categoryRulesArgs<ExtArgs>
+  budgets?: boolean | Prisma.Category$budgetsArgs<ExtArgs>
   _count?: boolean | Prisma.CategoryCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["category"]>
 
@@ -1035,6 +1356,7 @@ export type CategorySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   name?: boolean
   icon?: boolean
   color?: boolean
+  bucket?: boolean
   isSystem?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   parent?: boolean | Prisma.Category$parentArgs<ExtArgs>
@@ -1048,6 +1370,7 @@ export type CategorySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   name?: boolean
   icon?: boolean
   color?: boolean
+  bucket?: boolean
   isSystem?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   parent?: boolean | Prisma.Category$parentArgs<ExtArgs>
@@ -1061,16 +1384,19 @@ export type CategorySelectScalar = {
   name?: boolean
   icon?: boolean
   color?: boolean
+  bucket?: boolean
   isSystem?: boolean
 }
 
-export type CategoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "type" | "parentId" | "name" | "icon" | "color" | "isSystem", ExtArgs["result"]["category"]>
+export type CategoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "type" | "parentId" | "name" | "icon" | "color" | "bucket" | "isSystem", ExtArgs["result"]["category"]>
 export type CategoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   parent?: boolean | Prisma.Category$parentArgs<ExtArgs>
   children?: boolean | Prisma.Category$childrenArgs<ExtArgs>
   transactions?: boolean | Prisma.Category$transactionsArgs<ExtArgs>
   drafts?: boolean | Prisma.Category$draftsArgs<ExtArgs>
+  categoryRules?: boolean | Prisma.Category$categoryRulesArgs<ExtArgs>
+  budgets?: boolean | Prisma.Category$budgetsArgs<ExtArgs>
   _count?: boolean | Prisma.CategoryCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CategoryIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1090,6 +1416,8 @@ export type $CategoryPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     children: Prisma.$CategoryPayload<ExtArgs>[]
     transactions: Prisma.$TransactionPayload<ExtArgs>[]
     drafts: Prisma.$TransactionDraftPayload<ExtArgs>[]
+    categoryRules: Prisma.$CategoryRulePayload<ExtArgs>[]
+    budgets: Prisma.$BudgetPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1099,6 +1427,7 @@ export type $CategoryPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     name: string
     icon: string | null
     color: string | null
+    bucket: $Enums.CategoryBucket | null
     isSystem: boolean
   }, ExtArgs["result"]["category"]>
   composites: {}
@@ -1499,6 +1828,8 @@ export interface Prisma__CategoryClient<T, Null = never, ExtArgs extends runtime
   children<T extends Prisma.Category$childrenArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Category$childrenArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CategoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   transactions<T extends Prisma.Category$transactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Category$transactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   drafts<T extends Prisma.Category$draftsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Category$draftsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionDraftPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  categoryRules<T extends Prisma.Category$categoryRulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Category$categoryRulesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CategoryRulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  budgets<T extends Prisma.Category$budgetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Category$budgetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BudgetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1535,6 +1866,7 @@ export interface CategoryFieldRefs {
   readonly name: Prisma.FieldRef<"Category", 'String'>
   readonly icon: Prisma.FieldRef<"Category", 'String'>
   readonly color: Prisma.FieldRef<"Category", 'String'>
+  readonly bucket: Prisma.FieldRef<"Category", 'CategoryBucket'>
   readonly isSystem: Prisma.FieldRef<"Category", 'Boolean'>
 }
     
@@ -2025,6 +2357,54 @@ export type Category$draftsArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.TransactionDraftScalarFieldEnum | Prisma.TransactionDraftScalarFieldEnum[]
+}
+
+/**
+ * Category.categoryRules
+ */
+export type Category$categoryRulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CategoryRule
+   */
+  select?: Prisma.CategoryRuleSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CategoryRule
+   */
+  omit?: Prisma.CategoryRuleOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CategoryRuleInclude<ExtArgs> | null
+  where?: Prisma.CategoryRuleWhereInput
+  orderBy?: Prisma.CategoryRuleOrderByWithRelationInput | Prisma.CategoryRuleOrderByWithRelationInput[]
+  cursor?: Prisma.CategoryRuleWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CategoryRuleScalarFieldEnum | Prisma.CategoryRuleScalarFieldEnum[]
+}
+
+/**
+ * Category.budgets
+ */
+export type Category$budgetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Budget
+   */
+  select?: Prisma.BudgetSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Budget
+   */
+  omit?: Prisma.BudgetOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BudgetInclude<ExtArgs> | null
+  where?: Prisma.BudgetWhereInput
+  orderBy?: Prisma.BudgetOrderByWithRelationInput | Prisma.BudgetOrderByWithRelationInput[]
+  cursor?: Prisma.BudgetWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BudgetScalarFieldEnum | Prisma.BudgetScalarFieldEnum[]
 }
 
 /**
