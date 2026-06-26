@@ -212,6 +212,8 @@ export type WorkspaceWhereInput = {
   insights?: Prisma.InsightListRelationFilter
   budgets?: Prisma.BudgetListRelationFilter
   goals?: Prisma.GoalListRelationFilter
+  invitations?: Prisma.InvitationListRelationFilter
+  businessProfile?: Prisma.XOR<Prisma.BusinessProfileNullableScalarRelationFilter, Prisma.BusinessProfileWhereInput> | null
 }
 
 export type WorkspaceOrderByWithRelationInput = {
@@ -236,6 +238,8 @@ export type WorkspaceOrderByWithRelationInput = {
   insights?: Prisma.InsightOrderByRelationAggregateInput
   budgets?: Prisma.BudgetOrderByRelationAggregateInput
   goals?: Prisma.GoalOrderByRelationAggregateInput
+  invitations?: Prisma.InvitationOrderByRelationAggregateInput
+  businessProfile?: Prisma.BusinessProfileOrderByWithRelationInput
 }
 
 export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
@@ -263,6 +267,8 @@ export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
   insights?: Prisma.InsightListRelationFilter
   budgets?: Prisma.BudgetListRelationFilter
   goals?: Prisma.GoalListRelationFilter
+  invitations?: Prisma.InvitationListRelationFilter
+  businessProfile?: Prisma.XOR<Prisma.BusinessProfileNullableScalarRelationFilter, Prisma.BusinessProfileWhereInput> | null
 }, "id">
 
 export type WorkspaceOrderByWithAggregationInput = {
@@ -312,6 +318,8 @@ export type WorkspaceCreateInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateInput = {
@@ -335,6 +343,8 @@ export type WorkspaceUncheckedCreateInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUpdateInput = {
@@ -358,6 +368,8 @@ export type WorkspaceUpdateInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateInput = {
@@ -381,6 +393,8 @@ export type WorkspaceUncheckedUpdateInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateManyInput = {
@@ -685,6 +699,34 @@ export type WorkspaceUpdateOneRequiredWithoutGoalsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutGoalsInput, Prisma.WorkspaceUpdateWithoutGoalsInput>, Prisma.WorkspaceUncheckedUpdateWithoutGoalsInput>
 }
 
+export type WorkspaceCreateNestedOneWithoutInvitationsInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutInvitationsInput, Prisma.WorkspaceUncheckedCreateWithoutInvitationsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutInvitationsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutInvitationsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutInvitationsInput, Prisma.WorkspaceUncheckedCreateWithoutInvitationsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutInvitationsInput
+  upsert?: Prisma.WorkspaceUpsertWithoutInvitationsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutInvitationsInput, Prisma.WorkspaceUpdateWithoutInvitationsInput>, Prisma.WorkspaceUncheckedUpdateWithoutInvitationsInput>
+}
+
+export type WorkspaceCreateNestedOneWithoutBusinessProfileInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutBusinessProfileInput, Prisma.WorkspaceUncheckedCreateWithoutBusinessProfileInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutBusinessProfileInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutBusinessProfileNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutBusinessProfileInput, Prisma.WorkspaceUncheckedCreateWithoutBusinessProfileInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutBusinessProfileInput
+  upsert?: Prisma.WorkspaceUpsertWithoutBusinessProfileInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutBusinessProfileInput, Prisma.WorkspaceUpdateWithoutBusinessProfileInput>, Prisma.WorkspaceUncheckedUpdateWithoutBusinessProfileInput>
+}
+
 export type WorkspaceCreateWithoutCreatedByInput = {
   id?: string
   type: $Enums.WorkspaceType
@@ -705,6 +747,8 @@ export type WorkspaceCreateWithoutCreatedByInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCreatedByInput = {
@@ -727,6 +771,8 @@ export type WorkspaceUncheckedCreateWithoutCreatedByInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCreatedByInput = {
@@ -788,6 +834,8 @@ export type WorkspaceCreateWithoutMembersInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutMembersInput = {
@@ -810,6 +858,8 @@ export type WorkspaceUncheckedCreateWithoutMembersInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutMembersInput = {
@@ -848,6 +898,8 @@ export type WorkspaceUpdateWithoutMembersInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutMembersInput = {
@@ -870,6 +922,8 @@ export type WorkspaceUncheckedUpdateWithoutMembersInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutBankAccountsInput = {
@@ -892,6 +946,8 @@ export type WorkspaceCreateWithoutBankAccountsInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBankAccountsInput = {
@@ -914,6 +970,8 @@ export type WorkspaceUncheckedCreateWithoutBankAccountsInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBankAccountsInput = {
@@ -952,6 +1010,8 @@ export type WorkspaceUpdateWithoutBankAccountsInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBankAccountsInput = {
@@ -974,6 +1034,8 @@ export type WorkspaceUncheckedUpdateWithoutBankAccountsInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutCategoriesInput = {
@@ -996,6 +1058,8 @@ export type WorkspaceCreateWithoutCategoriesInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCategoriesInput = {
@@ -1018,6 +1082,8 @@ export type WorkspaceUncheckedCreateWithoutCategoriesInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCategoriesInput = {
@@ -1056,6 +1122,8 @@ export type WorkspaceUpdateWithoutCategoriesInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCategoriesInput = {
@@ -1078,6 +1146,8 @@ export type WorkspaceUncheckedUpdateWithoutCategoriesInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutTagsInput = {
@@ -1100,6 +1170,8 @@ export type WorkspaceCreateWithoutTagsInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutTagsInput = {
@@ -1122,6 +1194,8 @@ export type WorkspaceUncheckedCreateWithoutTagsInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutTagsInput = {
@@ -1160,6 +1234,8 @@ export type WorkspaceUpdateWithoutTagsInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutTagsInput = {
@@ -1182,6 +1258,8 @@ export type WorkspaceUncheckedUpdateWithoutTagsInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutTransactionsInput = {
@@ -1204,6 +1282,8 @@ export type WorkspaceCreateWithoutTransactionsInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutTransactionsInput = {
@@ -1226,6 +1306,8 @@ export type WorkspaceUncheckedCreateWithoutTransactionsInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutTransactionsInput = {
@@ -1264,6 +1346,8 @@ export type WorkspaceUpdateWithoutTransactionsInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutTransactionsInput = {
@@ -1286,6 +1370,8 @@ export type WorkspaceUncheckedUpdateWithoutTransactionsInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutImportBatchesInput = {
@@ -1308,6 +1394,8 @@ export type WorkspaceCreateWithoutImportBatchesInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutImportBatchesInput = {
@@ -1330,6 +1418,8 @@ export type WorkspaceUncheckedCreateWithoutImportBatchesInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutImportBatchesInput = {
@@ -1368,6 +1458,8 @@ export type WorkspaceUpdateWithoutImportBatchesInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutImportBatchesInput = {
@@ -1390,6 +1482,8 @@ export type WorkspaceUncheckedUpdateWithoutImportBatchesInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutImportMappingsInput = {
@@ -1412,6 +1506,8 @@ export type WorkspaceCreateWithoutImportMappingsInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutImportMappingsInput = {
@@ -1434,6 +1530,8 @@ export type WorkspaceUncheckedCreateWithoutImportMappingsInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutImportMappingsInput = {
@@ -1472,6 +1570,8 @@ export type WorkspaceUpdateWithoutImportMappingsInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutImportMappingsInput = {
@@ -1494,6 +1594,8 @@ export type WorkspaceUncheckedUpdateWithoutImportMappingsInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutAiJobsInput = {
@@ -1516,6 +1618,8 @@ export type WorkspaceCreateWithoutAiJobsInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutAiJobsInput = {
@@ -1538,6 +1642,8 @@ export type WorkspaceUncheckedCreateWithoutAiJobsInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutAiJobsInput = {
@@ -1576,6 +1682,8 @@ export type WorkspaceUpdateWithoutAiJobsInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutAiJobsInput = {
@@ -1598,6 +1706,8 @@ export type WorkspaceUncheckedUpdateWithoutAiJobsInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutDraftsInput = {
@@ -1620,6 +1730,8 @@ export type WorkspaceCreateWithoutDraftsInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutDraftsInput = {
@@ -1642,6 +1754,8 @@ export type WorkspaceUncheckedCreateWithoutDraftsInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutDraftsInput = {
@@ -1680,6 +1794,8 @@ export type WorkspaceUpdateWithoutDraftsInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutDraftsInput = {
@@ -1702,6 +1818,8 @@ export type WorkspaceUncheckedUpdateWithoutDraftsInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutCategoryRulesInput = {
@@ -1724,6 +1842,8 @@ export type WorkspaceCreateWithoutCategoryRulesInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCategoryRulesInput = {
@@ -1746,6 +1866,8 @@ export type WorkspaceUncheckedCreateWithoutCategoryRulesInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCategoryRulesInput = {
@@ -1784,6 +1906,8 @@ export type WorkspaceUpdateWithoutCategoryRulesInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCategoryRulesInput = {
@@ -1806,6 +1930,8 @@ export type WorkspaceUncheckedUpdateWithoutCategoryRulesInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutInsightsInput = {
@@ -1828,6 +1954,8 @@ export type WorkspaceCreateWithoutInsightsInput = {
   categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutInsightsInput = {
@@ -1850,6 +1978,8 @@ export type WorkspaceUncheckedCreateWithoutInsightsInput = {
   categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutInsightsInput = {
@@ -1888,6 +2018,8 @@ export type WorkspaceUpdateWithoutInsightsInput = {
   categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutInsightsInput = {
@@ -1910,6 +2042,8 @@ export type WorkspaceUncheckedUpdateWithoutInsightsInput = {
   categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutBudgetsInput = {
@@ -1932,6 +2066,8 @@ export type WorkspaceCreateWithoutBudgetsInput = {
   categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBudgetsInput = {
@@ -1954,6 +2090,8 @@ export type WorkspaceUncheckedCreateWithoutBudgetsInput = {
   categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBudgetsInput = {
@@ -1992,6 +2130,8 @@ export type WorkspaceUpdateWithoutBudgetsInput = {
   categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBudgetsInput = {
@@ -2014,6 +2154,8 @@ export type WorkspaceUncheckedUpdateWithoutBudgetsInput = {
   categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutGoalsInput = {
@@ -2036,6 +2178,8 @@ export type WorkspaceCreateWithoutGoalsInput = {
   categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
   insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutGoalsInput = {
@@ -2058,6 +2202,8 @@ export type WorkspaceUncheckedCreateWithoutGoalsInput = {
   categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutGoalsInput = {
@@ -2096,6 +2242,8 @@ export type WorkspaceUpdateWithoutGoalsInput = {
   categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutGoalsInput = {
@@ -2118,6 +2266,232 @@ export type WorkspaceUncheckedUpdateWithoutGoalsInput = {
   categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutInvitationsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  createdBy: Prisma.UserCreateNestedOneWithoutWorkspacesInput
+  members?: Prisma.WorkspaceMemberCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutInvitationsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountUncheckedCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagUncheckedCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutInvitationsInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutInvitationsInput, Prisma.WorkspaceUncheckedCreateWithoutInvitationsInput>
+}
+
+export type WorkspaceUpsertWithoutInvitationsInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutInvitationsInput, Prisma.WorkspaceUncheckedUpdateWithoutInvitationsInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutInvitationsInput, Prisma.WorkspaceUncheckedCreateWithoutInvitationsInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutInvitationsInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutInvitationsInput, Prisma.WorkspaceUncheckedUpdateWithoutInvitationsInput>
+}
+
+export type WorkspaceUpdateWithoutInvitationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutWorkspacesNestedInput
+  members?: Prisma.WorkspaceMemberUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutInvitationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUncheckedUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUncheckedUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutBusinessProfileInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  createdBy: Prisma.UserCreateNestedOneWithoutWorkspacesInput
+  members?: Prisma.WorkspaceMemberCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutBusinessProfileInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountUncheckedCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagUncheckedCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutBusinessProfileInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutBusinessProfileInput, Prisma.WorkspaceUncheckedCreateWithoutBusinessProfileInput>
+}
+
+export type WorkspaceUpsertWithoutBusinessProfileInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutBusinessProfileInput, Prisma.WorkspaceUncheckedUpdateWithoutBusinessProfileInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutBusinessProfileInput, Prisma.WorkspaceUncheckedCreateWithoutBusinessProfileInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutBusinessProfileInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutBusinessProfileInput, Prisma.WorkspaceUncheckedUpdateWithoutBusinessProfileInput>
+}
+
+export type WorkspaceUpdateWithoutBusinessProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutWorkspacesNestedInput
+  members?: Prisma.WorkspaceMemberUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutBusinessProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUncheckedUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUncheckedUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateManyCreatedByInput = {
@@ -2149,6 +2523,8 @@ export type WorkspaceUpdateWithoutCreatedByInput = {
   insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCreatedByInput = {
@@ -2171,6 +2547,8 @@ export type WorkspaceUncheckedUpdateWithoutCreatedByInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateManyWithoutCreatedByInput = {
@@ -2201,6 +2579,7 @@ export type WorkspaceCountOutputType = {
   insights: number
   budgets: number
   goals: number
+  invitations: number
 }
 
 export type WorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2217,6 +2596,7 @@ export type WorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensi
   insights?: boolean | WorkspaceCountOutputTypeCountInsightsArgs
   budgets?: boolean | WorkspaceCountOutputTypeCountBudgetsArgs
   goals?: boolean | WorkspaceCountOutputTypeCountGoalsArgs
+  invitations?: boolean | WorkspaceCountOutputTypeCountInvitationsArgs
 }
 
 /**
@@ -2320,6 +2700,13 @@ export type WorkspaceCountOutputTypeCountGoalsArgs<ExtArgs extends runtime.Types
   where?: Prisma.GoalWhereInput
 }
 
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountInvitationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.InvitationWhereInput
+}
+
 
 export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2343,6 +2730,8 @@ export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   insights?: boolean | Prisma.Workspace$insightsArgs<ExtArgs>
   budgets?: boolean | Prisma.Workspace$budgetsArgs<ExtArgs>
   goals?: boolean | Prisma.Workspace$goalsArgs<ExtArgs>
+  invitations?: boolean | Prisma.Workspace$invitationsArgs<ExtArgs>
+  businessProfile?: boolean | Prisma.Workspace$businessProfileArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["workspace"]>
 
@@ -2394,6 +2783,8 @@ export type WorkspaceInclude<ExtArgs extends runtime.Types.Extensions.InternalAr
   insights?: boolean | Prisma.Workspace$insightsArgs<ExtArgs>
   budgets?: boolean | Prisma.Workspace$budgetsArgs<ExtArgs>
   goals?: boolean | Prisma.Workspace$goalsArgs<ExtArgs>
+  invitations?: boolean | Prisma.Workspace$invitationsArgs<ExtArgs>
+  businessProfile?: boolean | Prisma.Workspace$businessProfileArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type WorkspaceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2420,6 +2811,8 @@ export type $WorkspacePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     insights: Prisma.$InsightPayload<ExtArgs>[]
     budgets: Prisma.$BudgetPayload<ExtArgs>[]
     goals: Prisma.$GoalPayload<ExtArgs>[]
+    invitations: Prisma.$InvitationPayload<ExtArgs>[]
+    businessProfile: Prisma.$BusinessProfilePayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2837,6 +3230,8 @@ export interface Prisma__WorkspaceClient<T, Null = never, ExtArgs extends runtim
   insights<T extends Prisma.Workspace$insightsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$insightsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InsightPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   budgets<T extends Prisma.Workspace$budgetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$budgetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BudgetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   goals<T extends Prisma.Workspace$goalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$goalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GoalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  invitations<T extends Prisma.Workspace$invitationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$invitationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  businessProfile<T extends Prisma.Workspace$businessProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$businessProfileArgs<ExtArgs>>): Prisma.Prisma__BusinessProfileClient<runtime.Types.Result.GetResult<Prisma.$BusinessProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3583,6 +3978,49 @@ export type Workspace$goalsArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.GoalScalarFieldEnum | Prisma.GoalScalarFieldEnum[]
+}
+
+/**
+ * Workspace.invitations
+ */
+export type Workspace$invitationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Invitation
+   */
+  select?: Prisma.InvitationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Invitation
+   */
+  omit?: Prisma.InvitationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.InvitationInclude<ExtArgs> | null
+  where?: Prisma.InvitationWhereInput
+  orderBy?: Prisma.InvitationOrderByWithRelationInput | Prisma.InvitationOrderByWithRelationInput[]
+  cursor?: Prisma.InvitationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.InvitationScalarFieldEnum | Prisma.InvitationScalarFieldEnum[]
+}
+
+/**
+ * Workspace.businessProfile
+ */
+export type Workspace$businessProfileArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BusinessProfile
+   */
+  select?: Prisma.BusinessProfileSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BusinessProfile
+   */
+  omit?: Prisma.BusinessProfileOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BusinessProfileInclude<ExtArgs> | null
+  where?: Prisma.BusinessProfileWhereInput
 }
 
 /**

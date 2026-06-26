@@ -14,6 +14,9 @@ import { CategoryRulesModule } from "./category-rules/category-rules.module";
 import { InsightsModule } from "./insights/insights.module";
 import { BudgetsModule } from "./budgets/budgets.module";
 import { GoalsModule } from "./goals/goals.module";
+import { InvitationsModule } from "./invitations/invitations.module";
+import { SplitsModule } from "./splits/splits.module";
+import { BusinessModule } from "./business/business.module";
 
 @Module({
   imports: [
@@ -31,6 +34,9 @@ import { GoalsModule } from "./goals/goals.module";
     InsightsModule,
     BudgetsModule,
     GoalsModule,
+    InvitationsModule,
+    SplitsModule,
+    BusinessModule,
   ],
 })
 export class AppModule {}

@@ -6,6 +6,10 @@ export const useAuthStore = defineStore("auth", () => {
   const token = ref<string | null>(null);
   const userId = ref<string | null>(null);
   const isAuthenticated = computed(() => !!token.value);
+  const headers = computed(() => ({
+    authorization: `Bearer ${token.value ?? ""}`,
+    "content-type": "application/json",
+  }));
 
   async function signIn(email: string, password: string) {
     const { data, error } = await authClient.signIn.email({ email, password });
@@ -25,5 +29,5 @@ export const useAuthStore = defineStore("auth", () => {
     userId.value = null;
   }
 
-  return { token, userId, isAuthenticated, signIn, signUp, signOut };
+  return { token, userId, isAuthenticated, headers, signIn, signUp, signOut };
 });

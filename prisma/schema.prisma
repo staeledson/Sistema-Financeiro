@@ -32,6 +32,8 @@ model User {
   drafts         TransactionDraft[] @relation("DraftCreator")
   importBatches        ImportBatch[]       @relation("ImportBatchCreator")
   goalContributions    GoalContribution[]  @relation("GoalContributor")
+  sentInvitations      Invitation[]        @relation("InvitationSender")
+  transactionSplits    TransactionSplit[]
 
   @@map("user")
 }
@@ -121,6 +123,13 @@ enum MemberRole {
   viewer
 }
 
+enum InvitationStatus {
+  pending
+  accepted
+  expired
+  revoked
+}
+
 model Workspace {
   id          String        @id @default(cuid())
   type        WorkspaceType
@@ -131,19 +140,21 @@ model Workspace {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  members        WorkspaceMember[]
-  bankAccounts   BankAccount[]
-  categories     Category[]
-  tags           Tag[]
-  transactions   Transaction[]
-  aiJobs         AiJob[]
-  drafts         TransactionDraft[]
-  importBatches  ImportBatch[]
-  importMappings ImportMapping[]
-  categoryRules  CategoryRule[]
-  insights       Insight[]
-  budgets        Budget[]
-  goals          Goal[]
+  members          WorkspaceMember[]
+  bankAccounts     BankAccount[]
+  categories       Category[]
+  tags             Tag[]
+  transactions     Transaction[]
+  aiJobs           AiJob[]
+  drafts           TransactionDraft[]
+  importBatches    ImportBatch[]
+  importMappings   ImportMapping[]
+  categoryRules    CategoryRule[]
+  insights         Insight[]
+  budgets          Budget[]
+  goals            Goal[]
+  invitations      Invitation[]
+  businessProfile  BusinessProfile?
 
   @@map("workspaces")
 }
@@ -260,11 +271,13 @@ model Transaction {
   importFingerprint String?
   importBatchId     String?
   importBatch       ImportBatch?    @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  costCenter        String?
   createdById       String
   createdBy         User            @relation("TransactionCreator", fields: [createdById], references: [id])
   createdAt         DateTime        @default(now())
 
-  tags TransactionTag[]
+  tags   TransactionTag[]
+  splits TransactionSplit[]
 
   @@unique([workspaceId, importFingerprint])
   @@index([workspaceId, date])
@@ -474,4 +487,46 @@ model GoalContribution {
 
   @@index([goalId])
   @@map("goal_contributions")
+}
+
+// --- Fase 5: Família & PJ ---
+
+model Invitation {
+  id          String           @id @default(cuid())
+  workspaceId String
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  email       String
+  role        MemberRole       @default(member)
+  token       String           @unique @default(cuid())
+  status      InvitationStatus @default(pending)
+  expiresAt   DateTime
+  invitedById String
+  invitedBy   User             @relation("InvitationSender", fields: [invitedById], references: [id])
+  createdAt   DateTime         @default(now())
+
+  @@index([workspaceId])
+  @@index([token])
+  @@map("invitations")
+}
+
+model TransactionSplit {
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shareCents    BigInt
+
+  @@id([transactionId, userId])
+  @@index([transactionId])
+  @@map("transaction_splits")
+}
+
+model BusinessProfile {
+  workspaceId String    @id
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  cnpj        String?
+  legalName   String?
+  updatedAt   DateTime  @updatedAt
+
+  @@map("business_profiles")
 }
