@@ -4,10 +4,12 @@ import LoginView from "./views/LoginView.vue";
 import DashboardView from "./views/DashboardView.vue";
 import AccountsView from "./views/AccountsView.vue";
 import TransactionsView from "./views/TransactionsView.vue";
+import IngestView from "./views/IngestView.vue";
+import ReviewView from "./views/ReviewView.vue";
 import { useAuthStore } from "./stores/auth";
 
 const auth = useAuthStore();
-const tab = ref<"dashboard" | "accounts" | "transactions">("dashboard");
+const tab = ref<"dashboard" | "accounts" | "transactions" | "ingest" | "review">("dashboard");
 </script>
 
 <template>
@@ -20,6 +22,8 @@ const tab = ref<"dashboard" | "accounts" | "transactions">("dashboard");
         <button :class="{ active: tab === 'dashboard' }" @click="tab = 'dashboard'">Dashboard</button>
         <button :class="{ active: tab === 'accounts' }" @click="tab = 'accounts'">Contas</button>
         <button :class="{ active: tab === 'transactions' }" @click="tab = 'transactions'">Transações</button>
+        <button :class="{ active: tab === 'ingest' }" @click="tab = 'ingest'">Lançar por IA</button>
+        <button :class="{ active: tab === 'review' }" @click="tab = 'review'">Revisar</button>
       </div>
       <button class="btn-signout" @click="auth.signOut()">Sair</button>
     </nav>
@@ -28,6 +32,8 @@ const tab = ref<"dashboard" | "accounts" | "transactions">("dashboard");
       <DashboardView v-if="tab === 'dashboard'" />
       <AccountsView v-else-if="tab === 'accounts'" />
       <TransactionsView v-else-if="tab === 'transactions'" />
+      <IngestView v-else-if="tab === 'ingest'" />
+      <ReviewView v-else-if="tab === 'review'" />
     </main>
   </div>
 </template>
