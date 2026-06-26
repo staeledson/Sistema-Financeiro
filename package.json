@@ -9,9 +9,16 @@
     "build": "turbo run build"
   },
   "devDependencies": {
+    "@types/pg": "^8.20.0",
     "eslint": "^9.39.4",
+    "prisma": "^7.8.0",
     "turbo": "^2.0.0",
     "typescript": "^5.5.0",
     "typescript-eslint": "^8.62.0"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "pg": "^8.22.0"
   }
 }
