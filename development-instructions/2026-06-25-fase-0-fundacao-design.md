@@ -1,8 +1,9 @@
 # Fase 0 — Fundação · Design Spec
 
-> No seu repositório, este arquivo vive em `docs/superpowers/specs/2026-06-25-fase-0-fundacao-design.md` (convenção Superpowers). Próximo passo após aprovação: `writing-plans`.
+> No seu repositório, este arquivo vive em `docs/superpowers/specs/2026-06-25-fase-0-fundacao-design.md`.
 
-**Data:** 2026-06-25
+**Data:** 2026-06-25  
+**Revisado:** 2026-06-26 — troca de Supabase por PostgreSQL + Better Auth + MinIO  
 **Status:** aprovado para virar plano de implementação
 
 ---
@@ -14,115 +15,122 @@ Levantar o esqueleto do SaaS multiusuário de finanças com **isolamento multi-t
 ## 2. Critério de pronto (Definition of Done)
 
 1. Usuário faz **signup** → um workspace `personal` é criado automaticamente, com o usuário como `owner`.
-2. **Login** funciona (e-mail/senha).
-3. **Teste automatizado** prova que um usuário não acessa dados de um workspace do qual não é membro (isolamento RLS).
+2. **Login** funciona (e-mail/senha), retorna JWT.
+3. **Teste automatizado** prova que um usuário não acessa workspace do qual não é membro (isolamento na camada de aplicação).
 4. **Worker** sobe e processa um job de health no-op.
-5. **CI verde:** lint + type-check + testes + migrations aplicam em banco limpo.
+5. **CI verde:** lint + type-check + testes + migrations rodam em banco limpo.
 
 ## 3. Convenções globais (constraints de todo o projeto)
 
-Definidas agora, valem para todas as fases:
+Valem para todas as fases:
 
 - **Dinheiro:** inteiro em menor unidade (centavos) + código de moeda ISO 4217. Nunca float.
-- **Ledger:** quase-double-entry. Receita/despesa movimenta **uma** conta e tem categoria. Transferência carrega `account_origem` + `account_destino` e **não** tem categoria. Schema preparado para evoluir a partida dobrada plena sem migração de dados destrutiva.
-- **Moeda:** definida **por workspace** na criação (default `BRL`). Todas as contas/transações do workspace herdam essa moeda. Sem motor de câmbio na v1.
-- **Tipagem:** TypeScript ponta a ponta; schemas Zod compartilhados entre front e back via `packages/shared`.
-- **Multi-tenant:** toda tabela com dados de usuário carrega `workspace_id` e é protegida por RLS.
+- **Ledger:** quase-double-entry. Receita/despesa movimenta uma conta e tem categoria. Transferência carrega `account_origem` + `account_destino` e não tem categoria.
+- **Moeda:** definida por workspace na criação (default `BRL`). Imutável após criação. Sem motor de câmbio na v1.
+- **Tipagem:** TypeScript ponta a ponta; schemas Zod compartilhados em `packages/shared`.
+- **Multi-tenant:** toda tabela com dados de usuário carrega `workspace_id` e é filtrada por membership na camada de aplicação.
 
-## 4. Arquitetura — estrutura do monorepo
+## 4. Stack da fundação
 
-pnpm + Turborepo.
+| Camada | Escolha |
+|---|---|
+| Banco | **PostgreSQL 16** via Docker Compose (local) / Railway (prod) |
+| ORM + migrations | **Prisma** |
+| Auth | **Better Auth** (`better-auth`) — email/senha, sessions/JWT |
+| Storage (comprovantes) | **MinIO** local / S3-compatível em prod — entra na **Fase 2** |
+| Fila | Redis + **BullMQ** |
+| API | NestJS + Fastify |
+| Frontend | Vue 3 + Vite PWA |
+| Isolamento multi-tenant | **Camada de aplicação**: NestJS guards + filtros Prisma (não RLS nativo) |
+
+> **Por que sem RLS nativo?** O PostgreSQL RLS via JWT exigia o Supabase para propagar `auth.uid()` automaticamente. Sem esse middleware, o isolamento é feito nos services NestJS via `workspace_members` — menos "magia", mais legível. A defesa em profundidade pode ser adicionada depois com `SET LOCAL app.current_user_id` em um middleware Prisma.
+
+## 5. Arquitetura — estrutura do monorepo
 
 ```
 apps/
   web/      → Vue 3 + Vite (PWA), Pinia, Vue Router, i18n pt-BR
-  api/      → NestJS (adapter Fastify)
+  api/      → NestJS (adapter Fastify) + Prisma + Better Auth
   worker/   → BullMQ workers
 packages/
-  shared/   → tipos + schemas Zod compartilhados (DTOs, enums)
-  config/   → ESLint/TS/tsconfig base compartilhados
+  shared/   → tipos + schemas Zod compartilhados
+  config/   → ESLint/TS/tsconfig base
 ```
 
-Infra de dados: **Supabase** (Postgres + Auth + Storage + RLS). **Redis** para fila (BullMQ). Deploy-alvo: web → Vercel; api/worker/redis → Railway (não faz parte do DoD da Fase 0, mas a estrutura não deve impedir).
+## 6. Modelo de dados
 
-## 5. Modelo de dados da fundação
-
-Apenas o necessário para a fundação. `User` é gerenciado pelo Supabase Auth (`auth.users`).
+Better Auth gerencia as tabelas `user`, `session`, `account`, `verification` via Prisma adapter. O app adiciona:
 
 ### `workspaces`
 | Coluna | Tipo | Notas |
 |---|---|---|
-| id | uuid PK | `gen_random_uuid()` |
-| type | enum `workspace_type` | `personal` \| `family` \| `business` |
-| name | text | não nulo |
-| currency | char(3) | ISO 4217, default `BRL`, imutável após criação |
-| created_by | uuid | FK `auth.users(id)` |
-| created_at | timestamptz | default `now()` |
-| updated_at | timestamptz | default `now()` |
+| id | String (cuid) PK | gerado pelo Prisma |
+| type | Enum `WorkspaceType` | `personal` \| `family` \| `business` |
+| name | String | não nulo |
+| currency | String(3) | ISO 4217, default `BRL` |
+| createdById | String | FK `user.id` |
+| createdAt | DateTime | default now |
+| updatedAt | DateTime | auto-update |
 
 ### `workspace_members`
 | Coluna | Tipo | Notas |
 |---|---|---|
-| id | uuid PK | |
-| workspace_id | uuid | FK `workspaces(id)` ON DELETE CASCADE |
-| user_id | uuid | FK `auth.users(id)` ON DELETE CASCADE |
-| role | enum `member_role` | `owner` \| `admin` \| `member` \| `viewer` |
-| created_at | timestamptz | default `now()` |
-| | | **UNIQUE (workspace_id, user_id)** |
+| id | String (cuid) PK | |
+| workspaceId | String | FK `workspaces.id` ON DELETE CASCADE |
+| userId | String | FK `user.id` ON DELETE CASCADE |
+| role | Enum `MemberRole` | `owner` \| `admin` \| `member` \| `viewer` |
+| createdAt | DateTime | default now |
+| | | **@@unique([workspaceId, userId])** |
 
-Índices: `workspace_members(user_id)`, `workspace_members(workspace_id)`.
+## 7. Auth & onboarding
 
-## 6. Auth & onboarding
+- **Better Auth** com provider `emailPassword`.
+- Na hook `after.signUp`: cria **atomicamente** (em Prisma transaction) um workspace `personal` + membership `owner`.
+- JWT retornado como `Bearer` token. API extrai e valida via `auth.api.getSession()`.
+- Sessão persistida em cookie httpOnly (Better Auth) ou header `Authorization` (API client).
 
-- Supabase Auth, **e-mail/senha** na v1.
-- No signup, uma function **`handle_new_user()`** disparada por trigger `AFTER INSERT ON auth.users` cria **atomicamente**: (a) um `workspace` (`type='personal'`, `name='Pessoal'`, `currency='BRL'`, `created_by = NEW.id`) e (b) um `workspace_member` (`role='owner'`). Function como `SECURITY DEFINER`.
-- **Decisão registrada (default aprovado):** criação do workspace no **banco (trigger)**, não no app — garante atomicidade e funciona mesmo se o signup vier por outro caminho.
-- **Deferido:** login social (Google) e 2FA → fase de segurança (8).
+## 8. Isolamento multi-tenant (sem RLS)
 
-## 7. Isolamento — RLS
+Padrão em todos os módulos de domínio:
 
-RLS habilitado em `workspaces` e `workspace_members`.
+1. **`CurrentUserGuard`** (NestJS): valida JWT/sessão Better Auth, injeta `req.user` (`{ id, email }`).
+2. **`WorkspaceMember` lookup** no service: antes de servir dados, verifica `workspace_members` pelo `(workspaceId, userId)` — se não existir, lança `ForbiddenException`.
+3. Todas as queries Prisma de domínio incluem `where: { workspaceId }` — o `workspaceId` só chega ao service depois do guard.
 
-- **Helper `is_member(target_workspace uuid) returns boolean`** como `SECURITY DEFINER` (consulta `workspace_members` por `auth.uid()`). Usar a function nas policies evita **recursão infinita** de RLS quando uma policy de `workspace_members` referencia a própria tabela — esse é o gotcha clássico do Supabase e a função contorna.
-- `workspaces`:
-  - SELECT: `is_member(id)`.
-  - INSERT: usuário autenticado, com `created_by = auth.uid()`.
-  - UPDATE/DELETE: membro com papel `owner`/`admin`.
-- `workspace_members`:
-  - SELECT: `is_member(workspace_id)` (vejo os membros dos workspaces a que pertenço).
-  - INSERT/DELETE: restrito a `owner`/`admin` do workspace (na prática, na Fase 0 só o trigger insere; a UX de convite é Fase 5).
+Essa dupla verificação (guard + query filter) equivale ao que o RLS fazia no banco.
 
-RLS é **defesa em profundidade**, somada às checagens de autorização no NestJS.
+## 9. Esqueleto de fila
 
-## 8. Esqueleto de fila
+Redis + BullMQ. Fila `system`, job `health.noop` enfileirado na api e processado no worker.
 
-Redis + BullMQ. Uma fila (`system`) com um job **`health.noop`** que o `apps/worker` consome e marca como completo. Serve só para provar a fiação ponta a ponta (enfileirar na api → processar no worker). A lógica de IA entra na Fase 2.
+## 10. Transversais
 
-## 9. Transversais
+- **i18n** pt-BR.
+- **Design tokens** base (CSS custom properties).
+- **CI:** GitHub Actions com PostgreSQL e Redis efêmeros.
 
-- **i18n** pt-BR como base (estrutura de chaves pronta para novas línguas).
-- **Design system** base: tokens (cores, tipografia, espaçamento) + um punhado de componentes mínimos (Button, Input, Card). Sem telas de produto ainda.
-- **CI:** pipeline com lint, type-check, testes e aplicação de migrations em banco efêmero.
+## 11. Cenários de teste
 
-## 10. Cenários de teste (alimentam o writing-plans)
+- **T1 — Onboarding:** ao fazer signup, existe 1 workspace `personal` + 1 membership `owner`.
+- **T2 — Isolamento (leitura):** usuário A não recebe workspaces de B no `GET /workspaces`.
+- **T3 — Isolamento (escrita):** usuário A recebe 403 ao tentar inserir membership em workspace de B.
+- **T4 — Auth:** token inválido recebe 401 no `GET /workspaces`.
+- **T5 — Fila:** `health.noop` processado com sucesso.
+- **T6 — CI:** lint + type-check + testes verdes em banco efêmero.
 
-- **T1 — Trigger de onboarding:** ao criar um usuário, existe exatamente 1 workspace `personal` e 1 membership `owner` para ele.
-- **T2 — Isolamento (leitura):** usuário A não consegue SELECT em workspace de B.
-- **T3 — Isolamento (escrita):** usuário A não insere `workspace_member` em workspace que não administra.
-- **T4 — Recursão RLS:** consultar `workspace_members` do próprio workspace não estoura recursão.
-- **T5 — Fila:** `health.noop` é enfileirado e processado com sucesso.
-- **T6 — CI:** lint + type-check + testes + migrations rodam limpos do zero.
+## 12. Fora de escopo da Fase 0
 
-## 11. Fora de escopo da Fase 0
+Contas/transações (Fase 1) · categorias (Fase 1) · Storage/MinIO (Fase 2) · IA (Fase 2) · import (Fase 3) · convite real (Fase 5).
 
-Contas e transações (Fase 1) · categorias e seed BR (Fase 1) · ingestão por IA (Fase 2) · import de arquivos (Fase 3) · insights/orçamentos (Fase 4) · convite real e PJ/família ativos (Fase 5) · chat (Fase 6) · Open Finance (Fase 7) · PWA offline/push, social login, 2FA (Fase 8).
-
-## 12. Decisões registradas
+## 13. Decisões registradas
 
 | Tema | Decisão |
 |---|---|
-| Ledger | Quase-double-entry (transferência com origem/destino) |
+| Banco | PostgreSQL 16 (Docker local, Railway prod) |
+| ORM | Prisma (migrations tipadas, DX) |
+| Auth | Better Auth (email/senha; social/2FA deferidos para Fase 8) |
+| Storage | MinIO/S3 — apenas Fase 2+ |
+| Isolamento | App-layer (guards + Prisma filters); RLS nativo pode ser adicionado como camada extra depois |
+| Onboarding | Hook `after.signUp` no Better Auth cria workspace em Prisma transaction |
+| Ledger | Quase-double-entry |
 | Moeda | Por workspace, default BRL, sem câmbio |
-| Multiusuário na Fase 0 | Só modelo + RLS + workspace pessoal automático; convite real na Fase 5 |
-| Auth v1 | E-mail/senha; social e 2FA deferidos |
-| Criação do workspace | Trigger no banco (`SECURITY DEFINER`), não no app |

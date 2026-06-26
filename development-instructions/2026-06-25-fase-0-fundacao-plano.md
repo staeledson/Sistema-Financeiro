@@ -1,203 +1,53 @@
 # Fase 0 — Fundação · Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task.
 >
-> **Convenção deste plano:** scaffolding de framework (criar projeto Nest/Vite, instalar libs) é descrito por **comandos exatos**. Código autoral (SQL, RLS, Zod, fila, auth, testes) é mostrado por completo. No seu repo, este arquivo vive em `docs/superpowers/plans/2026-06-25-fase-0-fundacao.md`.
+> **Convenção deste plano:** scaffolding de framework (criar projeto Nest/Vite, instalar libs) é descrito por **comandos exatos**. Código autoral (Prisma schema, auth config, guards, testes) é mostrado por completo.
 
-**Goal:** Levantar o monorepo do SaaS com auth e-mail/senha, modelo `workspaces`/`workspace_members`, criação automática de workspace pessoal no signup e isolamento multi-tenant por RLS comprovado por testes — sem ainda lançar contas/transações.
+**Goal:** Levantar o monorepo com auth e-mail/senha (Better Auth), modelo `workspaces`/`workspace_members`, criação automática de workspace pessoal no signup e isolamento multi-tenant comprovado por testes — sem ainda lançar contas/transações.
 
-**Architecture:** Monorepo pnpm+Turborepo. Supabase (Postgres+Auth+RLS) como banco/auth. API NestJS (Fastify) e workers BullMQ (Redis) em TypeScript. Front Vue 3 PWA. Tipos/schemas Zod compartilhados em `packages/shared`. RLS é a fronteira de isolamento, reforçada pela autorização do app.
+**Architecture:** Monorepo pnpm+Turborepo. PostgreSQL 16 (Docker Compose local). Prisma como ORM + migrations. Better Auth para auth. API NestJS (Fastify). Workers BullMQ (Redis). Front Vue 3 PWA. Tipos/schemas Zod compartilhados em `packages/shared`.
 
-**Tech Stack:** pnpm, Turborepo, TypeScript, Vitest, Supabase CLI, supabase-js, NestJS+Fastify, BullMQ, Redis (ioredis), Vue 3, Vite, Pinia, vue-router, vue-i18n, vite-plugin-pwa, GitHub Actions.
+**Tech Stack:** pnpm, Turborepo, TypeScript, Vitest, PostgreSQL 16, Prisma, Better Auth, NestJS+Fastify, BullMQ, Redis (ioredis), Vue 3, Vite, Pinia, vue-router, vue-i18n, vite-plugin-pwa, GitHub Actions.
 
 ## Global Constraints
 
-- Dinheiro: inteiro em centavos + ISO 4217. Nunca float. (Relevante a partir da Fase 1; nenhuma tabela monetária nesta fase.)
-- Ledger: quase-double-entry — transferências com `account_origem`/`account_destino`, sem categoria. (Constraint futura; sem tabelas de transação nesta fase.)
-- Moeda definida por workspace na criação (default `BRL`), imutável, sem câmbio.
+- Dinheiro: inteiro em centavos + ISO 4217. Nunca float. (Relevante a partir da Fase 1.)
+- Ledger: quase-double-entry — transferências com account_origem/account_destino, sem categoria.
+- Moeda definida por workspace na criação (default `BRL`), imutável.
 - TypeScript ponta a ponta; schemas Zod compartilhados em `packages/shared`.
-- Toda tabela com dado de usuário tem `workspace_id` e RLS habilitado.
-- Node 20+. Gerenciador: pnpm. Test runner: Vitest em todos os pacotes.
+- Toda tabela de domínio tem `workspaceId` e é filtrada por membership no service NestJS.
+- Node 20+. pnpm. Vitest em todos os pacotes.
+- PostgreSQL 16+ (requerido pelo `security_invoker` em views futuras, Fase 1).
 
 ---
 
-## Mapa de arquivos (decomposição)
+## Mapa de arquivos
 
 ```
+docker-compose.yml
 pnpm-workspace.yaml
 turbo.json
 package.json
 tsconfig.base.json
 .github/workflows/ci.yml
-supabase/
-  config.toml
+prisma/
+  schema.prisma
   migrations/
-    0001_enums_and_tables.sql
-    0002_onboarding_trigger.sql
-    0003_rls_policies.sql
 packages/
-  config/        (tsconfig + eslint base)
-  shared/        (enums + Zod schemas + tipos)
+  config/
+  shared/
 apps/
-  api/           (NestJS: WorkspacesModule, health enqueue, e2e + DB tests)
-  worker/        (BullMQ: fila `system`, job health.noop, teste)
-  web/           (Vue PWA: auth store, login/signup, i18n, design tokens)
+  api/   (NestJS: AuthModule, WorkspacesModule, e2e tests)
+  worker/ (BullMQ: fila system, job health.noop)
+  web/   (Vue PWA: auth store Better Auth, login/signup, i18n, tokens)
 ```
 
 ---
 
-## Task 1: Monorepo + tooling
+## Task 1: Monorepo + tooling ✅ COMPLETO
 
-**Files:**
-- Create: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `tsconfig.base.json`
-- Create: `packages/config/package.json`, `packages/config/tsconfig.base.json`, `packages/config/eslint.config.js`
-- Create: `packages/shared/package.json`, `packages/shared/tsconfig.json`, `packages/shared/vitest.config.ts`, `packages/shared/src/index.ts`, `packages/shared/src/__tests__/smoke.test.ts`
-
-**Interfaces:**
-- Produces: workspace pnpm com `@app/config` e `@app/shared`; scripts `pnpm lint`, `pnpm typecheck`, `pnpm test` rodando via Turborepo.
-
-- [ ] **Step 1: Inicializar o workspace**
-
-```bash
-mkdir -p packages/config packages/shared/src/__tests__
-corepack enable
-pnpm init
-```
-
-- [ ] **Step 2: Declarar o workspace e o Turborepo**
-
-`pnpm-workspace.yaml`:
-```yaml
-packages:
-  - "apps/*"
-  - "packages/*"
-```
-
-`turbo.json`:
-```json
-{
-  "$schema": "https://turbo.build/schema.json",
-  "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
-    "lint": {},
-    "typecheck": { "dependsOn": ["^build"] },
-    "test": { "dependsOn": ["^build"] }
-  }
-}
-```
-
-`package.json` (root) — scripts e devDeps:
-```json
-{
-  "name": "financas-ia",
-  "private": true,
-  "packageManager": "pnpm@9.0.0",
-  "scripts": {
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
-    "build": "turbo run build"
-  },
-  "devDependencies": {
-    "turbo": "^2.0.0",
-    "typescript": "^5.5.0"
-  }
-}
-```
-
-`tsconfig.base.json`:
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "declaration": true,
-    "resolveJsonModule": true
-  }
-}
-```
-
-- [ ] **Step 3: Pacote `@app/config`**
-
-`packages/config/package.json`:
-```json
-{
-  "name": "@app/config",
-  "version": "0.0.0",
-  "private": true,
-  "main": "index.js"
-}
-```
-`packages/config/tsconfig.base.json`: `{ "extends": "../../tsconfig.base.json" }`
-`packages/config/eslint.config.js`:
-```js
-import tseslint from "typescript-eslint";
-export default tseslint.config(...tseslint.configs.recommended);
-```
-Install: `pnpm add -D -w typescript-eslint eslint`
-
-- [ ] **Step 4: Esqueleto de `@app/shared` com teste-fumaça (falha primeiro)**
-
-`packages/shared/package.json`:
-```json
-{
-  "name": "@app/shared",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "scripts": {
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src"
-  },
-  "dependencies": { "zod": "^3.23.0" },
-  "devDependencies": { "vitest": "^2.0.0", "typescript": "^5.5.0", "eslint": "^9.0.0" }
-}
-```
-`packages/shared/tsconfig.json`: `{ "extends": "../config/tsconfig.base.json", "include": ["src"] }`
-`packages/shared/vitest.config.ts`:
-```ts
-import { defineConfig } from "vitest/config";
-export default defineConfig({ test: { environment: "node" } });
-```
-`packages/shared/src/__tests__/smoke.test.ts`:
-```ts
-import { describe, it, expect } from "vitest";
-import { PING } from "../index";
-describe("shared", () => {
-  it("exporta um valor", () => { expect(PING).toBe("pong"); });
-});
-```
-
-- [ ] **Step 5: Rodar o teste e ver falhar**
-
-Run: `pnpm install && pnpm --filter @app/shared test`
-Expected: FAIL — `PING` não exportado (módulo `../index` sem o símbolo).
-
-- [ ] **Step 6: Implementação mínima**
-
-`packages/shared/src/index.ts`:
-```ts
-export const PING = "pong";
-```
-
-- [ ] **Step 7: Rodar e ver passar**
-
-Run: `pnpm --filter @app/shared test`
-Expected: PASS.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git init && git add -A
-git commit -m "chore: scaffold pnpm+turborepo monorepo with shared/config packages"
-```
+Scaffold pnpm+Turborepo com `packages/config` e `packages/shared` (smoke test PING="pong").
 
 ---
 
@@ -209,7 +59,7 @@ git commit -m "chore: scaffold pnpm+turborepo monorepo with shared/config packag
 - Test: `packages/shared/src/__tests__/workspace.test.ts`
 
 **Interfaces:**
-- Produces: `WorkspaceType`, `MemberRole` (const arrays + types); `workspaceSchema`, `workspaceMemberSchema` (Zod) e tipos `Workspace`, `WorkspaceMember`. Consumidos por api (Task 6) e web (Task 8).
+- Produces: `WorkspaceType`, `MemberRole` (const arrays + types); `workspaceSchema`, `workspaceMemberSchema` (Zod) e tipos `Workspace`, `WorkspaceMember`. Consumidos por api (Task 5) e web (Task 8).
 
 - [ ] **Step 1: Teste dos schemas (falha primeiro)**
 
@@ -221,33 +71,33 @@ import { workspaceSchema, WORKSPACE_TYPES, MEMBER_ROLES } from "../index";
 describe("workspaceSchema", () => {
   it("aceita um workspace válido", () => {
     const ok = workspaceSchema.safeParse({
-      id: "11111111-1111-1111-1111-111111111111",
+      id: "clwspc0001",
       type: "personal",
       name: "Pessoal",
       currency: "BRL",
-      createdBy: "22222222-2222-2222-2222-222222222222",
+      createdById: "clusr00001",
     });
     expect(ok.success).toBe(true);
   });
 
   it("rejeita type inválido", () => {
     const bad = workspaceSchema.safeParse({
-      id: "11111111-1111-1111-1111-111111111111",
+      id: "clwspc0001",
       type: "invalid",
       name: "X",
       currency: "BRL",
-      createdBy: "22222222-2222-2222-2222-222222222222",
+      createdById: "clusr00001",
     });
     expect(bad.success).toBe(false);
   });
 
   it("rejeita currency fora de 3 letras", () => {
     const bad = workspaceSchema.safeParse({
-      id: "11111111-1111-1111-1111-111111111111",
+      id: "clwspc0001",
       type: "personal",
       name: "X",
       currency: "BRLL",
-      createdBy: "22222222-2222-2222-2222-222222222222",
+      createdById: "clusr00001",
     });
     expect(bad.success).toBe(false);
   });
@@ -261,7 +111,7 @@ describe("workspaceSchema", () => {
 
 - [ ] **Step 2: Rodar e ver falhar**
 
-Run: `pnpm --filter @app/shared test`
+Run: `cd packages/shared && npx vitest run`
 Expected: FAIL — exports `workspaceSchema`, `WORKSPACE_TYPES`, `MEMBER_ROLES` inexistentes.
 
 - [ ] **Step 3: Enums**
@@ -283,18 +133,18 @@ import { z } from "zod";
 import { WORKSPACE_TYPES, MEMBER_ROLES } from "./enums";
 
 export const workspaceSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().min(1),
   type: z.enum(WORKSPACE_TYPES),
   name: z.string().min(1),
   currency: z.string().length(3).toUpperCase(),
-  createdBy: z.string().uuid(),
+  createdById: z.string().min(1),
 });
 export type Workspace = z.infer<typeof workspaceSchema>;
 
 export const workspaceMemberSchema = z.object({
-  id: z.string().uuid(),
-  workspaceId: z.string().uuid(),
-  userId: z.string().uuid(),
+  id: z.string().min(1),
+  workspaceId: z.string().min(1),
+  userId: z.string().min(1),
   role: z.enum(MEMBER_ROLES),
 });
 export type WorkspaceMember = z.infer<typeof workspaceMemberSchema>;
@@ -311,7 +161,7 @@ export * from "./workspace";
 
 - [ ] **Step 6: Rodar e ver passar**
 
-Run: `pnpm --filter @app/shared test`
+Run: `cd packages/shared && npx vitest run`
 Expected: PASS (4 testes).
 
 - [ ] **Step 7: Commit**
@@ -322,29 +172,183 @@ git add -A && git commit -m "feat(shared): workspace enums and zod schemas"
 
 ---
 
-## Task 3: Supabase + migration base (enums + tabelas)
+## Task 3: Docker Compose + Prisma setup
 
 **Files:**
-- Create: `supabase/config.toml` (via CLI), `supabase/migrations/0001_enums_and_tables.sql`
-- Create: `apps/api` (parcial — só harness de teste de DB nesta task): `apps/api/package.json`, `apps/api/vitest.config.ts`, `apps/api/test/helpers/supabase.ts`
+- Create: `docker-compose.yml`
+- Create: `prisma/schema.prisma`
+- Create: `apps/api/package.json` (harness mínimo), `apps/api/vitest.config.ts`, `apps/api/test/helpers/db.ts`
 - Test: `apps/api/test/database/schema.test.ts`
 
 **Interfaces:**
-- Consumes: enums de domínio (Task 2) como referência.
-- Produces: tabelas `workspaces`, `workspace_members`; enums `workspace_type`, `member_role`. Consumidas pelas Tasks 4, 5, 6.
+- Produces: banco PostgreSQL 16 local; tabelas `workspaces`, `workspace_members` (+ tabelas do Better Auth: `user`, `session`, `account`, `verification`); Prisma client tipado. Consumidos pelas Tasks 4, 5, 6.
 
-- [ ] **Step 1: Inicializar Supabase local**
+- [ ] **Step 1: Docker Compose**
+
+`docker-compose.yml`:
+```yaml
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: financas
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
+```
+
+Run: `docker compose up -d`
+
+- [ ] **Step 2: Prisma init no repo root**
 
 ```bash
-pnpm add -D -w supabase
-pnpm supabase init
-pnpm supabase start
+pnpm add -D -w prisma
+pnpm add -w @prisma/client
+npx prisma init --datasource-provider postgresql
 ```
-Expected: containers sobem; CLI imprime `API URL`, `anon key`, `service_role key`. Anote-os para `.env.test`.
 
-- [ ] **Step 2: Harness de teste de DB**
+Isso cria `prisma/schema.prisma` e `prisma/.env` (mover para `.env` na raiz ou usar `dotenv-cli`).
 
-`apps/api/package.json` (mínimo para esta task; expandido na Task 6):
+`.env` (na raiz):
+```
+DATABASE_URL="postgresql://app:app@localhost:5432/financas"
+```
+
+- [ ] **Step 3: Schema Prisma (falha — tabelas ainda não existem)**
+
+`prisma/schema.prisma`:
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Better Auth tables ---
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+
+  sessions     Session[]
+  accounts     Account[]
+  workspaces   Workspace[]       @relation("WorkspaceCreator")
+  memberships  WorkspaceMember[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+// --- Domínio ---
+
+enum WorkspaceType {
+  personal
+  family
+  business
+}
+
+enum MemberRole {
+  owner
+  admin
+  member
+  viewer
+}
+
+model Workspace {
+  id          String        @id @default(cuid())
+  type        WorkspaceType
+  name        String
+  currency    String        @default("BRL") @db.Char(3)
+  createdById String
+  createdBy   User          @relation("WorkspaceCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  members WorkspaceMember[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String     @id @default(cuid())
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        MemberRole
+  createdAt   DateTime   @default(now())
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@index([workspaceId])
+  @@map("workspace_members")
+}
+```
+
+- [ ] **Step 4: Harness de teste de DB**
+
+`apps/api/package.json` (mínimo):
 ```json
 {
   "name": "@app/api",
@@ -354,11 +358,14 @@ Expected: containers sobem; CLI imprime `API URL`, `anon key`, `service_role key
   "scripts": { "test": "vitest run" },
   "devDependencies": {
     "vitest": "^2.0.0",
-    "@supabase/supabase-js": "^2.45.0",
     "dotenv": "^16.4.0"
+  },
+  "dependencies": {
+    "@prisma/client": "*"
   }
 }
 ```
+
 `apps/api/vitest.config.ts`:
 ```ts
 import { defineConfig } from "vitest/config";
@@ -366,355 +373,224 @@ export default defineConfig({
   test: { environment: "node", hookTimeout: 30000, testTimeout: 30000 },
 });
 ```
-`apps/api/test/helpers/supabase.ts`:
+
+`apps/api/test/helpers/db.ts`:
 ```ts
 import "dotenv/config";
-import { createClient } from "@supabase/supabase-js";
+import { PrismaClient } from "@prisma/client";
 
-const url = process.env.SUPABASE_URL!;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const anonKey = process.env.SUPABASE_ANON_KEY!;
+export const prisma = new PrismaClient();
 
-export const admin = createClient(url, serviceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
-
-export function anonClient() {
-  return createClient(url, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-let n = 0;
-export async function createUser() {
-  const email = `t${Date.now()}_${n++}@example.com`;
-  const password = "password123!";
-  const { data, error } = await admin.auth.admin.createUser({
-    email, password, email_confirm: true,
-  });
-  if (error) throw error;
-  const client = anonClient();
-  const { data: signIn, error: sErr } =
-    await client.auth.signInWithPassword({ email, password });
-  if (sErr) throw sErr;
-  return { id: data.user!.id, email, client, accessToken: signIn.session!.access_token };
+export async function cleanDb() {
+  await prisma.$transaction([
+    prisma.workspaceMember.deleteMany(),
+    prisma.workspace.deleteMany(),
+    prisma.session.deleteMany(),
+    prisma.account.deleteMany(),
+    prisma.verification.deleteMany(),
+    prisma.user.deleteMany(),
+  ]);
 }
 ```
-`.env.test` (preencher com as chaves do Step 1):
+
+`.env.test`:
 ```
-SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
+DATABASE_URL=postgresql://app:app@localhost:5432/financas
 ```
 
-- [ ] **Step 3: Teste de schema (falha primeiro)**
+- [ ] **Step 5: Teste de schema (falha primeiro)**
 
 `apps/api/test/database/schema.test.ts`:
 ```ts
-import { describe, it, expect } from "vitest";
-import { admin } from "../helpers/supabase";
+import { describe, it, expect, afterAll } from "vitest";
+import { prisma } from "../helpers/db";
+
+afterAll(async () => { await prisma.$disconnect(); });
 
 describe("schema base", () => {
-  it("workspaces existe com as colunas esperadas", async () => {
-    const { error } = await admin.from("workspaces")
-      .select("id,type,name,currency,created_by,created_at,updated_at").limit(0);
-    expect(error).toBeNull();
+  it("workspaces existe", async () => {
+    const count = await prisma.workspace.count();
+    expect(count).toBeGreaterThanOrEqual(0);
   });
 
-  it("workspace_members existe com as colunas esperadas", async () => {
-    const { error } = await admin.from("workspace_members")
-      .select("id,workspace_id,user_id,role,created_at").limit(0);
-    expect(error).toBeNull();
+  it("workspace_members existe", async () => {
+    const count = await prisma.workspaceMember.count();
+    expect(count).toBeGreaterThanOrEqual(0);
   });
 });
 ```
 
-- [ ] **Step 4: Rodar e ver falhar**
+- [ ] **Step 6: Rodar e ver falhar**
 
-Run: `pnpm --filter @app/api test -- schema`
-Expected: FAIL — relação `workspaces` não existe.
+Run: `cd apps/api && npx vitest run -- schema`
+Expected: FAIL — tabelas não existem.
 
-- [ ] **Step 5: Migration de enums e tabelas**
-
-`supabase/migrations/0001_enums_and_tables.sql`:
-```sql
-create type workspace_type as enum ('personal', 'family', 'business');
-create type member_role as enum ('owner', 'admin', 'member', 'viewer');
-
-create table workspaces (
-  id uuid primary key default gen_random_uuid(),
-  type workspace_type not null,
-  name text not null,
-  currency char(3) not null default 'BRL',
-  created_by uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table workspace_members (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  role member_role not null,
-  created_at timestamptz not null default now(),
-  unique (workspace_id, user_id)
-);
-
-create index workspace_members_user_id_idx on workspace_members(user_id);
-create index workspace_members_workspace_id_idx on workspace_members(workspace_id);
-```
-
-- [ ] **Step 6: Aplicar e ver passar**
-
-Run: `pnpm supabase db reset && pnpm --filter @app/api test -- schema`
-Expected: PASS (2 testes). `db reset` aplica todas as migrations em banco limpo.
-
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Criar a migration e aplicar**
 
 ```bash
-git add -A && git commit -m "feat(db): base enums and workspaces/workspace_members tables"
+npx prisma migrate dev --name init
+```
+
+Isso aplica o schema ao banco e gera `prisma/migrations/TIMESTAMP_init/migration.sql`.
+
+- [ ] **Step 8: Rodar e ver passar**
+
+Run: `cd apps/api && npx vitest run -- schema`
+Expected: PASS (2 testes).
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add -A && git commit -m "feat(db): docker-compose postgres, prisma schema with workspaces and better-auth tables"
 ```
 
 ---
 
-## Task 4: Trigger de onboarding `handle_new_user()`
+## Task 4: Better Auth + hook de onboarding
 
 **Files:**
-- Create: `supabase/migrations/0002_onboarding_trigger.sql`
+- Modify: `apps/api/package.json` (adicionar deps), criar `apps/api/src/lib/auth.ts`
 - Test: `apps/api/test/database/onboarding.test.ts`
 
 **Interfaces:**
-- Consumes: tabelas da Task 3.
-- Produces: garantia de que todo novo usuário ganha 1 workspace `personal` + 1 membership `owner`. (Cenário T1.)
+- Consumes: Prisma client (Task 3).
+- Produces: instância `auth` do Better Auth com email/password; hook `after.signUp` cria workspace pessoal + membership owner. Cenário T1.
 
-- [ ] **Step 1: Teste do trigger (falha primeiro)**
+- [ ] **Step 1: Instalar Better Auth**
+
+```bash
+cd apps/api
+pnpm add better-auth @better-auth/cli
+```
+
+- [ ] **Step 2: Teste do onboarding (falha primeiro)**
 
 `apps/api/test/database/onboarding.test.ts`:
 ```ts
-import { describe, it, expect } from "vitest";
-import { admin, createUser } from "../helpers/supabase";
+import { describe, it, expect, afterAll, afterEach } from "vitest";
+import { prisma, cleanDb } from "../helpers/db";
+import { auth } from "../../src/lib/auth";
 
-describe("onboarding trigger", () => {
-  it("cria 1 workspace pessoal e 1 membership owner no signup", async () => {
-    const user = await createUser();
+afterEach(() => cleanDb());
+afterAll(() => prisma.$disconnect());
 
-    const { data: ws } = await admin.from("workspaces")
-      .select("*").eq("created_by", user.id);
-    expect(ws).toHaveLength(1);
-    expect(ws![0].type).toBe("personal");
-    expect(ws![0].currency).toBe("BRL");
+describe("onboarding", () => {
+  it("T1: signup cria 1 workspace pessoal + 1 membership owner", async () => {
+    const res = await auth.api.signUpEmail({
+      body: {
+        email: `test_${Date.now()}@example.com`,
+        password: "Password123!",
+        name: "Tester",
+      },
+    });
+    expect(res.user).toBeDefined();
 
-    const { data: mem } = await admin.from("workspace_members")
-      .select("*").eq("user_id", user.id);
-    expect(mem).toHaveLength(1);
-    expect(mem![0].role).toBe("owner");
-    expect(mem![0].workspace_id).toBe(ws![0].id);
+    const workspaces = await prisma.workspace.findMany({
+      where: { createdById: res.user.id },
+    });
+    expect(workspaces).toHaveLength(1);
+    expect(workspaces[0].type).toBe("personal");
+    expect(workspaces[0].currency).toBe("BRL");
+
+    const members = await prisma.workspaceMember.findMany({
+      where: { userId: res.user.id },
+    });
+    expect(members).toHaveLength(1);
+    expect(members[0].role).toBe("owner");
+    expect(members[0].workspaceId).toBe(workspaces[0].id);
   });
 });
 ```
 
-- [ ] **Step 2: Rodar e ver falhar**
+- [ ] **Step 3: Rodar e ver falhar**
 
-Run: `pnpm --filter @app/api test -- onboarding`
-Expected: FAIL — `ws` tem length 0 (nenhum trigger ainda).
+Run: `cd apps/api && npx vitest run -- onboarding`
+Expected: FAIL — `auth` não existe ou workspace não é criado.
 
-- [ ] **Step 3: Migration do trigger**
+- [ ] **Step 4: Configurar Better Auth**
 
-`supabase/migrations/0002_onboarding_trigger.sql`:
-```sql
-create or replace function handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  new_ws_id uuid;
-begin
-  insert into workspaces (type, name, currency, created_by)
-  values ('personal', 'Pessoal', 'BRL', new.id)
-  returning id into new_ws_id;
-
-  insert into workspace_members (workspace_id, user_id, role)
-  values (new_ws_id, new.id, 'owner');
-
-  return new;
-end;
-$$;
-
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function handle_new_user();
-```
-
-- [ ] **Step 4: Aplicar e ver passar**
-
-Run: `pnpm supabase db reset && pnpm --filter @app/api test -- onboarding`
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add -A && git commit -m "feat(db): auto-create personal workspace + owner membership on signup"
-```
-
----
-
-## Task 5: RLS — helper `is_member()` + policies
-
-**Files:**
-- Create: `supabase/migrations/0003_rls_policies.sql`
-- Test: `apps/api/test/database/rls.test.ts`
-
-**Interfaces:**
-- Consumes: tabelas (Task 3) e trigger (Task 4).
-- Produces: isolamento por `workspace_id` aplicado no banco. (Cenários T2, T3, T4.)
-
-- [ ] **Step 1: Testes de isolamento (falham primeiro)**
-
-`apps/api/test/database/rls.test.ts`:
+`apps/api/src/lib/auth.ts`:
 ```ts
-import { describe, it, expect } from "vitest";
-import { createUser } from "../helpers/supabase";
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { PrismaClient } from "@prisma/client";
 
-describe("RLS", () => {
-  it("T2: usuário A não lê o workspace de B", async () => {
-    const a = await createUser();
-    const b = await createUser();
+const prisma = new PrismaClient();
 
-    const { data: aRows } = await a.client.from("workspaces").select("*");
-    expect(aRows).toHaveLength(1);
-
-    const { data: bRows } = await b.client.from("workspaces").select("*");
-    expect(bRows).toHaveLength(1);
-
-    expect(aRows![0].id).not.toBe(bRows![0].id);
-  });
-
-  it("T3: usuário A não insere membership em workspace que não administra", async () => {
-    const a = await createUser();
-    const b = await createUser();
-    const { data: bRows } = await b.client.from("workspaces").select("id");
-    const bWorkspaceId = bRows![0].id;
-
-    const { error } = await a.client.from("workspace_members")
-      .insert({ workspace_id: bWorkspaceId, user_id: a.id, role: "member" });
-    expect(error).not.toBeNull(); // bloqueado por RLS
-  });
-
-  it("T4: ler membros do próprio workspace não estoura recursão", async () => {
-    const a = await createUser();
-    const { data, error } = await a.client.from("workspace_members").select("*");
-    expect(error).toBeNull();
-    expect(data).toHaveLength(1);
-    expect(data![0].role).toBe("owner");
-  });
+export const auth = betterAuth({
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 8,
+  },
+  hooks: {
+    after: [
+      {
+        matcher: (ctx) => ctx.path === "/sign-up/email",
+        handler: async (ctx) => {
+          const userId = ctx.context.newSession?.userId;
+          if (!userId) return;
+          await prisma.$transaction(async (tx) => {
+            const workspace = await tx.workspace.create({
+              data: {
+                type: "personal",
+                name: "Pessoal",
+                currency: "BRL",
+                createdById: userId,
+              },
+            });
+            await tx.workspaceMember.create({
+              data: {
+                workspaceId: workspace.id,
+                userId,
+                role: "owner",
+              },
+            });
+          });
+        },
+      },
+    ],
+  },
 });
+
+export type Auth = typeof auth;
 ```
 
-- [ ] **Step 2: Rodar e ver falhar**
+- [ ] **Step 5: Rodar e ver passar**
 
-Run: `pnpm --filter @app/api test -- rls`
-Expected: FAIL — sem RLS, A enxerga workspaces de B (T2) e o insert de T3 não é bloqueado.
-
-- [ ] **Step 3: Migration de RLS**
-
-`supabase/migrations/0003_rls_policies.sql`:
-```sql
--- Helper SECURITY DEFINER evita recursão de RLS em workspace_members.
-create or replace function is_member(target_workspace uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from workspace_members
-    where workspace_id = target_workspace and user_id = auth.uid()
-  );
-$$;
-
-create or replace function has_role(target_workspace uuid, roles member_role[])
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from workspace_members
-    where workspace_id = target_workspace
-      and user_id = auth.uid()
-      and role = any(roles)
-  );
-$$;
-
-alter table workspaces enable row level security;
-alter table workspace_members enable row level security;
-
--- workspaces
-create policy workspaces_select on workspaces
-  for select using (is_member(id));
-
-create policy workspaces_insert on workspaces
-  for insert with check (created_by = auth.uid());
-
-create policy workspaces_update on workspaces
-  for update using (has_role(id, array['owner','admin']::member_role[]));
-
-create policy workspaces_delete on workspaces
-  for delete using (has_role(id, array['owner']::member_role[]));
-
--- workspace_members
-create policy members_select on workspace_members
-  for select using (is_member(workspace_id));
-
-create policy members_insert on workspace_members
-  for insert with check (has_role(workspace_id, array['owner','admin']::member_role[]));
-
-create policy members_delete on workspace_members
-  for delete using (has_role(workspace_id, array['owner','admin']::member_role[]));
-```
-
-- [ ] **Step 4: Aplicar e ver passar**
-
-Run: `pnpm supabase db reset && pnpm --filter @app/api test -- rls`
-Expected: PASS (3 testes). Nota: o trigger insere via `security definer` (bypassa RLS), então o owner inicial continua sendo criado.
-
-- [ ] **Step 5: Rodar a suíte de DB inteira**
-
-Run: `pnpm supabase db reset && pnpm --filter @app/api test -- database`
-Expected: PASS (schema + onboarding + rls).
+Run: `cd apps/api && npx vitest run -- onboarding`
+Expected: PASS.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add -A && git commit -m "feat(db): RLS isolation via is_member/has_role helpers and policies"
+git add -A && git commit -m "feat(auth): better-auth email/password with personal workspace auto-creation on signup"
 ```
 
 ---
 
-## Task 6: API NestJS + endpoint de workspaces (isolamento ponta a ponta)
+## Task 5: NestJS guards — isolamento ponta a ponta
 
 **Files:**
-- Create (scaffold via CLI) + Modify: `apps/api/src/main.ts`, `apps/api/src/app.module.ts`
-- Create: `apps/api/src/supabase/supabase-request.ts`, `apps/api/src/workspaces/workspaces.controller.ts`, `apps/api/src/workspaces/workspaces.service.ts`, `apps/api/src/workspaces/workspaces.module.ts`
+- Create: scaffold NestJS em `apps/api/src/`, `apps/api/src/common/guards/current-user.guard.ts`, `apps/api/src/workspaces/workspaces.service.ts`, `apps/api/src/workspaces/workspaces.controller.ts`, `apps/api/src/workspaces/workspaces.module.ts`
 - Test: `apps/api/test/e2e/workspaces.e2e.test.ts`
 
 **Interfaces:**
-- Consumes: `Workspace` de `@app/shared`; tabelas/RLS das Tasks 3–5.
-- Produces: `GET /workspaces` que retorna **apenas** os workspaces do chamador (RLS aplicada via JWT do usuário). Consumido pela web (Task 8).
+- Consumes: Better Auth (Task 4); Prisma (Task 3); `Workspace` de `@app/shared`.
+- Produces: `GET /workspaces` retorna apenas workspaces do caller; `POST /auth/*` proxy para Better Auth. Cenários T2, T3, T4.
 
-- [ ] **Step 1: Scaffold NestJS com Fastify**
+- [ ] **Step 1: Scaffold NestJS**
 
 ```bash
 cd apps/api
 pnpm dlx @nestjs/cli@latest new . --skip-git --package-manager pnpm --strict
-pnpm add @nestjs/platform-fastify @supabase/supabase-js @app/shared
-pnpm add -D supertest @types/supertest
+pnpm add @nestjs/platform-fastify @app/shared
+pnpm add -D supertest @types/supertest @nestjs/testing
 ```
-Ajustar `apps/api/package.json` `name` para `@app/api` e manter os scripts `test` (vitest) ao lado dos do Nest.
+
+Ajustar `apps/api/package.json`: manter `name` = `@app/api`; conservar script `test` (vitest).
 
 - [ ] **Step 2: Teste e2e de isolamento (falha primeiro)**
 
@@ -724,31 +600,61 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { NestFastifyApplication, FastifyAdapter } from "@nestjs/platform-fastify";
 import { Test } from "@nestjs/testing";
 import { AppModule } from "../../src/app.module";
-import { createUser } from "../helpers/supabase";
+import { auth } from "../../src/lib/auth";
+import { prisma, cleanDb } from "../helpers/db";
 
 let app: NestFastifyApplication;
+
+async function createUserAndToken(email: string) {
+  const signup = await auth.api.signUpEmail({
+    body: { email, password: "Password123!", name: "Tester" },
+  });
+  // sign in to get token
+  const signin = await auth.api.signInEmail({
+    body: { email, password: "Password123!" },
+  });
+  return { userId: signup.user.id, token: signin.token };
+}
+
 beforeAll(async () => {
   const mod = await Test.createTestingModule({ imports: [AppModule] }).compile();
   app = mod.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 });
-afterAll(async () => { await app.close(); });
+
+afterAll(async () => {
+  await cleanDb();
+  await app.close();
+  await prisma.$disconnect();
+});
 
 describe("GET /workspaces", () => {
-  it("retorna só os workspaces do usuário autenticado", async () => {
-    const a = await createUser();
-    const res = await app.inject({
+  it("T2: retorna só os workspaces do usuário autenticado (não os de outro)", async () => {
+    const a = await createUserAndToken(`a_${Date.now()}@example.com`);
+    const b = await createUserAndToken(`b_${Date.now()}@example.com`);
+
+    const resA = await app.inject({
       method: "GET", url: "/workspaces",
-      headers: { authorization: `Bearer ${a.accessToken}` },
+      headers: { authorization: `Bearer ${a.token}` },
     });
-    expect(res.statusCode).toBe(200);
-    const body = res.json();
-    expect(body).toHaveLength(1);
-    expect(body[0].type).toBe("personal");
+    const resB = await app.inject({
+      method: "GET", url: "/workspaces",
+      headers: { authorization: `Bearer ${b.token}` },
+    });
+
+    expect(resA.statusCode).toBe(200);
+    expect(resB.statusCode).toBe(200);
+
+    const bodyA = resA.json<{ id: string }[]>();
+    const bodyB = resB.json<{ id: string }[]>();
+
+    expect(bodyA).toHaveLength(1);
+    expect(bodyB).toHaveLength(1);
+    expect(bodyA[0].id).not.toBe(bodyB[0].id);
   });
 
-  it("401 sem token", async () => {
+  it("T4: 401 sem token", async () => {
     const res = await app.inject({ method: "GET", url: "/workspaces" });
     expect(res.statusCode).toBe(401);
   });
@@ -757,64 +663,84 @@ describe("GET /workspaces", () => {
 
 - [ ] **Step 3: Rodar e ver falhar**
 
-Run: `pnpm --filter @app/api test -- workspaces.e2e`
-Expected: FAIL — rota `/workspaces` inexistente (404).
+Expected: FAIL — 404 (rota não existe).
 
-- [ ] **Step 4: Cliente Supabase por request (propaga o JWT → RLS)**
+- [ ] **Step 4: Guard CurrentUser**
 
-`apps/api/src/supabase/supabase-request.ts`:
+`apps/api/src/common/guards/current-user.guard.ts`:
 ```ts
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
-
-export function clientFromToken(token: string): SupabaseClient {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-```
-
-- [ ] **Step 5: Service**
-
-`apps/api/src/workspaces/workspaces.service.ts`:
-```ts
-import { Injectable } from "@nestjs/common";
-import { clientFromToken } from "../supabase/supabase-request";
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { auth } from "../../lib/auth";
 
 @Injectable()
-export class WorkspacesService {
-  async listForToken(token: string) {
-    const supabase = clientFromToken(token);
-    const { data, error } = await supabase
-      .from("workspaces")
-      .select("id,type,name,currency,created_by");
-    if (error) throw error;
-    return data ?? [];
+export class CurrentUserGuard implements CanActivate {
+  async canActivate(ctx: ExecutionContext): Promise<boolean> {
+    const req = ctx.switchToHttp().getRequest();
+    const authHeader = req.headers["authorization"] as string | undefined;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) throw new UnauthorizedException();
+
+    const session = await auth.api.getSession({
+      headers: new Headers({ authorization: `Bearer ${token}` }),
+    });
+    if (!session?.user) throw new UnauthorizedException();
+
+    req.user = session.user;
+    return true;
   }
 }
 ```
 
-- [ ] **Step 6: Controller (extrai e exige o Bearer)**
+- [ ] **Step 5: WorkspacesService**
+
+`apps/api/src/workspaces/workspaces.service.ts`:
+```ts
+import { Injectable } from "@nestjs/common";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+@Injectable()
+export class WorkspacesService {
+  async listForUser(userId: string) {
+    const memberships = await prisma.workspaceMember.findMany({
+      where: { userId },
+      include: { workspace: true },
+    });
+    return memberships.map((m) => ({
+      ...m.workspace,
+      role: m.role,
+    }));
+  }
+}
+```
+
+- [ ] **Step 6: WorkspacesController**
 
 `apps/api/src/workspaces/workspaces.controller.ts`:
 ```ts
-import { Controller, Get, Headers, UnauthorizedException } from "@nestjs/common";
+import { Controller, Get, Request, UseGuards } from "@nestjs/common";
 import { WorkspacesService } from "./workspaces.service";
+import { CurrentUserGuard } from "../common/guards/current-user.guard";
 
 @Controller("workspaces")
 export class WorkspacesController {
   constructor(private readonly service: WorkspacesService) {}
 
   @Get()
-  async list(@Headers("authorization") auth?: string) {
-    const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
-    if (!token) throw new UnauthorizedException();
-    return this.service.listForToken(token);
+  @UseGuards(CurrentUserGuard)
+  list(@Request() req: { user: { id: string } }) {
+    return this.service.listForUser(req.user.id);
   }
 }
 ```
 
-- [ ] **Step 7: Módulo e wiring**
+- [ ] **Step 7: WorkspacesModule + AppModule**
 
 `apps/api/src/workspaces/workspaces.module.ts`:
 ```ts
@@ -825,17 +751,128 @@ import { WorkspacesService } from "./workspaces.service";
 @Module({ controllers: [WorkspacesController], providers: [WorkspacesService] })
 export class WorkspacesModule {}
 ```
-Em `apps/api/src/app.module.ts`, importar `WorkspacesModule` no array `imports`.
+
+Em `apps/api/src/app.module.ts`, importar `WorkspacesModule`.
 
 - [ ] **Step 8: Rodar e ver passar**
 
-Run: `pnpm supabase db reset && pnpm --filter @app/api test -- workspaces.e2e`
-Expected: PASS (2 testes). Isolamento agora é provado ponta a ponta (HTTP → Nest → Supabase com JWT → RLS).
+Run: `cd apps/api && npx vitest run -- workspaces.e2e`
+Expected: PASS (2 testes). Isolamento provado ponta a ponta (HTTP → NestJS guard → Better Auth session → Prisma query filtrada por userId).
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add -A && git commit -m "feat(api): NestJS skeleton + GET /workspaces enforcing RLS via user JWT"
+git add -A && git commit -m "feat(api): NestJS skeleton + CurrentUserGuard + GET /workspaces with per-user isolation"
+```
+
+---
+
+## Task 6: Teste de isolamento T3 — usuário A não insere membership em workspace de B
+
+**Files:**
+- Test: `apps/api/test/e2e/workspace-isolation.e2e.test.ts`
+
+**Interfaces:**
+- Produces: prova que tentar inserir membership em workspace alheio retorna 403. Cenário T3.
+
+- [ ] **Step 1: Teste (falha primeiro — rota não existe)**
+
+`apps/api/test/e2e/workspace-isolation.e2e.test.ts`:
+```ts
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { NestFastifyApplication, FastifyAdapter } from "@nestjs/platform-fastify";
+import { Test } from "@nestjs/testing";
+import { AppModule } from "../../src/app.module";
+import { auth } from "../../src/lib/auth";
+import { prisma, cleanDb } from "../helpers/db";
+
+let app: NestFastifyApplication;
+
+async function createUserAndToken(email: string) {
+  await auth.api.signUpEmail({ body: { email, password: "Password123!", name: "T" } });
+  const signin = await auth.api.signInEmail({ body: { email, password: "Password123!" } });
+  return signin.token;
+}
+
+beforeAll(async () => {
+  const mod = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  app = mod.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+  await app.init();
+  await app.getHttpAdapter().getInstance().ready();
+});
+afterAll(async () => { await cleanDb(); await app.close(); await prisma.$disconnect(); });
+
+describe("isolamento", () => {
+  it("T3: POST /workspaces/:id/members retorna 403 quando usuário não é owner/admin", async () => {
+    const tokenA = await createUserAndToken(`iso_a_${Date.now()}@example.com`);
+    const tokenB = await createUserAndToken(`iso_b_${Date.now()}@example.com`);
+
+    // pegar workspace de B
+    const wsB = await app.inject({
+      method: "GET", url: "/workspaces",
+      headers: { authorization: `Bearer ${tokenB}` },
+    });
+    const workspaceId = wsB.json<{ id: string }[]>()[0].id;
+
+    // A tenta inserir membro no workspace de B
+    const res = await app.inject({
+      method: "POST",
+      url: `/workspaces/${workspaceId}/members`,
+      headers: { authorization: `Bearer ${tokenA}`, "content-type": "application/json" },
+      payload: { userId: "some-user-id", role: "member" },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+});
+```
+
+- [ ] **Step 2: Rodar e ver falhar**
+
+Expected: FAIL — 404 (rota não existe).
+
+- [ ] **Step 3: Endpoint POST /workspaces/:id/members com verificação de ownership**
+
+Adicionar ao `WorkspacesController`:
+```ts
+import { Body, Param, Post, ForbiddenException } from "@nestjs/common";
+
+@Post(":id/members")
+@UseGuards(CurrentUserGuard)
+async addMember(
+  @Param("id") workspaceId: string,
+  @Body() body: { userId: string; role: string },
+  @Request() req: { user: { id: string } }
+) {
+  return this.service.addMember(workspaceId, body.userId, body.role, req.user.id);
+}
+```
+
+Adicionar ao `WorkspacesService`:
+```ts
+import { ForbiddenException } from "@nestjs/common";
+
+async addMember(workspaceId: string, targetUserId: string, role: string, actorId: string) {
+  const actorMembership = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: actorId } },
+  });
+  if (!actorMembership || !["owner", "admin"].includes(actorMembership.role)) {
+    throw new ForbiddenException();
+  }
+  return prisma.workspaceMember.create({
+    data: { workspaceId, userId: targetUserId, role: role as any },
+  });
+}
+```
+
+- [ ] **Step 4: Rodar e ver passar**
+
+Run: `cd apps/api && npx vitest run -- isolation`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add -A && git commit -m "feat(api): POST /workspaces/:id/members with owner/admin guard (T3 isolation)"
 ```
 
 ---
@@ -847,7 +884,7 @@ git add -A && git commit -m "feat(api): NestJS skeleton + GET /workspaces enforc
 - Test: `apps/worker/test/health.test.ts`
 
 **Interfaces:**
-- Produces: fila `system` com job `health.noop` processável. (Cenário T5.)
+- Produces: fila `system` com job `health.noop` processável. Cenário T5.
 
 - [ ] **Step 1: Pacote do worker**
 
@@ -869,7 +906,6 @@ git add -A && git commit -m "feat(api): NestJS skeleton + GET /workspaces enforc
 import { defineConfig } from "vitest/config";
 export default defineConfig({ test: { environment: "node", testTimeout: 20000 } });
 ```
-Garanta um Redis local (Supabase não provê): `docker run -d -p 6379:6379 redis:7`.
 
 - [ ] **Step 2: Teste do job (falha primeiro)**
 
@@ -887,7 +923,7 @@ const connection = new IORedis(process.env.REDIS_URL ?? "redis://127.0.0.1:6379"
 afterAll(async () => { await connection.quit(); });
 
 describe("fila system", () => {
-  it("processa health.noop até completar", async () => {
+  it("T5: processa health.noop até completar", async () => {
     const worker = registerHealthWorker(connection);
     const queue = new Queue("system", { connection });
     const events = new QueueEvents("system", { connection });
@@ -904,16 +940,17 @@ describe("fila system", () => {
 
 - [ ] **Step 3: Rodar e ver falhar**
 
-Run: `pnpm --filter @app/worker test`
+Run: `cd apps/worker && npx vitest run`
 Expected: FAIL — `registerHealthWorker` não existe.
 
-- [ ] **Step 4: Fila e processor**
+- [ ] **Step 4: Implementação**
 
 `apps/worker/src/queue.ts`:
 ```ts
 export const SYSTEM_QUEUE = "system";
 export const HEALTH_NOOP = "health.noop";
 ```
+
 `apps/worker/src/health.processor.ts`:
 ```ts
 import { Worker } from "bullmq";
@@ -934,7 +971,7 @@ export function registerHealthWorker(connection: Redis) {
 
 - [ ] **Step 5: Rodar e ver passar**
 
-Run: `pnpm --filter @app/worker test`
+Run: `cd apps/worker && npx vitest run`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -945,38 +982,38 @@ git add -A && git commit -m "feat(worker): BullMQ system queue with health.noop 
 
 ---
 
-## Task 8: Web Vue PWA — auth, i18n, design tokens
+## Task 8: Web Vue PWA — auth (Better Auth client), i18n, design tokens
 
 **Files:**
-- Create (scaffold via CLI) + Modify: `apps/web/*`
-- Create: `apps/web/src/lib/supabase.ts`, `apps/web/src/stores/auth.ts`, `apps/web/src/views/LoginView.vue`, `apps/web/src/i18n/pt-BR.ts`, `apps/web/src/styles/tokens.css`
+- Create (scaffold) + Modify: `apps/web/*`
+- Create: `apps/web/src/lib/auth.ts`, `apps/web/src/stores/auth.ts`, `apps/web/src/views/LoginView.vue`, `apps/web/src/i18n/pt-BR.ts`, `apps/web/src/styles/tokens.css`
 - Test: `apps/web/src/stores/__tests__/auth.test.ts`
 
 **Interfaces:**
-- Consumes: Supabase Auth; `GET /workspaces` (Task 6) para mostrar o workspace pessoal pós-login.
-- Produces: app instalável (PWA) com signup/login funcionando.
+- Consumes: Better Auth (via fetch para `apps/api`); `GET /workspaces` para confirmar workspace pós-login.
+- Produces: PWA instalável com signup/login funcionando.
 
 - [ ] **Step 1: Scaffold Vue + libs**
 
 ```bash
 cd apps/web
 pnpm create vite@latest . -- --template vue-ts
-pnpm add vue-router pinia vue-i18n @supabase/supabase-js @app/shared
+pnpm add vue-router pinia vue-i18n better-auth @app/shared
 pnpm add -D vite-plugin-pwa vitest @vue/test-utils jsdom
 ```
-Em `apps/web/package.json`: `name` = `@app/web`; adicionar `"test": "vitest run"`, `"typecheck": "vue-tsc --noEmit"`.
+`apps/web/package.json`: `name` = `@app/web`; adicionar `"test": "vitest run"`, `"typecheck": "vue-tsc --noEmit"`.
 Em `vite.config.ts`: registrar `VitePWA({ registerType: "autoUpdate" })`.
-Criar `apps/web/.env`: `VITE_SUPABASE_URL=`, `VITE_SUPABASE_ANON_KEY=`, `VITE_API_URL=http://127.0.0.1:3000`.
+Criar `apps/web/.env`: `VITE_API_URL=http://127.0.0.1:3000`.
 
-- [ ] **Step 2: Cliente Supabase do front**
+- [ ] **Step 2: Cliente Better Auth no frontend**
 
-`apps/web/src/lib/supabase.ts`:
+`apps/web/src/lib/auth.ts`:
 ```ts
-import { createClient } from "@supabase/supabase-js";
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
-);
+import { createAuthClient } from "better-auth/vue";
+
+export const authClient = createAuthClient({
+  baseURL: import.meta.env.VITE_API_URL,
+});
 ```
 
 - [ ] **Step 3: Teste do store de auth (falha primeiro)**
@@ -986,15 +1023,16 @@ export const supabase = createClient(
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 
-vi.mock("../../lib/supabase", () => ({
-  supabase: {
-    auth: {
-      signInWithPassword: vi.fn(async () => ({
-        data: { session: { access_token: "tok" }, user: { id: "u1" } }, error: null,
+vi.mock("../../lib/auth", () => ({
+  authClient: {
+    signIn: {
+      email: vi.fn(async () => ({
+        data: { token: "tok", user: { id: "u1" } },
+        error: null,
       })),
-      signOut: vi.fn(async () => ({ error: null })),
-      getSession: vi.fn(async () => ({ data: { session: null } })),
     },
+    signOut: vi.fn(async () => ({ error: null })),
+    getSession: vi.fn(async () => ({ data: null })),
   },
 }));
 
@@ -1015,7 +1053,7 @@ describe("auth store", () => {
 
 - [ ] **Step 4: Rodar e ver falhar**
 
-Run: `pnpm --filter @app/web test -- auth`
+Run: `cd apps/web && npx vitest run -- auth`
 Expected: FAIL — store `../auth` inexistente.
 
 - [ ] **Step 5: Store de auth**
@@ -1024,7 +1062,7 @@ Expected: FAIL — store `../auth` inexistente.
 ```ts
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { supabase } from "../lib/supabase";
+import { authClient } from "../lib/auth";
 
 export const useAuthStore = defineStore("auth", () => {
   const accessToken = ref<string | null>(null);
@@ -1032,37 +1070,50 @@ export const useAuthStore = defineStore("auth", () => {
   const isAuthenticated = computed(() => !!accessToken.value);
 
   async function signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    accessToken.value = data.session?.access_token ?? null;
+    const { data, error } = await authClient.signIn.email({ email, password });
+    if (error) throw new Error(error.message);
+    accessToken.value = data.token ?? null;
     userId.value = data.user?.id ?? null;
   }
-  async function signUp(email: string, password: string) {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
+
+  async function signUp(email: string, password: string, name: string) {
+    const { error } = await authClient.signUp.email({ email, password, name });
+    if (error) throw new Error(error.message);
   }
+
   async function signOut() {
-    await supabase.auth.signOut();
-    accessToken.value = null; userId.value = null;
+    await authClient.signOut();
+    accessToken.value = null;
+    userId.value = null;
   }
-  return { accessToken, userId, isAuthenticated, signIn, signUp, signOut };
+
+  async function restoreSession() {
+    const { data } = await authClient.getSession();
+    if (data?.session) {
+      accessToken.value = data.session.token;
+      userId.value = data.user?.id ?? null;
+    }
+  }
+
+  return { accessToken, userId, isAuthenticated, signIn, signUp, signOut, restoreSession };
 });
 ```
 
 - [ ] **Step 6: Rodar e ver passar**
 
-Run: `pnpm --filter @app/web test -- auth`
+Run: `cd apps/web && npx vitest run -- auth`
 Expected: PASS.
 
-- [ ] **Step 7: i18n, tokens e a view de login (sem novo teste; verificação manual)**
+- [ ] **Step 7: i18n, tokens e LoginView**
 
 `apps/web/src/i18n/pt-BR.ts`:
 ```ts
 export default {
-  auth: { login: "Entrar", signup: "Criar conta", email: "E-mail", password: "Senha" },
+  auth: { login: "Entrar", signup: "Criar conta", email: "E-mail", password: "Senha", name: "Nome" },
   workspace: { personal: "Pessoal" },
 };
 ```
+
 `apps/web/src/styles/tokens.css`:
 ```css
 :root {
@@ -1071,13 +1122,15 @@ export default {
   --font-sans: ui-sans-serif, system-ui, sans-serif;
 }
 ```
+
 `apps/web/src/views/LoginView.vue`:
 ```vue
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useAuthStore } from "../stores/auth";
 const auth = useAuthStore();
 const email = ref(""); const password = ref(""); const erro = ref("");
+onMounted(() => auth.restoreSession());
 async function entrar() {
   erro.value = "";
   try { await auth.signIn(email.value, password.value); }
@@ -1093,12 +1146,13 @@ async function entrar() {
   </main>
 </template>
 ```
-Verificação manual: `pnpm --filter @app/web dev`, criar conta, logar; confirmar sessão. (O consumo de `GET /workspaces` para exibir o workspace pessoal pode ser ligado aqui ou no início da Fase 1.)
+
+Note: `restoreSession()` em `onMounted` garante que a sessão é restaurada após reload da página (Better Auth persiste o token em cookie httpOnly).
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add -A && git commit -m "feat(web): Vue PWA scaffold with auth store, i18n pt-BR and design tokens"
+git add -A && git commit -m "feat(web): Vue PWA scaffold with Better Auth client, auth store, i18n pt-BR and design tokens"
 ```
 
 ---
@@ -1109,7 +1163,7 @@ git add -A && git commit -m "feat(web): Vue PWA scaffold with auth store, i18n p
 - Create: `.github/workflows/ci.yml`
 
 **Interfaces:**
-- Produces: pipeline que roda lint + typecheck + testes com Supabase e Redis efêmeros. (Cenário T6.)
+- Produces: pipeline com PostgreSQL e Redis efêmeros. Cenário T6.
 
 - [ ] **Step 1: Workflow**
 
@@ -1121,8 +1175,20 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: financas
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       redis:
-        image: redis:7
+        image: redis:7-alpine
         ports: ["6379:6379"]
     steps:
       - uses: actions/checkout@v4
@@ -1131,48 +1197,39 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - uses: supabase/setup-cli@v1
-        with: { version: latest }
-      - run: supabase start
-      - name: Exportar chaves do Supabase para o ambiente de teste
-        run: |
-          echo "SUPABASE_URL=$(supabase status -o env | grep API_URL | cut -d= -f2)" >> .env.test
-          echo "SUPABASE_ANON_KEY=$(supabase status -o env | grep ANON_KEY | cut -d= -f2)" >> .env.test
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep SERVICE_ROLE_KEY | cut -d= -f2)" >> .env.test
+      - name: Run Prisma migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://app:app@localhost:5432/financas
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
         env:
+          DATABASE_URL: postgresql://app:app@localhost:5432/financas
           REDIS_URL: redis://127.0.0.1:6379
 ```
-> Nota de execução: confirmar os nomes exatos das chaves em `supabase status -o env` na versão da CLI usada e ajustar os `grep` se necessário. Esse é o único ponto do plano sensível à versão da ferramenta.
 
 - [ ] **Step 2: Verificar verde**
 
-Push para um branch e abrir PR. Expected: job `build-test` verde (lint, typecheck, e as suítes de shared/api/worker/web passando).
+Push para um branch e abrir PR. Expected: job `build-test` verde.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add -A && git commit -m "ci: lint+typecheck+test with ephemeral supabase and redis"
+git add -A && git commit -m "ci: lint+typecheck+test with ephemeral postgres and redis"
 ```
 
 ---
 
-## Self-review (feito)
+## Self-review
 
-- **Cobertura do spec:** T1 (Task 4) · T2/T3/T4 (Task 5) · T5 (Task 7) · T6 (Task 9). Modelo de dados (Task 3), auth/onboarding (Tasks 4/8), RLS (Task 5), fila (Task 7), monorepo/transversais (Tasks 1/8/9). Todos os itens do DoD têm tarefa.
-- **Sem placeholders:** cada passo de código traz o código; scaffolding usa comandos exatos (convenção declarada no topo).
-- **Consistência de tipos:** `WORKSPACE_TYPES`/`MEMBER_ROLES` e os campos (`currency` char(3), `role`) batem entre `@app/shared`, as migrations e o endpoint.
-- **Ponto sensível a versão (único):** parsing das chaves em `supabase status -o env` no CI (Task 9, Step 1) — sinalizado inline.
+- **Cobertura do spec:** T1 (Task 4) · T2/T4 (Task 5 e2e) · T3 (Task 6) · T5 (Task 7) · T6 (Task 9).
+- **Stack:** PostgreSQL 16 + Prisma + Better Auth + BullMQ + Vue 3 PWA.
+- **Sem Supabase:** auth gerenciado pelo Better Auth, isolamento multi-tenant na camada NestJS/Prisma.
+- **Persistência de sessão:** `restoreSession()` em `onMounted` corrige o bug de logout no reload (Task 8).
 
 ---
 
 ## Execução
 
-**Plano completo.** Duas opções:
-
-1. **Subagent-Driven (recomendado)** — um subagente fresco por tarefa, com review entre tarefas; iteração rápida. Use `superpowers:subagent-driven-development`. As Tasks 1–9 são majoritariamente sequenciais (cada uma depende da anterior), então o ganho do subagent é o review limpo por tarefa, não paralelismo.
-2. **Inline** — executar as tarefas nesta sessão com checkpoints. Use `superpowers:executing-plans`.
-
-Recomendo **subagent-driven** pela natureza "fundação" (vale o gate de review por tarefa, sobretudo nas Tasks 4–6 de DB/RLS).
+Tasks 1–9 são sequenciais. Recomendado: **subagent-driven-development** com revisão por task.
