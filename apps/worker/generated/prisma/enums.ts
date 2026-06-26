@@ -150,3 +150,13 @@ export const DraftStatus = {
 } as const
 
 export type DraftStatus = (typeof DraftStatus)[keyof typeof DraftStatus]
+
+
+export const Recurrence = {
+  once: 'once',
+  weekly: 'weekly',
+  monthly: 'monthly',
+  yearly: 'yearly'
+} as const
+
+export type Recurrence = (typeof Recurrence)[keyof typeof Recurrence]

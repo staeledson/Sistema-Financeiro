@@ -215,6 +215,8 @@ export type WorkspaceWhereInput = {
   invitations?: Prisma.InvitationListRelationFilter
   businessProfile?: Prisma.XOR<Prisma.BusinessProfileNullableScalarRelationFilter, Prisma.BusinessProfileWhereInput> | null
   chatConversations?: Prisma.ChatConversationListRelationFilter
+  pushSubscriptions?: Prisma.PushSubscriptionListRelationFilter
+  scheduledBills?: Prisma.ScheduledBillListRelationFilter
 }
 
 export type WorkspaceOrderByWithRelationInput = {
@@ -242,6 +244,8 @@ export type WorkspaceOrderByWithRelationInput = {
   invitations?: Prisma.InvitationOrderByRelationAggregateInput
   businessProfile?: Prisma.BusinessProfileOrderByWithRelationInput
   chatConversations?: Prisma.ChatConversationOrderByRelationAggregateInput
+  pushSubscriptions?: Prisma.PushSubscriptionOrderByRelationAggregateInput
+  scheduledBills?: Prisma.ScheduledBillOrderByRelationAggregateInput
 }
 
 export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
@@ -272,6 +276,8 @@ export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
   invitations?: Prisma.InvitationListRelationFilter
   businessProfile?: Prisma.XOR<Prisma.BusinessProfileNullableScalarRelationFilter, Prisma.BusinessProfileWhereInput> | null
   chatConversations?: Prisma.ChatConversationListRelationFilter
+  pushSubscriptions?: Prisma.PushSubscriptionListRelationFilter
+  scheduledBills?: Prisma.ScheduledBillListRelationFilter
 }, "id">
 
 export type WorkspaceOrderByWithAggregationInput = {
@@ -324,6 +330,8 @@ export type WorkspaceCreateInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateInput = {
@@ -350,6 +358,8 @@ export type WorkspaceUncheckedCreateInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUpdateInput = {
@@ -376,6 +386,8 @@ export type WorkspaceUpdateInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateInput = {
@@ -402,6 +414,8 @@ export type WorkspaceUncheckedUpdateInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateManyInput = {
@@ -748,6 +762,34 @@ export type WorkspaceUpdateOneRequiredWithoutChatConversationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutChatConversationsInput, Prisma.WorkspaceUpdateWithoutChatConversationsInput>, Prisma.WorkspaceUncheckedUpdateWithoutChatConversationsInput>
 }
 
+export type WorkspaceCreateNestedOneWithoutPushSubscriptionsInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutPushSubscriptionsInput, Prisma.WorkspaceUncheckedCreateWithoutPushSubscriptionsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutPushSubscriptionsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutPushSubscriptionsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutPushSubscriptionsInput, Prisma.WorkspaceUncheckedCreateWithoutPushSubscriptionsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutPushSubscriptionsInput
+  upsert?: Prisma.WorkspaceUpsertWithoutPushSubscriptionsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutPushSubscriptionsInput, Prisma.WorkspaceUpdateWithoutPushSubscriptionsInput>, Prisma.WorkspaceUncheckedUpdateWithoutPushSubscriptionsInput>
+}
+
+export type WorkspaceCreateNestedOneWithoutScheduledBillsInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutScheduledBillsInput, Prisma.WorkspaceUncheckedCreateWithoutScheduledBillsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutScheduledBillsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutScheduledBillsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutScheduledBillsInput, Prisma.WorkspaceUncheckedCreateWithoutScheduledBillsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutScheduledBillsInput
+  upsert?: Prisma.WorkspaceUpsertWithoutScheduledBillsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutScheduledBillsInput, Prisma.WorkspaceUpdateWithoutScheduledBillsInput>, Prisma.WorkspaceUncheckedUpdateWithoutScheduledBillsInput>
+}
+
 export type WorkspaceCreateWithoutCreatedByInput = {
   id?: string
   type: $Enums.WorkspaceType
@@ -771,6 +813,8 @@ export type WorkspaceCreateWithoutCreatedByInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCreatedByInput = {
@@ -796,6 +840,8 @@ export type WorkspaceUncheckedCreateWithoutCreatedByInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCreatedByInput = {
@@ -860,6 +906,8 @@ export type WorkspaceCreateWithoutMembersInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutMembersInput = {
@@ -885,6 +933,8 @@ export type WorkspaceUncheckedCreateWithoutMembersInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutMembersInput = {
@@ -926,6 +976,8 @@ export type WorkspaceUpdateWithoutMembersInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutMembersInput = {
@@ -951,6 +1003,8 @@ export type WorkspaceUncheckedUpdateWithoutMembersInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutBankAccountsInput = {
@@ -976,6 +1030,8 @@ export type WorkspaceCreateWithoutBankAccountsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBankAccountsInput = {
@@ -1001,6 +1057,8 @@ export type WorkspaceUncheckedCreateWithoutBankAccountsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBankAccountsInput = {
@@ -1042,6 +1100,8 @@ export type WorkspaceUpdateWithoutBankAccountsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBankAccountsInput = {
@@ -1067,6 +1127,8 @@ export type WorkspaceUncheckedUpdateWithoutBankAccountsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutCategoriesInput = {
@@ -1092,6 +1154,8 @@ export type WorkspaceCreateWithoutCategoriesInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCategoriesInput = {
@@ -1117,6 +1181,8 @@ export type WorkspaceUncheckedCreateWithoutCategoriesInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCategoriesInput = {
@@ -1158,6 +1224,8 @@ export type WorkspaceUpdateWithoutCategoriesInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCategoriesInput = {
@@ -1183,6 +1251,8 @@ export type WorkspaceUncheckedUpdateWithoutCategoriesInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutTagsInput = {
@@ -1208,6 +1278,8 @@ export type WorkspaceCreateWithoutTagsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutTagsInput = {
@@ -1233,6 +1305,8 @@ export type WorkspaceUncheckedCreateWithoutTagsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutTagsInput = {
@@ -1274,6 +1348,8 @@ export type WorkspaceUpdateWithoutTagsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutTagsInput = {
@@ -1299,6 +1375,8 @@ export type WorkspaceUncheckedUpdateWithoutTagsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutTransactionsInput = {
@@ -1324,6 +1402,8 @@ export type WorkspaceCreateWithoutTransactionsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutTransactionsInput = {
@@ -1349,6 +1429,8 @@ export type WorkspaceUncheckedCreateWithoutTransactionsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutTransactionsInput = {
@@ -1390,6 +1472,8 @@ export type WorkspaceUpdateWithoutTransactionsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutTransactionsInput = {
@@ -1415,6 +1499,8 @@ export type WorkspaceUncheckedUpdateWithoutTransactionsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutImportBatchesInput = {
@@ -1440,6 +1526,8 @@ export type WorkspaceCreateWithoutImportBatchesInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutImportBatchesInput = {
@@ -1465,6 +1553,8 @@ export type WorkspaceUncheckedCreateWithoutImportBatchesInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutImportBatchesInput = {
@@ -1506,6 +1596,8 @@ export type WorkspaceUpdateWithoutImportBatchesInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutImportBatchesInput = {
@@ -1531,6 +1623,8 @@ export type WorkspaceUncheckedUpdateWithoutImportBatchesInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutImportMappingsInput = {
@@ -1556,6 +1650,8 @@ export type WorkspaceCreateWithoutImportMappingsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutImportMappingsInput = {
@@ -1581,6 +1677,8 @@ export type WorkspaceUncheckedCreateWithoutImportMappingsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutImportMappingsInput = {
@@ -1622,6 +1720,8 @@ export type WorkspaceUpdateWithoutImportMappingsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutImportMappingsInput = {
@@ -1647,6 +1747,8 @@ export type WorkspaceUncheckedUpdateWithoutImportMappingsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutAiJobsInput = {
@@ -1672,6 +1774,8 @@ export type WorkspaceCreateWithoutAiJobsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutAiJobsInput = {
@@ -1697,6 +1801,8 @@ export type WorkspaceUncheckedCreateWithoutAiJobsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutAiJobsInput = {
@@ -1738,6 +1844,8 @@ export type WorkspaceUpdateWithoutAiJobsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutAiJobsInput = {
@@ -1763,6 +1871,8 @@ export type WorkspaceUncheckedUpdateWithoutAiJobsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutDraftsInput = {
@@ -1788,6 +1898,8 @@ export type WorkspaceCreateWithoutDraftsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutDraftsInput = {
@@ -1813,6 +1925,8 @@ export type WorkspaceUncheckedCreateWithoutDraftsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutDraftsInput = {
@@ -1854,6 +1968,8 @@ export type WorkspaceUpdateWithoutDraftsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutDraftsInput = {
@@ -1879,6 +1995,8 @@ export type WorkspaceUncheckedUpdateWithoutDraftsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutCategoryRulesInput = {
@@ -1904,6 +2022,8 @@ export type WorkspaceCreateWithoutCategoryRulesInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCategoryRulesInput = {
@@ -1929,6 +2049,8 @@ export type WorkspaceUncheckedCreateWithoutCategoryRulesInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCategoryRulesInput = {
@@ -1970,6 +2092,8 @@ export type WorkspaceUpdateWithoutCategoryRulesInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCategoryRulesInput = {
@@ -1995,6 +2119,8 @@ export type WorkspaceUncheckedUpdateWithoutCategoryRulesInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutInsightsInput = {
@@ -2020,6 +2146,8 @@ export type WorkspaceCreateWithoutInsightsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutInsightsInput = {
@@ -2045,6 +2173,8 @@ export type WorkspaceUncheckedCreateWithoutInsightsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutInsightsInput = {
@@ -2086,6 +2216,8 @@ export type WorkspaceUpdateWithoutInsightsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutInsightsInput = {
@@ -2111,6 +2243,8 @@ export type WorkspaceUncheckedUpdateWithoutInsightsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutBudgetsInput = {
@@ -2136,6 +2270,8 @@ export type WorkspaceCreateWithoutBudgetsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBudgetsInput = {
@@ -2161,6 +2297,8 @@ export type WorkspaceUncheckedCreateWithoutBudgetsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBudgetsInput = {
@@ -2202,6 +2340,8 @@ export type WorkspaceUpdateWithoutBudgetsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBudgetsInput = {
@@ -2227,6 +2367,8 @@ export type WorkspaceUncheckedUpdateWithoutBudgetsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutGoalsInput = {
@@ -2252,6 +2394,8 @@ export type WorkspaceCreateWithoutGoalsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutGoalsInput = {
@@ -2277,6 +2421,8 @@ export type WorkspaceUncheckedCreateWithoutGoalsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutGoalsInput = {
@@ -2318,6 +2464,8 @@ export type WorkspaceUpdateWithoutGoalsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutGoalsInput = {
@@ -2343,6 +2491,8 @@ export type WorkspaceUncheckedUpdateWithoutGoalsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutInvitationsInput = {
@@ -2368,6 +2518,8 @@ export type WorkspaceCreateWithoutInvitationsInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutInvitationsInput = {
@@ -2393,6 +2545,8 @@ export type WorkspaceUncheckedCreateWithoutInvitationsInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutInvitationsInput = {
@@ -2434,6 +2588,8 @@ export type WorkspaceUpdateWithoutInvitationsInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutInvitationsInput = {
@@ -2459,6 +2615,8 @@ export type WorkspaceUncheckedUpdateWithoutInvitationsInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutBusinessProfileInput = {
@@ -2484,6 +2642,8 @@ export type WorkspaceCreateWithoutBusinessProfileInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBusinessProfileInput = {
@@ -2509,6 +2669,8 @@ export type WorkspaceUncheckedCreateWithoutBusinessProfileInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBusinessProfileInput = {
@@ -2550,6 +2712,8 @@ export type WorkspaceUpdateWithoutBusinessProfileInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBusinessProfileInput = {
@@ -2575,6 +2739,8 @@ export type WorkspaceUncheckedUpdateWithoutBusinessProfileInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutChatConversationsInput = {
@@ -2600,6 +2766,8 @@ export type WorkspaceCreateWithoutChatConversationsInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutChatConversationsInput = {
@@ -2625,6 +2793,8 @@ export type WorkspaceUncheckedCreateWithoutChatConversationsInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutChatConversationsInput = {
@@ -2666,6 +2836,8 @@ export type WorkspaceUpdateWithoutChatConversationsInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutChatConversationsInput = {
@@ -2691,6 +2863,256 @@ export type WorkspaceUncheckedUpdateWithoutChatConversationsInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutPushSubscriptionsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  createdBy: Prisma.UserCreateNestedOneWithoutWorkspacesInput
+  members?: Prisma.WorkspaceMemberCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutPushSubscriptionsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountUncheckedCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagUncheckedCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutPushSubscriptionsInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutPushSubscriptionsInput, Prisma.WorkspaceUncheckedCreateWithoutPushSubscriptionsInput>
+}
+
+export type WorkspaceUpsertWithoutPushSubscriptionsInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutPushSubscriptionsInput, Prisma.WorkspaceUncheckedUpdateWithoutPushSubscriptionsInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutPushSubscriptionsInput, Prisma.WorkspaceUncheckedCreateWithoutPushSubscriptionsInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutPushSubscriptionsInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutPushSubscriptionsInput, Prisma.WorkspaceUncheckedUpdateWithoutPushSubscriptionsInput>
+}
+
+export type WorkspaceUpdateWithoutPushSubscriptionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutWorkspacesNestedInput
+  members?: Prisma.WorkspaceMemberUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutPushSubscriptionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUncheckedUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUncheckedUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutScheduledBillsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  createdBy: Prisma.UserCreateNestedOneWithoutWorkspacesInput
+  members?: Prisma.WorkspaceMemberCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutScheduledBillsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountUncheckedCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagUncheckedCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutScheduledBillsInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutScheduledBillsInput, Prisma.WorkspaceUncheckedCreateWithoutScheduledBillsInput>
+}
+
+export type WorkspaceUpsertWithoutScheduledBillsInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutScheduledBillsInput, Prisma.WorkspaceUncheckedUpdateWithoutScheduledBillsInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutScheduledBillsInput, Prisma.WorkspaceUncheckedCreateWithoutScheduledBillsInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutScheduledBillsInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutScheduledBillsInput, Prisma.WorkspaceUncheckedUpdateWithoutScheduledBillsInput>
+}
+
+export type WorkspaceUpdateWithoutScheduledBillsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutWorkspacesNestedInput
+  members?: Prisma.WorkspaceMemberUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutScheduledBillsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUncheckedUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUncheckedUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateManyCreatedByInput = {
@@ -2725,6 +3147,8 @@ export type WorkspaceUpdateWithoutCreatedByInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCreatedByInput = {
@@ -2750,6 +3174,8 @@ export type WorkspaceUncheckedUpdateWithoutCreatedByInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
   chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  pushSubscriptions?: Prisma.PushSubscriptionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  scheduledBills?: Prisma.ScheduledBillUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateManyWithoutCreatedByInput = {
@@ -2782,6 +3208,8 @@ export type WorkspaceCountOutputType = {
   goals: number
   invitations: number
   chatConversations: number
+  pushSubscriptions: number
+  scheduledBills: number
 }
 
 export type WorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2800,6 +3228,8 @@ export type WorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensi
   goals?: boolean | WorkspaceCountOutputTypeCountGoalsArgs
   invitations?: boolean | WorkspaceCountOutputTypeCountInvitationsArgs
   chatConversations?: boolean | WorkspaceCountOutputTypeCountChatConversationsArgs
+  pushSubscriptions?: boolean | WorkspaceCountOutputTypeCountPushSubscriptionsArgs
+  scheduledBills?: boolean | WorkspaceCountOutputTypeCountScheduledBillsArgs
 }
 
 /**
@@ -2917,6 +3347,20 @@ export type WorkspaceCountOutputTypeCountChatConversationsArgs<ExtArgs extends r
   where?: Prisma.ChatConversationWhereInput
 }
 
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountPushSubscriptionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PushSubscriptionWhereInput
+}
+
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountScheduledBillsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ScheduledBillWhereInput
+}
+
 
 export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2943,6 +3387,8 @@ export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   invitations?: boolean | Prisma.Workspace$invitationsArgs<ExtArgs>
   businessProfile?: boolean | Prisma.Workspace$businessProfileArgs<ExtArgs>
   chatConversations?: boolean | Prisma.Workspace$chatConversationsArgs<ExtArgs>
+  pushSubscriptions?: boolean | Prisma.Workspace$pushSubscriptionsArgs<ExtArgs>
+  scheduledBills?: boolean | Prisma.Workspace$scheduledBillsArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["workspace"]>
 
@@ -2997,6 +3443,8 @@ export type WorkspaceInclude<ExtArgs extends runtime.Types.Extensions.InternalAr
   invitations?: boolean | Prisma.Workspace$invitationsArgs<ExtArgs>
   businessProfile?: boolean | Prisma.Workspace$businessProfileArgs<ExtArgs>
   chatConversations?: boolean | Prisma.Workspace$chatConversationsArgs<ExtArgs>
+  pushSubscriptions?: boolean | Prisma.Workspace$pushSubscriptionsArgs<ExtArgs>
+  scheduledBills?: boolean | Prisma.Workspace$scheduledBillsArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type WorkspaceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3026,6 +3474,8 @@ export type $WorkspacePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     invitations: Prisma.$InvitationPayload<ExtArgs>[]
     businessProfile: Prisma.$BusinessProfilePayload<ExtArgs> | null
     chatConversations: Prisma.$ChatConversationPayload<ExtArgs>[]
+    pushSubscriptions: Prisma.$PushSubscriptionPayload<ExtArgs>[]
+    scheduledBills: Prisma.$ScheduledBillPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3446,6 +3896,8 @@ export interface Prisma__WorkspaceClient<T, Null = never, ExtArgs extends runtim
   invitations<T extends Prisma.Workspace$invitationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$invitationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   businessProfile<T extends Prisma.Workspace$businessProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$businessProfileArgs<ExtArgs>>): Prisma.Prisma__BusinessProfileClient<runtime.Types.Result.GetResult<Prisma.$BusinessProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   chatConversations<T extends Prisma.Workspace$chatConversationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$chatConversationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  pushSubscriptions<T extends Prisma.Workspace$pushSubscriptionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$pushSubscriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PushSubscriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  scheduledBills<T extends Prisma.Workspace$scheduledBillsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$scheduledBillsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScheduledBillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4259,6 +4711,54 @@ export type Workspace$chatConversationsArgs<ExtArgs extends runtime.Types.Extens
   take?: number
   skip?: number
   distinct?: Prisma.ChatConversationScalarFieldEnum | Prisma.ChatConversationScalarFieldEnum[]
+}
+
+/**
+ * Workspace.pushSubscriptions
+ */
+export type Workspace$pushSubscriptionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PushSubscription
+   */
+  select?: Prisma.PushSubscriptionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PushSubscription
+   */
+  omit?: Prisma.PushSubscriptionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PushSubscriptionInclude<ExtArgs> | null
+  where?: Prisma.PushSubscriptionWhereInput
+  orderBy?: Prisma.PushSubscriptionOrderByWithRelationInput | Prisma.PushSubscriptionOrderByWithRelationInput[]
+  cursor?: Prisma.PushSubscriptionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PushSubscriptionScalarFieldEnum | Prisma.PushSubscriptionScalarFieldEnum[]
+}
+
+/**
+ * Workspace.scheduledBills
+ */
+export type Workspace$scheduledBillsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ScheduledBill
+   */
+  select?: Prisma.ScheduledBillSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ScheduledBill
+   */
+  omit?: Prisma.ScheduledBillOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ScheduledBillInclude<ExtArgs> | null
+  where?: Prisma.ScheduledBillWhereInput
+  orderBy?: Prisma.ScheduledBillOrderByWithRelationInput | Prisma.ScheduledBillOrderByWithRelationInput[]
+  cursor?: Prisma.ScheduledBillWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ScheduledBillScalarFieldEnum | Prisma.ScheduledBillScalarFieldEnum[]
 }
 
 /**

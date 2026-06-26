@@ -75,7 +75,9 @@ export const ModelName = {
   TransactionSplit: 'TransactionSplit',
   BusinessProfile: 'BusinessProfile',
   ChatConversation: 'ChatConversation',
-  ChatMessage: 'ChatMessage'
+  ChatMessage: 'ChatMessage',
+  PushSubscription: 'PushSubscription',
+  ScheduledBill: 'ScheduledBill'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -430,6 +432,35 @@ export const ChatMessageScalarFieldEnum = {
 } as const
 
 export type ChatMessageScalarFieldEnum = (typeof ChatMessageScalarFieldEnum)[keyof typeof ChatMessageScalarFieldEnum]
+
+
+export const PushSubscriptionScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  userId: 'userId',
+  endpoint: 'endpoint',
+  p256dh: 'p256dh',
+  auth: 'auth',
+  createdAt: 'createdAt'
+} as const
+
+export type PushSubscriptionScalarFieldEnum = (typeof PushSubscriptionScalarFieldEnum)[keyof typeof PushSubscriptionScalarFieldEnum]
+
+
+export const ScheduledBillScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  name: 'name',
+  amountCents: 'amountCents',
+  dueDate: 'dueDate',
+  recurrence: 'recurrence',
+  categoryId: 'categoryId',
+  active: 'active',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type ScheduledBillScalarFieldEnum = (typeof ScheduledBillScalarFieldEnum)[keyof typeof ScheduledBillScalarFieldEnum]
 
 
 export const SortOrder = {
