@@ -66,6 +66,16 @@ export const MemberRole = {
 export type MemberRole = (typeof MemberRole)[keyof typeof MemberRole]
 
 
+export const InvitationStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+  expired: 'expired',
+  revoked: 'revoked'
+} as const
+
+export type InvitationStatus = (typeof InvitationStatus)[keyof typeof InvitationStatus]
+
+
 export const AccountType = {
   checking: 'checking',
   savings: 'savings',

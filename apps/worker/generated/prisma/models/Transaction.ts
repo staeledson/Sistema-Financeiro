@@ -49,6 +49,7 @@ export type TransactionMinAggregateOutputType = {
   source: string | null
   importFingerprint: string | null
   importBatchId: string | null
+  costCenter: string | null
   createdById: string | null
   createdAt: Date | null
 }
@@ -68,6 +69,7 @@ export type TransactionMaxAggregateOutputType = {
   source: string | null
   importFingerprint: string | null
   importBatchId: string | null
+  costCenter: string | null
   createdById: string | null
   createdAt: Date | null
 }
@@ -87,6 +89,7 @@ export type TransactionCountAggregateOutputType = {
   source: number
   importFingerprint: number
   importBatchId: number
+  costCenter: number
   createdById: number
   createdAt: number
   _all: number
@@ -116,6 +119,7 @@ export type TransactionMinAggregateInputType = {
   source?: true
   importFingerprint?: true
   importBatchId?: true
+  costCenter?: true
   createdById?: true
   createdAt?: true
 }
@@ -135,6 +139,7 @@ export type TransactionMaxAggregateInputType = {
   source?: true
   importFingerprint?: true
   importBatchId?: true
+  costCenter?: true
   createdById?: true
   createdAt?: true
 }
@@ -154,6 +159,7 @@ export type TransactionCountAggregateInputType = {
   source?: true
   importFingerprint?: true
   importBatchId?: true
+  costCenter?: true
   createdById?: true
   createdAt?: true
   _all?: true
@@ -260,6 +266,7 @@ export type TransactionGroupByOutputType = {
   source: string
   importFingerprint: string | null
   importBatchId: string | null
+  costCenter: string | null
   createdById: string
   createdAt: Date
   _count: TransactionCountAggregateOutputType | null
@@ -302,6 +309,7 @@ export type TransactionWhereInput = {
   source?: Prisma.StringFilter<"Transaction"> | string
   importFingerprint?: Prisma.StringNullableFilter<"Transaction"> | string | null
   importBatchId?: Prisma.StringNullableFilter<"Transaction"> | string | null
+  costCenter?: Prisma.StringNullableFilter<"Transaction"> | string | null
   createdById?: Prisma.StringFilter<"Transaction"> | string
   createdAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
@@ -312,6 +320,7 @@ export type TransactionWhereInput = {
   importBatch?: Prisma.XOR<Prisma.ImportBatchNullableScalarRelationFilter, Prisma.ImportBatchWhereInput> | null
   createdBy?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   tags?: Prisma.TransactionTagListRelationFilter
+  splits?: Prisma.TransactionSplitListRelationFilter
 }
 
 export type TransactionOrderByWithRelationInput = {
@@ -329,6 +338,7 @@ export type TransactionOrderByWithRelationInput = {
   source?: Prisma.SortOrder
   importFingerprint?: Prisma.SortOrderInput | Prisma.SortOrder
   importBatchId?: Prisma.SortOrderInput | Prisma.SortOrder
+  costCenter?: Prisma.SortOrderInput | Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   workspace?: Prisma.WorkspaceOrderByWithRelationInput
@@ -339,6 +349,7 @@ export type TransactionOrderByWithRelationInput = {
   importBatch?: Prisma.ImportBatchOrderByWithRelationInput
   createdBy?: Prisma.UserOrderByWithRelationInput
   tags?: Prisma.TransactionTagOrderByRelationAggregateInput
+  splits?: Prisma.TransactionSplitOrderByRelationAggregateInput
 }
 
 export type TransactionWhereUniqueInput = Prisma.AtLeast<{
@@ -360,6 +371,7 @@ export type TransactionWhereUniqueInput = Prisma.AtLeast<{
   source?: Prisma.StringFilter<"Transaction"> | string
   importFingerprint?: Prisma.StringNullableFilter<"Transaction"> | string | null
   importBatchId?: Prisma.StringNullableFilter<"Transaction"> | string | null
+  costCenter?: Prisma.StringNullableFilter<"Transaction"> | string | null
   createdById?: Prisma.StringFilter<"Transaction"> | string
   createdAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
@@ -370,6 +382,7 @@ export type TransactionWhereUniqueInput = Prisma.AtLeast<{
   importBatch?: Prisma.XOR<Prisma.ImportBatchNullableScalarRelationFilter, Prisma.ImportBatchWhereInput> | null
   createdBy?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   tags?: Prisma.TransactionTagListRelationFilter
+  splits?: Prisma.TransactionSplitListRelationFilter
 }, "id" | "workspaceId_importFingerprint">
 
 export type TransactionOrderByWithAggregationInput = {
@@ -387,6 +400,7 @@ export type TransactionOrderByWithAggregationInput = {
   source?: Prisma.SortOrder
   importFingerprint?: Prisma.SortOrderInput | Prisma.SortOrder
   importBatchId?: Prisma.SortOrderInput | Prisma.SortOrder
+  costCenter?: Prisma.SortOrderInput | Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.TransactionCountOrderByAggregateInput
@@ -414,6 +428,7 @@ export type TransactionScalarWhereWithAggregatesInput = {
   source?: Prisma.StringWithAggregatesFilter<"Transaction"> | string
   importFingerprint?: Prisma.StringNullableWithAggregatesFilter<"Transaction"> | string | null
   importBatchId?: Prisma.StringNullableWithAggregatesFilter<"Transaction"> | string | null
+  costCenter?: Prisma.StringNullableWithAggregatesFilter<"Transaction"> | string | null
   createdById?: Prisma.StringWithAggregatesFilter<"Transaction"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Transaction"> | Date | string
 }
@@ -427,6 +442,7 @@ export type TransactionCreateInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutTransactionsInput
   account?: Prisma.BankAccountCreateNestedOneWithoutTransactionsInput
@@ -436,6 +452,7 @@ export type TransactionCreateInput = {
   importBatch?: Prisma.ImportBatchCreateNestedOneWithoutTransactionsInput
   createdBy: Prisma.UserCreateNestedOneWithoutTransactionsInput
   tags?: Prisma.TransactionTagCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionUncheckedCreateInput = {
@@ -453,9 +470,11 @@ export type TransactionUncheckedCreateInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
   tags?: Prisma.TransactionTagUncheckedCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionUpdateInput = {
@@ -467,6 +486,7 @@ export type TransactionUpdateInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.BankAccountUpdateOneWithoutTransactionsNestedInput
@@ -476,6 +496,7 @@ export type TransactionUpdateInput = {
   importBatch?: Prisma.ImportBatchUpdateOneWithoutTransactionsNestedInput
   createdBy?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
   tags?: Prisma.TransactionTagUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateInput = {
@@ -493,9 +514,11 @@ export type TransactionUncheckedUpdateInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tags?: Prisma.TransactionTagUncheckedUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionCreateManyInput = {
@@ -513,6 +536,7 @@ export type TransactionCreateManyInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
 }
@@ -526,6 +550,7 @@ export type TransactionUpdateManyMutationInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -544,6 +569,7 @@ export type TransactionUncheckedUpdateManyInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -578,6 +604,7 @@ export type TransactionCountOrderByAggregateInput = {
   source?: Prisma.SortOrder
   importFingerprint?: Prisma.SortOrder
   importBatchId?: Prisma.SortOrder
+  costCenter?: Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -601,6 +628,7 @@ export type TransactionMaxOrderByAggregateInput = {
   source?: Prisma.SortOrder
   importFingerprint?: Prisma.SortOrder
   importBatchId?: Prisma.SortOrder
+  costCenter?: Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -620,6 +648,7 @@ export type TransactionMinOrderByAggregateInput = {
   source?: Prisma.SortOrder
   importFingerprint?: Prisma.SortOrder
   importBatchId?: Prisma.SortOrder
+  costCenter?: Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -945,6 +974,20 @@ export type TransactionUpdateOneRequiredWithoutTagsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TransactionUpdateToOneWithWhereWithoutTagsInput, Prisma.TransactionUpdateWithoutTagsInput>, Prisma.TransactionUncheckedUpdateWithoutTagsInput>
 }
 
+export type TransactionCreateNestedOneWithoutSplitsInput = {
+  create?: Prisma.XOR<Prisma.TransactionCreateWithoutSplitsInput, Prisma.TransactionUncheckedCreateWithoutSplitsInput>
+  connectOrCreate?: Prisma.TransactionCreateOrConnectWithoutSplitsInput
+  connect?: Prisma.TransactionWhereUniqueInput
+}
+
+export type TransactionUpdateOneRequiredWithoutSplitsNestedInput = {
+  create?: Prisma.XOR<Prisma.TransactionCreateWithoutSplitsInput, Prisma.TransactionUncheckedCreateWithoutSplitsInput>
+  connectOrCreate?: Prisma.TransactionCreateOrConnectWithoutSplitsInput
+  upsert?: Prisma.TransactionUpsertWithoutSplitsInput
+  connect?: Prisma.TransactionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TransactionUpdateToOneWithWhereWithoutSplitsInput, Prisma.TransactionUpdateWithoutSplitsInput>, Prisma.TransactionUncheckedUpdateWithoutSplitsInput>
+}
+
 export type TransactionCreateWithoutCreatedByInput = {
   id?: string
   type: $Enums.TransactionType
@@ -954,6 +997,7 @@ export type TransactionCreateWithoutCreatedByInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutTransactionsInput
   account?: Prisma.BankAccountCreateNestedOneWithoutTransactionsInput
@@ -962,6 +1006,7 @@ export type TransactionCreateWithoutCreatedByInput = {
   category?: Prisma.CategoryCreateNestedOneWithoutTransactionsInput
   importBatch?: Prisma.ImportBatchCreateNestedOneWithoutTransactionsInput
   tags?: Prisma.TransactionTagCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionUncheckedCreateWithoutCreatedByInput = {
@@ -979,8 +1024,10 @@ export type TransactionUncheckedCreateWithoutCreatedByInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
   tags?: Prisma.TransactionTagUncheckedCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionCreateOrConnectWithoutCreatedByInput = {
@@ -1027,6 +1074,7 @@ export type TransactionScalarWhereInput = {
   source?: Prisma.StringFilter<"Transaction"> | string
   importFingerprint?: Prisma.StringNullableFilter<"Transaction"> | string | null
   importBatchId?: Prisma.StringNullableFilter<"Transaction"> | string | null
+  costCenter?: Prisma.StringNullableFilter<"Transaction"> | string | null
   createdById?: Prisma.StringFilter<"Transaction"> | string
   createdAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
 }
@@ -1040,6 +1088,7 @@ export type TransactionCreateWithoutWorkspaceInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
   account?: Prisma.BankAccountCreateNestedOneWithoutTransactionsInput
   sourceAccount?: Prisma.BankAccountCreateNestedOneWithoutSourceTransactionsInput
@@ -1048,6 +1097,7 @@ export type TransactionCreateWithoutWorkspaceInput = {
   importBatch?: Prisma.ImportBatchCreateNestedOneWithoutTransactionsInput
   createdBy: Prisma.UserCreateNestedOneWithoutTransactionsInput
   tags?: Prisma.TransactionTagCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionUncheckedCreateWithoutWorkspaceInput = {
@@ -1064,9 +1114,11 @@ export type TransactionUncheckedCreateWithoutWorkspaceInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
   tags?: Prisma.TransactionTagUncheckedCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionCreateOrConnectWithoutWorkspaceInput = {
@@ -1104,6 +1156,7 @@ export type TransactionCreateWithoutAccountInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutTransactionsInput
   sourceAccount?: Prisma.BankAccountCreateNestedOneWithoutSourceTransactionsInput
@@ -1112,6 +1165,7 @@ export type TransactionCreateWithoutAccountInput = {
   importBatch?: Prisma.ImportBatchCreateNestedOneWithoutTransactionsInput
   createdBy: Prisma.UserCreateNestedOneWithoutTransactionsInput
   tags?: Prisma.TransactionTagCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionUncheckedCreateWithoutAccountInput = {
@@ -1128,9 +1182,11 @@ export type TransactionUncheckedCreateWithoutAccountInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
   tags?: Prisma.TransactionTagUncheckedCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionCreateOrConnectWithoutAccountInput = {
@@ -1152,6 +1208,7 @@ export type TransactionCreateWithoutSourceAccountInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutTransactionsInput
   account?: Prisma.BankAccountCreateNestedOneWithoutTransactionsInput
@@ -1160,6 +1217,7 @@ export type TransactionCreateWithoutSourceAccountInput = {
   importBatch?: Prisma.ImportBatchCreateNestedOneWithoutTransactionsInput
   createdBy: Prisma.UserCreateNestedOneWithoutTransactionsInput
   tags?: Prisma.TransactionTagCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionUncheckedCreateWithoutSourceAccountInput = {
@@ -1176,9 +1234,11 @@ export type TransactionUncheckedCreateWithoutSourceAccountInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
   tags?: Prisma.TransactionTagUncheckedCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionCreateOrConnectWithoutSourceAccountInput = {
@@ -1200,6 +1260,7 @@ export type TransactionCreateWithoutDestAccountInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutTransactionsInput
   account?: Prisma.BankAccountCreateNestedOneWithoutTransactionsInput
@@ -1208,6 +1269,7 @@ export type TransactionCreateWithoutDestAccountInput = {
   importBatch?: Prisma.ImportBatchCreateNestedOneWithoutTransactionsInput
   createdBy: Prisma.UserCreateNestedOneWithoutTransactionsInput
   tags?: Prisma.TransactionTagCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionUncheckedCreateWithoutDestAccountInput = {
@@ -1224,9 +1286,11 @@ export type TransactionUncheckedCreateWithoutDestAccountInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
   tags?: Prisma.TransactionTagUncheckedCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionCreateOrConnectWithoutDestAccountInput = {
@@ -1296,6 +1360,7 @@ export type TransactionCreateWithoutCategoryInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutTransactionsInput
   account?: Prisma.BankAccountCreateNestedOneWithoutTransactionsInput
@@ -1304,6 +1369,7 @@ export type TransactionCreateWithoutCategoryInput = {
   importBatch?: Prisma.ImportBatchCreateNestedOneWithoutTransactionsInput
   createdBy: Prisma.UserCreateNestedOneWithoutTransactionsInput
   tags?: Prisma.TransactionTagCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionUncheckedCreateWithoutCategoryInput = {
@@ -1320,9 +1386,11 @@ export type TransactionUncheckedCreateWithoutCategoryInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
   tags?: Prisma.TransactionTagUncheckedCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionCreateOrConnectWithoutCategoryInput = {
@@ -1360,6 +1428,7 @@ export type TransactionCreateWithoutImportBatchInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutTransactionsInput
   account?: Prisma.BankAccountCreateNestedOneWithoutTransactionsInput
@@ -1368,6 +1437,7 @@ export type TransactionCreateWithoutImportBatchInput = {
   category?: Prisma.CategoryCreateNestedOneWithoutTransactionsInput
   createdBy: Prisma.UserCreateNestedOneWithoutTransactionsInput
   tags?: Prisma.TransactionTagCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionUncheckedCreateWithoutImportBatchInput = {
@@ -1384,9 +1454,11 @@ export type TransactionUncheckedCreateWithoutImportBatchInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
   tags?: Prisma.TransactionTagUncheckedCreateNestedManyWithoutTransactionInput
+  splits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionCreateOrConnectWithoutImportBatchInput = {
@@ -1424,6 +1496,7 @@ export type TransactionCreateWithoutTagsInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutTransactionsInput
   account?: Prisma.BankAccountCreateNestedOneWithoutTransactionsInput
@@ -1432,6 +1505,7 @@ export type TransactionCreateWithoutTagsInput = {
   category?: Prisma.CategoryCreateNestedOneWithoutTransactionsInput
   importBatch?: Prisma.ImportBatchCreateNestedOneWithoutTransactionsInput
   createdBy: Prisma.UserCreateNestedOneWithoutTransactionsInput
+  splits?: Prisma.TransactionSplitCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionUncheckedCreateWithoutTagsInput = {
@@ -1449,8 +1523,10 @@ export type TransactionUncheckedCreateWithoutTagsInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
+  splits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutTransactionInput
 }
 
 export type TransactionCreateOrConnectWithoutTagsInput = {
@@ -1478,6 +1554,7 @@ export type TransactionUpdateWithoutTagsInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.BankAccountUpdateOneWithoutTransactionsNestedInput
@@ -1486,6 +1563,7 @@ export type TransactionUpdateWithoutTagsInput = {
   category?: Prisma.CategoryUpdateOneWithoutTransactionsNestedInput
   importBatch?: Prisma.ImportBatchUpdateOneWithoutTransactionsNestedInput
   createdBy?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
+  splits?: Prisma.TransactionSplitUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateWithoutTagsInput = {
@@ -1503,8 +1581,110 @@ export type TransactionUncheckedUpdateWithoutTagsInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  splits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutTransactionNestedInput
+}
+
+export type TransactionCreateWithoutSplitsInput = {
+  id?: string
+  type: $Enums.TransactionType
+  amountCents: bigint | number
+  date: Date | string
+  description?: string | null
+  counterparty?: string | null
+  source?: string
+  importFingerprint?: string | null
+  costCenter?: string | null
+  createdAt?: Date | string
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutTransactionsInput
+  account?: Prisma.BankAccountCreateNestedOneWithoutTransactionsInput
+  sourceAccount?: Prisma.BankAccountCreateNestedOneWithoutSourceTransactionsInput
+  destAccount?: Prisma.BankAccountCreateNestedOneWithoutDestTransactionsInput
+  category?: Prisma.CategoryCreateNestedOneWithoutTransactionsInput
+  importBatch?: Prisma.ImportBatchCreateNestedOneWithoutTransactionsInput
+  createdBy: Prisma.UserCreateNestedOneWithoutTransactionsInput
+  tags?: Prisma.TransactionTagCreateNestedManyWithoutTransactionInput
+}
+
+export type TransactionUncheckedCreateWithoutSplitsInput = {
+  id?: string
+  workspaceId: string
+  type: $Enums.TransactionType
+  amountCents: bigint | number
+  date: Date | string
+  accountId?: string | null
+  sourceAccountId?: string | null
+  destAccountId?: string | null
+  categoryId?: string | null
+  description?: string | null
+  counterparty?: string | null
+  source?: string
+  importFingerprint?: string | null
+  importBatchId?: string | null
+  costCenter?: string | null
+  createdById: string
+  createdAt?: Date | string
+  tags?: Prisma.TransactionTagUncheckedCreateNestedManyWithoutTransactionInput
+}
+
+export type TransactionCreateOrConnectWithoutSplitsInput = {
+  where: Prisma.TransactionWhereUniqueInput
+  create: Prisma.XOR<Prisma.TransactionCreateWithoutSplitsInput, Prisma.TransactionUncheckedCreateWithoutSplitsInput>
+}
+
+export type TransactionUpsertWithoutSplitsInput = {
+  update: Prisma.XOR<Prisma.TransactionUpdateWithoutSplitsInput, Prisma.TransactionUncheckedUpdateWithoutSplitsInput>
+  create: Prisma.XOR<Prisma.TransactionCreateWithoutSplitsInput, Prisma.TransactionUncheckedCreateWithoutSplitsInput>
+  where?: Prisma.TransactionWhereInput
+}
+
+export type TransactionUpdateToOneWithWhereWithoutSplitsInput = {
+  where?: Prisma.TransactionWhereInput
+  data: Prisma.XOR<Prisma.TransactionUpdateWithoutSplitsInput, Prisma.TransactionUncheckedUpdateWithoutSplitsInput>
+}
+
+export type TransactionUpdateWithoutSplitsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumTransactionTypeFieldUpdateOperationsInput | $Enums.TransactionType
+  amountCents?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutTransactionsNestedInput
+  account?: Prisma.BankAccountUpdateOneWithoutTransactionsNestedInput
+  sourceAccount?: Prisma.BankAccountUpdateOneWithoutSourceTransactionsNestedInput
+  destAccount?: Prisma.BankAccountUpdateOneWithoutDestTransactionsNestedInput
+  category?: Prisma.CategoryUpdateOneWithoutTransactionsNestedInput
+  importBatch?: Prisma.ImportBatchUpdateOneWithoutTransactionsNestedInput
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
+  tags?: Prisma.TransactionTagUpdateManyWithoutTransactionNestedInput
+}
+
+export type TransactionUncheckedUpdateWithoutSplitsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumTransactionTypeFieldUpdateOperationsInput | $Enums.TransactionType
+  amountCents?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceAccountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  destAccountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  tags?: Prisma.TransactionTagUncheckedUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionCreateManyCreatedByInput = {
@@ -1522,6 +1702,7 @@ export type TransactionCreateManyCreatedByInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdAt?: Date | string
 }
 
@@ -1534,6 +1715,7 @@ export type TransactionUpdateWithoutCreatedByInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.BankAccountUpdateOneWithoutTransactionsNestedInput
@@ -1542,6 +1724,7 @@ export type TransactionUpdateWithoutCreatedByInput = {
   category?: Prisma.CategoryUpdateOneWithoutTransactionsNestedInput
   importBatch?: Prisma.ImportBatchUpdateOneWithoutTransactionsNestedInput
   tags?: Prisma.TransactionTagUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateWithoutCreatedByInput = {
@@ -1559,8 +1742,10 @@ export type TransactionUncheckedUpdateWithoutCreatedByInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tags?: Prisma.TransactionTagUncheckedUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateManyWithoutCreatedByInput = {
@@ -1578,6 +1763,7 @@ export type TransactionUncheckedUpdateManyWithoutCreatedByInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1595,6 +1781,7 @@ export type TransactionCreateManyWorkspaceInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
 }
@@ -1608,6 +1795,7 @@ export type TransactionUpdateWithoutWorkspaceInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.BankAccountUpdateOneWithoutTransactionsNestedInput
   sourceAccount?: Prisma.BankAccountUpdateOneWithoutSourceTransactionsNestedInput
@@ -1616,6 +1804,7 @@ export type TransactionUpdateWithoutWorkspaceInput = {
   importBatch?: Prisma.ImportBatchUpdateOneWithoutTransactionsNestedInput
   createdBy?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
   tags?: Prisma.TransactionTagUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateWithoutWorkspaceInput = {
@@ -1632,9 +1821,11 @@ export type TransactionUncheckedUpdateWithoutWorkspaceInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tags?: Prisma.TransactionTagUncheckedUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -1651,6 +1842,7 @@ export type TransactionUncheckedUpdateManyWithoutWorkspaceInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1669,6 +1861,7 @@ export type TransactionCreateManyAccountInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
 }
@@ -1687,6 +1880,7 @@ export type TransactionCreateManySourceAccountInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
 }
@@ -1705,6 +1899,7 @@ export type TransactionCreateManyDestAccountInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
 }
@@ -1718,6 +1913,7 @@ export type TransactionUpdateWithoutAccountInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutTransactionsNestedInput
   sourceAccount?: Prisma.BankAccountUpdateOneWithoutSourceTransactionsNestedInput
@@ -1726,6 +1922,7 @@ export type TransactionUpdateWithoutAccountInput = {
   importBatch?: Prisma.ImportBatchUpdateOneWithoutTransactionsNestedInput
   createdBy?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
   tags?: Prisma.TransactionTagUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateWithoutAccountInput = {
@@ -1742,9 +1939,11 @@ export type TransactionUncheckedUpdateWithoutAccountInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tags?: Prisma.TransactionTagUncheckedUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateManyWithoutAccountInput = {
@@ -1761,6 +1960,7 @@ export type TransactionUncheckedUpdateManyWithoutAccountInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1774,6 +1974,7 @@ export type TransactionUpdateWithoutSourceAccountInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.BankAccountUpdateOneWithoutTransactionsNestedInput
@@ -1782,6 +1983,7 @@ export type TransactionUpdateWithoutSourceAccountInput = {
   importBatch?: Prisma.ImportBatchUpdateOneWithoutTransactionsNestedInput
   createdBy?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
   tags?: Prisma.TransactionTagUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateWithoutSourceAccountInput = {
@@ -1798,9 +2000,11 @@ export type TransactionUncheckedUpdateWithoutSourceAccountInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tags?: Prisma.TransactionTagUncheckedUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateManyWithoutSourceAccountInput = {
@@ -1817,6 +2021,7 @@ export type TransactionUncheckedUpdateManyWithoutSourceAccountInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1830,6 +2035,7 @@ export type TransactionUpdateWithoutDestAccountInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.BankAccountUpdateOneWithoutTransactionsNestedInput
@@ -1838,6 +2044,7 @@ export type TransactionUpdateWithoutDestAccountInput = {
   importBatch?: Prisma.ImportBatchUpdateOneWithoutTransactionsNestedInput
   createdBy?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
   tags?: Prisma.TransactionTagUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateWithoutDestAccountInput = {
@@ -1854,9 +2061,11 @@ export type TransactionUncheckedUpdateWithoutDestAccountInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tags?: Prisma.TransactionTagUncheckedUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateManyWithoutDestAccountInput = {
@@ -1873,6 +2082,7 @@ export type TransactionUncheckedUpdateManyWithoutDestAccountInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1891,6 +2101,7 @@ export type TransactionCreateManyCategoryInput = {
   source?: string
   importFingerprint?: string | null
   importBatchId?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
 }
@@ -1904,6 +2115,7 @@ export type TransactionUpdateWithoutCategoryInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.BankAccountUpdateOneWithoutTransactionsNestedInput
@@ -1912,6 +2124,7 @@ export type TransactionUpdateWithoutCategoryInput = {
   importBatch?: Prisma.ImportBatchUpdateOneWithoutTransactionsNestedInput
   createdBy?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
   tags?: Prisma.TransactionTagUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateWithoutCategoryInput = {
@@ -1928,9 +2141,11 @@ export type TransactionUncheckedUpdateWithoutCategoryInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tags?: Prisma.TransactionTagUncheckedUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateManyWithoutCategoryInput = {
@@ -1947,6 +2162,7 @@ export type TransactionUncheckedUpdateManyWithoutCategoryInput = {
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   importBatchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1965,6 +2181,7 @@ export type TransactionCreateManyImportBatchInput = {
   counterparty?: string | null
   source?: string
   importFingerprint?: string | null
+  costCenter?: string | null
   createdById: string
   createdAt?: Date | string
 }
@@ -1978,6 +2195,7 @@ export type TransactionUpdateWithoutImportBatchInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.BankAccountUpdateOneWithoutTransactionsNestedInput
@@ -1986,6 +2204,7 @@ export type TransactionUpdateWithoutImportBatchInput = {
   category?: Prisma.CategoryUpdateOneWithoutTransactionsNestedInput
   createdBy?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
   tags?: Prisma.TransactionTagUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateWithoutImportBatchInput = {
@@ -2002,9 +2221,11 @@ export type TransactionUncheckedUpdateWithoutImportBatchInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tags?: Prisma.TransactionTagUncheckedUpdateManyWithoutTransactionNestedInput
+  splits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutTransactionNestedInput
 }
 
 export type TransactionUncheckedUpdateManyWithoutImportBatchInput = {
@@ -2021,6 +2242,7 @@ export type TransactionUncheckedUpdateManyWithoutImportBatchInput = {
   counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.StringFieldUpdateOperationsInput | string
   importFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  costCenter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2032,10 +2254,12 @@ export type TransactionUncheckedUpdateManyWithoutImportBatchInput = {
 
 export type TransactionCountOutputType = {
   tags: number
+  splits: number
 }
 
 export type TransactionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   tags?: boolean | TransactionCountOutputTypeCountTagsArgs
+  splits?: boolean | TransactionCountOutputTypeCountSplitsArgs
 }
 
 /**
@@ -2055,6 +2279,13 @@ export type TransactionCountOutputTypeCountTagsArgs<ExtArgs extends runtime.Type
   where?: Prisma.TransactionTagWhereInput
 }
 
+/**
+ * TransactionCountOutputType without action
+ */
+export type TransactionCountOutputTypeCountSplitsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TransactionSplitWhereInput
+}
+
 
 export type TransactionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2071,6 +2302,7 @@ export type TransactionSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   source?: boolean
   importFingerprint?: boolean
   importBatchId?: boolean
+  costCenter?: boolean
   createdById?: boolean
   createdAt?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
@@ -2081,6 +2313,7 @@ export type TransactionSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   importBatch?: boolean | Prisma.Transaction$importBatchArgs<ExtArgs>
   createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   tags?: boolean | Prisma.Transaction$tagsArgs<ExtArgs>
+  splits?: boolean | Prisma.Transaction$splitsArgs<ExtArgs>
   _count?: boolean | Prisma.TransactionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["transaction"]>
 
@@ -2099,6 +2332,7 @@ export type TransactionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   source?: boolean
   importFingerprint?: boolean
   importBatchId?: boolean
+  costCenter?: boolean
   createdById?: boolean
   createdAt?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
@@ -2125,6 +2359,7 @@ export type TransactionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   source?: boolean
   importFingerprint?: boolean
   importBatchId?: boolean
+  costCenter?: boolean
   createdById?: boolean
   createdAt?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
@@ -2151,11 +2386,12 @@ export type TransactionSelectScalar = {
   source?: boolean
   importFingerprint?: boolean
   importBatchId?: boolean
+  costCenter?: boolean
   createdById?: boolean
   createdAt?: boolean
 }
 
-export type TransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "type" | "amountCents" | "date" | "accountId" | "sourceAccountId" | "destAccountId" | "categoryId" | "description" | "counterparty" | "source" | "importFingerprint" | "importBatchId" | "createdById" | "createdAt", ExtArgs["result"]["transaction"]>
+export type TransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "type" | "amountCents" | "date" | "accountId" | "sourceAccountId" | "destAccountId" | "categoryId" | "description" | "counterparty" | "source" | "importFingerprint" | "importBatchId" | "costCenter" | "createdById" | "createdAt", ExtArgs["result"]["transaction"]>
 export type TransactionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   account?: boolean | Prisma.Transaction$accountArgs<ExtArgs>
@@ -2165,6 +2401,7 @@ export type TransactionInclude<ExtArgs extends runtime.Types.Extensions.Internal
   importBatch?: boolean | Prisma.Transaction$importBatchArgs<ExtArgs>
   createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   tags?: boolean | Prisma.Transaction$tagsArgs<ExtArgs>
+  splits?: boolean | Prisma.Transaction$splitsArgs<ExtArgs>
   _count?: boolean | Prisma.TransactionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TransactionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2197,6 +2434,7 @@ export type $TransactionPayload<ExtArgs extends runtime.Types.Extensions.Interna
     importBatch: Prisma.$ImportBatchPayload<ExtArgs> | null
     createdBy: Prisma.$UserPayload<ExtArgs>
     tags: Prisma.$TransactionTagPayload<ExtArgs>[]
+    splits: Prisma.$TransactionSplitPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2213,6 +2451,7 @@ export type $TransactionPayload<ExtArgs extends runtime.Types.Extensions.Interna
     source: string
     importFingerprint: string | null
     importBatchId: string | null
+    costCenter: string | null
     createdById: string
     createdAt: Date
   }, ExtArgs["result"]["transaction"]>
@@ -2617,6 +2856,7 @@ export interface Prisma__TransactionClient<T, Null = never, ExtArgs extends runt
   importBatch<T extends Prisma.Transaction$importBatchArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Transaction$importBatchArgs<ExtArgs>>): Prisma.Prisma__ImportBatchClient<runtime.Types.Result.GetResult<Prisma.$ImportBatchPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   createdBy<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   tags<T extends Prisma.Transaction$tagsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Transaction$tagsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionTagPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  splits<T extends Prisma.Transaction$splitsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Transaction$splitsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionSplitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2660,6 +2900,7 @@ export interface TransactionFieldRefs {
   readonly source: Prisma.FieldRef<"Transaction", 'String'>
   readonly importFingerprint: Prisma.FieldRef<"Transaction", 'String'>
   readonly importBatchId: Prisma.FieldRef<"Transaction", 'String'>
+  readonly costCenter: Prisma.FieldRef<"Transaction", 'String'>
   readonly createdById: Prisma.FieldRef<"Transaction", 'String'>
   readonly createdAt: Prisma.FieldRef<"Transaction", 'DateTime'>
 }
@@ -3179,6 +3420,30 @@ export type Transaction$tagsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.TransactionTagScalarFieldEnum | Prisma.TransactionTagScalarFieldEnum[]
+}
+
+/**
+ * Transaction.splits
+ */
+export type Transaction$splitsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TransactionSplit
+   */
+  select?: Prisma.TransactionSplitSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TransactionSplit
+   */
+  omit?: Prisma.TransactionSplitOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TransactionSplitInclude<ExtArgs> | null
+  where?: Prisma.TransactionSplitWhereInput
+  orderBy?: Prisma.TransactionSplitOrderByWithRelationInput | Prisma.TransactionSplitOrderByWithRelationInput[]
+  cursor?: Prisma.TransactionSplitWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TransactionSplitScalarFieldEnum | Prisma.TransactionSplitScalarFieldEnum[]
 }
 
 /**

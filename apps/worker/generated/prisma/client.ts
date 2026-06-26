@@ -141,3 +141,18 @@ export type Goal = Prisma.GoalModel
  * 
  */
 export type GoalContribution = Prisma.GoalContributionModel
+/**
+ * Model Invitation
+ * 
+ */
+export type Invitation = Prisma.InvitationModel
+/**
+ * Model TransactionSplit
+ * 
+ */
+export type TransactionSplit = Prisma.TransactionSplitModel
+/**
+ * Model BusinessProfile
+ * 
+ */
+export type BusinessProfile = Prisma.BusinessProfileModel

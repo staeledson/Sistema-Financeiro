@@ -70,7 +70,10 @@ export const ModelName = {
   Insight: 'Insight',
   Budget: 'Budget',
   Goal: 'Goal',
-  GoalContribution: 'GoalContribution'
+  GoalContribution: 'GoalContribution',
+  Invitation: 'Invitation',
+  TransactionSplit: 'TransactionSplit',
+  BusinessProfile: 'BusinessProfile'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -223,6 +226,7 @@ export const TransactionScalarFieldEnum = {
   source: 'source',
   importFingerprint: 'importFingerprint',
   importBatchId: 'importBatchId',
+  costCenter: 'costCenter',
   createdById: 'createdById',
   createdAt: 'createdAt'
 } as const
@@ -366,6 +370,40 @@ export const GoalContributionScalarFieldEnum = {
 } as const
 
 export type GoalContributionScalarFieldEnum = (typeof GoalContributionScalarFieldEnum)[keyof typeof GoalContributionScalarFieldEnum]
+
+
+export const InvitationScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  email: 'email',
+  role: 'role',
+  token: 'token',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  invitedById: 'invitedById',
+  createdAt: 'createdAt'
+} as const
+
+export type InvitationScalarFieldEnum = (typeof InvitationScalarFieldEnum)[keyof typeof InvitationScalarFieldEnum]
+
+
+export const TransactionSplitScalarFieldEnum = {
+  transactionId: 'transactionId',
+  userId: 'userId',
+  shareCents: 'shareCents'
+} as const
+
+export type TransactionSplitScalarFieldEnum = (typeof TransactionSplitScalarFieldEnum)[keyof typeof TransactionSplitScalarFieldEnum]
+
+
+export const BusinessProfileScalarFieldEnum = {
+  workspaceId: 'workspaceId',
+  cnpj: 'cnpj',
+  legalName: 'legalName',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BusinessProfileScalarFieldEnum = (typeof BusinessProfileScalarFieldEnum)[keyof typeof BusinessProfileScalarFieldEnum]
 
 
 export const SortOrder = {

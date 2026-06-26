@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import LoginView from "./views/LoginView.vue";
 import DashboardView from "./views/DashboardView.vue";
 import AccountsView from "./views/AccountsView.vue";
@@ -10,14 +10,33 @@ import ImportView from "./views/ImportView.vue";
 import InsightsView from "./views/InsightsView.vue";
 import BudgetsView from "./views/BudgetsView.vue";
 import GoalsView from "./views/GoalsView.vue";
+import MembersView from "./views/MembersView.vue";
+import InviteAcceptView from "./views/InviteAcceptView.vue";
+import WorkspaceSwitcher from "./components/WorkspaceSwitcher.vue";
 import { useAuthStore } from "./stores/auth";
+import { useWorkspaceStore } from "./stores/workspace";
 
 const auth = useAuthStore();
-const tab = ref<"dashboard" | "accounts" | "transactions" | "ingest" | "review" | "import" | "insights" | "budgets" | "goals">("dashboard");
+const wsStore = useWorkspaceStore();
+
+type Tab = "dashboard" | "accounts" | "transactions" | "ingest" | "review" | "import" | "insights" | "budgets" | "goals" | "members";
+const tab = ref<Tab>("dashboard");
+
+const inviteToken = computed(() => new URLSearchParams(window.location.search).get("token"));
+
+onMounted(() => {
+  if (auth.isAuthenticated) wsStore.load();
+});
+
+function onInviteAcceptDone() {
+  history.replaceState(null, "", window.location.pathname);
+  wsStore.load();
+}
 </script>
 
 <template>
-  <LoginView v-if="!auth.isAuthenticated" />
+  <InviteAcceptView v-if="auth.isAuthenticated && inviteToken" @done="onInviteAcceptDone" />
+  <LoginView v-else-if="!auth.isAuthenticated" />
 
   <div v-else class="app-shell">
     <nav class="app-nav">
@@ -32,7 +51,9 @@ const tab = ref<"dashboard" | "accounts" | "transactions" | "ingest" | "review" 
         <button :class="{ active: tab === 'insights' }" @click="tab = 'insights'">Insights</button>
         <button :class="{ active: tab === 'budgets' }" @click="tab = 'budgets'">Orçamentos</button>
         <button :class="{ active: tab === 'goals' }" @click="tab = 'goals'">Metas</button>
+        <button :class="{ active: tab === 'members' }" @click="tab = 'members'">Membros</button>
       </div>
+      <WorkspaceSwitcher />
       <button class="btn-signout" @click="auth.signOut()">Sair</button>
     </nav>
 
@@ -46,6 +67,7 @@ const tab = ref<"dashboard" | "accounts" | "transactions" | "ingest" | "review" 
       <InsightsView v-else-if="tab === 'insights'" />
       <BudgetsView v-else-if="tab === 'budgets'" />
       <GoalsView v-else-if="tab === 'goals'" />
+      <MembersView v-else-if="tab === 'members'" />
     </main>
   </div>
 </template>
