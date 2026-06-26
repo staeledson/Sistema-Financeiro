@@ -6,12 +6,13 @@ import { OpenRouterGateway } from "./openrouter";
 import { GroqSttGateway } from "./stt-groq";
 import { mapCategory } from "./category-map";
 import { AI_QUEUE } from "../queue";
+import { processPdfInvoice } from "../import/pdf.processor";
 
 export interface IngestJobData {
   jobId: string;
   workspaceId: string;
   userId: string;
-  kind: "parse_text" | "parse_image" | "parse_audio";
+  kind: "parse_text" | "parse_image" | "parse_audio" | "parse_invoice";
   text?: string;
   storagePath?: string;
 }
@@ -33,6 +34,15 @@ export function registerIngestWorker(
       await prisma.aiJob.update({ where: { id: jobId }, data: { status: "processing" } });
 
       try {
+        // PDF invoice → multiple drafts; handled separately
+        if (kind === "parse_invoice") {
+          await processPdfInvoice(
+            { jobId, workspaceId, userId, storagePath: storagePath! },
+            { ai: deps.ai, s3: deps.s3, s3Bucket: deps.s3Bucket },
+          );
+          return { ok: true };
+        }
+
         let result: { draft: Awaited<ReturnType<OpenRouterGateway["parseText"]>>["draft"]; costTokens: number | null };
 
         if (kind === "parse_text") {

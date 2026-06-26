@@ -59,10 +59,29 @@ export type TransactionType = (typeof TransactionType)[keyof typeof TransactionT
 export const AiJobKind = {
   parse_text: 'parse_text',
   parse_image: 'parse_image',
-  parse_audio: 'parse_audio'
+  parse_audio: 'parse_audio',
+  parse_invoice: 'parse_invoice'
 } as const
 
 export type AiJobKind = (typeof AiJobKind)[keyof typeof AiJobKind]
+
+
+export const ImportFormat = {
+  csv: 'csv',
+  ofx: 'ofx',
+  pdf: 'pdf'
+} as const
+
+export type ImportFormat = (typeof ImportFormat)[keyof typeof ImportFormat]
+
+
+export const ImportStatus = {
+  preview: 'preview',
+  committed: 'committed',
+  failed: 'failed'
+} as const
+
+export type ImportStatus = (typeof ImportStatus)[keyof typeof ImportStatus]
 
 
 export const AiJobStatus = {

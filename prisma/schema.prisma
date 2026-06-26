@@ -27,9 +27,10 @@ model User {
   accounts     Account[]
   workspaces   Workspace[]        @relation("WorkspaceCreator")
   memberships  WorkspaceMember[]
-  transactions Transaction[]      @relation("TransactionCreator")
-  aiJobs       AiJob[]            @relation("AiJobCreator")
-  drafts       TransactionDraft[] @relation("DraftCreator")
+  transactions   Transaction[]      @relation("TransactionCreator")
+  aiJobs         AiJob[]            @relation("AiJobCreator")
+  drafts         TransactionDraft[] @relation("DraftCreator")
+  importBatches  ImportBatch[]      @relation("ImportBatchCreator")
 
   @@map("user")
 }
@@ -103,13 +104,15 @@ model Workspace {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  members      WorkspaceMember[]
-  bankAccounts BankAccount[]
-  categories   Category[]
-  tags         Tag[]
-  transactions Transaction[]
-  aiJobs       AiJob[]
-  drafts       TransactionDraft[]
+  members       WorkspaceMember[]
+  bankAccounts  BankAccount[]
+  categories    Category[]
+  tags          Tag[]
+  transactions  Transaction[]
+  aiJobs        AiJob[]
+  drafts        TransactionDraft[]
+  importBatches ImportBatch[]
+  importMappings ImportMapping[]
 
   @@map("workspaces")
 }
@@ -164,6 +167,7 @@ model BankAccount {
   sourceTransactions Transaction[]      @relation("TransactionSource")
   destTransactions   Transaction[]      @relation("TransactionDest")
   drafts             TransactionDraft[]
+  importBatches      ImportBatch[]
 
   @@index([workspaceId])
   @@map("bank_accounts")
@@ -218,15 +222,53 @@ model Transaction {
   category        Category?       @relation(fields: [categoryId], references: [id])
   description     String?
   counterparty    String?
-  source          String          @default("manual")
-  createdById     String
-  createdBy       User            @relation("TransactionCreator", fields: [createdById], references: [id])
-  createdAt       DateTime        @default(now())
+  source            String          @default("manual")
+  importFingerprint String?
+  importBatchId     String?
+  importBatch       ImportBatch?    @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  createdById       String
+  createdBy         User            @relation("TransactionCreator", fields: [createdById], references: [id])
+  createdAt         DateTime        @default(now())
 
   tags TransactionTag[]
 
+  @@unique([workspaceId, importFingerprint])
   @@index([workspaceId, date])
   @@map("transactions")
+}
+
+model ImportBatch {
+  id          String        @id @default(cuid())
+  workspaceId String
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountId   String?
+  account     BankAccount?  @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  format      ImportFormat
+  status      ImportStatus  @default(preview)
+  fileRef     String?
+  rowCount    Int           @default(0)
+  dupCount    Int           @default(0)
+  createdById String
+  createdBy   User          @relation("ImportBatchCreator", fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now())
+
+  transactions Transaction[]
+
+  @@index([workspaceId])
+  @@map("import_batches")
+}
+
+model ImportMapping {
+  id          String       @id @default(cuid())
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  format      ImportFormat
+  mapping     Json
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("import_mappings")
 }
 
 model TransactionTag {
@@ -245,6 +287,19 @@ enum AiJobKind {
   parse_text
   parse_image
   parse_audio
+  parse_invoice
+}
+
+enum ImportFormat {
+  csv
+  ofx
+  pdf
+}
+
+enum ImportStatus {
+  preview
+  committed
+  failed
 }
 
 enum AiJobStatus {

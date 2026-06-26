@@ -7,6 +7,8 @@ export async function cleanDb() {
     prisma.aiJob.deleteMany(),
     prisma.transactionTag.deleteMany(),
     prisma.transaction.deleteMany(),
+    prisma.importBatch.deleteMany(),
+    prisma.importMapping.deleteMany(),
     prisma.tag.deleteMany(),
     prisma.category.deleteMany(),
     prisma.bankAccount.deleteMany(),

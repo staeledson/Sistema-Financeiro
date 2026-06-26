@@ -61,6 +61,8 @@ export const ModelName = {
   Category: 'Category',
   Tag: 'Tag',
   Transaction: 'Transaction',
+  ImportBatch: 'ImportBatch',
+  ImportMapping: 'ImportMapping',
   TransactionTag: 'TransactionTag',
   AiJob: 'AiJob',
   TransactionDraft: 'TransactionDraft'
@@ -213,11 +215,40 @@ export const TransactionScalarFieldEnum = {
   description: 'description',
   counterparty: 'counterparty',
   source: 'source',
+  importFingerprint: 'importFingerprint',
+  importBatchId: 'importBatchId',
   createdById: 'createdById',
   createdAt: 'createdAt'
 } as const
 
 export type TransactionScalarFieldEnum = (typeof TransactionScalarFieldEnum)[keyof typeof TransactionScalarFieldEnum]
+
+
+export const ImportBatchScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  accountId: 'accountId',
+  format: 'format',
+  status: 'status',
+  fileRef: 'fileRef',
+  rowCount: 'rowCount',
+  dupCount: 'dupCount',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type ImportBatchScalarFieldEnum = (typeof ImportBatchScalarFieldEnum)[keyof typeof ImportBatchScalarFieldEnum]
+
+
+export const ImportMappingScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  name: 'name',
+  format: 'format',
+  mapping: 'mapping'
+} as const
+
+export type ImportMappingScalarFieldEnum = (typeof ImportMappingScalarFieldEnum)[keyof typeof ImportMappingScalarFieldEnum]
 
 
 export const TransactionTagScalarFieldEnum = {
@@ -273,6 +304,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullableJsonNullValueInput = {
