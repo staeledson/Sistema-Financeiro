@@ -214,6 +214,7 @@ export type WorkspaceWhereInput = {
   goals?: Prisma.GoalListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
   businessProfile?: Prisma.XOR<Prisma.BusinessProfileNullableScalarRelationFilter, Prisma.BusinessProfileWhereInput> | null
+  chatConversations?: Prisma.ChatConversationListRelationFilter
 }
 
 export type WorkspaceOrderByWithRelationInput = {
@@ -240,6 +241,7 @@ export type WorkspaceOrderByWithRelationInput = {
   goals?: Prisma.GoalOrderByRelationAggregateInput
   invitations?: Prisma.InvitationOrderByRelationAggregateInput
   businessProfile?: Prisma.BusinessProfileOrderByWithRelationInput
+  chatConversations?: Prisma.ChatConversationOrderByRelationAggregateInput
 }
 
 export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
@@ -269,6 +271,7 @@ export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
   goals?: Prisma.GoalListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
   businessProfile?: Prisma.XOR<Prisma.BusinessProfileNullableScalarRelationFilter, Prisma.BusinessProfileWhereInput> | null
+  chatConversations?: Prisma.ChatConversationListRelationFilter
 }, "id">
 
 export type WorkspaceOrderByWithAggregationInput = {
@@ -320,6 +323,7 @@ export type WorkspaceCreateInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateInput = {
@@ -345,6 +349,7 @@ export type WorkspaceUncheckedCreateInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUpdateInput = {
@@ -370,6 +375,7 @@ export type WorkspaceUpdateInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateInput = {
@@ -395,6 +401,7 @@ export type WorkspaceUncheckedUpdateInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateManyInput = {
@@ -727,6 +734,20 @@ export type WorkspaceUpdateOneRequiredWithoutBusinessProfileNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutBusinessProfileInput, Prisma.WorkspaceUpdateWithoutBusinessProfileInput>, Prisma.WorkspaceUncheckedUpdateWithoutBusinessProfileInput>
 }
 
+export type WorkspaceCreateNestedOneWithoutChatConversationsInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutChatConversationsInput, Prisma.WorkspaceUncheckedCreateWithoutChatConversationsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutChatConversationsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutChatConversationsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutChatConversationsInput, Prisma.WorkspaceUncheckedCreateWithoutChatConversationsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutChatConversationsInput
+  upsert?: Prisma.WorkspaceUpsertWithoutChatConversationsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutChatConversationsInput, Prisma.WorkspaceUpdateWithoutChatConversationsInput>, Prisma.WorkspaceUncheckedUpdateWithoutChatConversationsInput>
+}
+
 export type WorkspaceCreateWithoutCreatedByInput = {
   id?: string
   type: $Enums.WorkspaceType
@@ -749,6 +770,7 @@ export type WorkspaceCreateWithoutCreatedByInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCreatedByInput = {
@@ -773,6 +795,7 @@ export type WorkspaceUncheckedCreateWithoutCreatedByInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCreatedByInput = {
@@ -836,6 +859,7 @@ export type WorkspaceCreateWithoutMembersInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutMembersInput = {
@@ -860,6 +884,7 @@ export type WorkspaceUncheckedCreateWithoutMembersInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutMembersInput = {
@@ -900,6 +925,7 @@ export type WorkspaceUpdateWithoutMembersInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutMembersInput = {
@@ -924,6 +950,7 @@ export type WorkspaceUncheckedUpdateWithoutMembersInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutBankAccountsInput = {
@@ -948,6 +975,7 @@ export type WorkspaceCreateWithoutBankAccountsInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBankAccountsInput = {
@@ -972,6 +1000,7 @@ export type WorkspaceUncheckedCreateWithoutBankAccountsInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBankAccountsInput = {
@@ -1012,6 +1041,7 @@ export type WorkspaceUpdateWithoutBankAccountsInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBankAccountsInput = {
@@ -1036,6 +1066,7 @@ export type WorkspaceUncheckedUpdateWithoutBankAccountsInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutCategoriesInput = {
@@ -1060,6 +1091,7 @@ export type WorkspaceCreateWithoutCategoriesInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCategoriesInput = {
@@ -1084,6 +1116,7 @@ export type WorkspaceUncheckedCreateWithoutCategoriesInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCategoriesInput = {
@@ -1124,6 +1157,7 @@ export type WorkspaceUpdateWithoutCategoriesInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCategoriesInput = {
@@ -1148,6 +1182,7 @@ export type WorkspaceUncheckedUpdateWithoutCategoriesInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutTagsInput = {
@@ -1172,6 +1207,7 @@ export type WorkspaceCreateWithoutTagsInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutTagsInput = {
@@ -1196,6 +1232,7 @@ export type WorkspaceUncheckedCreateWithoutTagsInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutTagsInput = {
@@ -1236,6 +1273,7 @@ export type WorkspaceUpdateWithoutTagsInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutTagsInput = {
@@ -1260,6 +1298,7 @@ export type WorkspaceUncheckedUpdateWithoutTagsInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutTransactionsInput = {
@@ -1284,6 +1323,7 @@ export type WorkspaceCreateWithoutTransactionsInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutTransactionsInput = {
@@ -1308,6 +1348,7 @@ export type WorkspaceUncheckedCreateWithoutTransactionsInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutTransactionsInput = {
@@ -1348,6 +1389,7 @@ export type WorkspaceUpdateWithoutTransactionsInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutTransactionsInput = {
@@ -1372,6 +1414,7 @@ export type WorkspaceUncheckedUpdateWithoutTransactionsInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutImportBatchesInput = {
@@ -1396,6 +1439,7 @@ export type WorkspaceCreateWithoutImportBatchesInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutImportBatchesInput = {
@@ -1420,6 +1464,7 @@ export type WorkspaceUncheckedCreateWithoutImportBatchesInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutImportBatchesInput = {
@@ -1460,6 +1505,7 @@ export type WorkspaceUpdateWithoutImportBatchesInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutImportBatchesInput = {
@@ -1484,6 +1530,7 @@ export type WorkspaceUncheckedUpdateWithoutImportBatchesInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutImportMappingsInput = {
@@ -1508,6 +1555,7 @@ export type WorkspaceCreateWithoutImportMappingsInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutImportMappingsInput = {
@@ -1532,6 +1580,7 @@ export type WorkspaceUncheckedCreateWithoutImportMappingsInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutImportMappingsInput = {
@@ -1572,6 +1621,7 @@ export type WorkspaceUpdateWithoutImportMappingsInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutImportMappingsInput = {
@@ -1596,6 +1646,7 @@ export type WorkspaceUncheckedUpdateWithoutImportMappingsInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutAiJobsInput = {
@@ -1620,6 +1671,7 @@ export type WorkspaceCreateWithoutAiJobsInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutAiJobsInput = {
@@ -1644,6 +1696,7 @@ export type WorkspaceUncheckedCreateWithoutAiJobsInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutAiJobsInput = {
@@ -1684,6 +1737,7 @@ export type WorkspaceUpdateWithoutAiJobsInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutAiJobsInput = {
@@ -1708,6 +1762,7 @@ export type WorkspaceUncheckedUpdateWithoutAiJobsInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutDraftsInput = {
@@ -1732,6 +1787,7 @@ export type WorkspaceCreateWithoutDraftsInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutDraftsInput = {
@@ -1756,6 +1812,7 @@ export type WorkspaceUncheckedCreateWithoutDraftsInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutDraftsInput = {
@@ -1796,6 +1853,7 @@ export type WorkspaceUpdateWithoutDraftsInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutDraftsInput = {
@@ -1820,6 +1878,7 @@ export type WorkspaceUncheckedUpdateWithoutDraftsInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutCategoryRulesInput = {
@@ -1844,6 +1903,7 @@ export type WorkspaceCreateWithoutCategoryRulesInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCategoryRulesInput = {
@@ -1868,6 +1928,7 @@ export type WorkspaceUncheckedCreateWithoutCategoryRulesInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCategoryRulesInput = {
@@ -1908,6 +1969,7 @@ export type WorkspaceUpdateWithoutCategoryRulesInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCategoryRulesInput = {
@@ -1932,6 +1994,7 @@ export type WorkspaceUncheckedUpdateWithoutCategoryRulesInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutInsightsInput = {
@@ -1956,6 +2019,7 @@ export type WorkspaceCreateWithoutInsightsInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutInsightsInput = {
@@ -1980,6 +2044,7 @@ export type WorkspaceUncheckedCreateWithoutInsightsInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutInsightsInput = {
@@ -2020,6 +2085,7 @@ export type WorkspaceUpdateWithoutInsightsInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutInsightsInput = {
@@ -2044,6 +2110,7 @@ export type WorkspaceUncheckedUpdateWithoutInsightsInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutBudgetsInput = {
@@ -2068,6 +2135,7 @@ export type WorkspaceCreateWithoutBudgetsInput = {
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBudgetsInput = {
@@ -2092,6 +2160,7 @@ export type WorkspaceUncheckedCreateWithoutBudgetsInput = {
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBudgetsInput = {
@@ -2132,6 +2201,7 @@ export type WorkspaceUpdateWithoutBudgetsInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBudgetsInput = {
@@ -2156,6 +2226,7 @@ export type WorkspaceUncheckedUpdateWithoutBudgetsInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutGoalsInput = {
@@ -2180,6 +2251,7 @@ export type WorkspaceCreateWithoutGoalsInput = {
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutGoalsInput = {
@@ -2204,6 +2276,7 @@ export type WorkspaceUncheckedCreateWithoutGoalsInput = {
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutGoalsInput = {
@@ -2244,6 +2317,7 @@ export type WorkspaceUpdateWithoutGoalsInput = {
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutGoalsInput = {
@@ -2268,6 +2342,7 @@ export type WorkspaceUncheckedUpdateWithoutGoalsInput = {
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutInvitationsInput = {
@@ -2292,6 +2367,7 @@ export type WorkspaceCreateWithoutInvitationsInput = {
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutInvitationsInput = {
@@ -2316,6 +2392,7 @@ export type WorkspaceUncheckedCreateWithoutInvitationsInput = {
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutInvitationsInput = {
@@ -2356,6 +2433,7 @@ export type WorkspaceUpdateWithoutInvitationsInput = {
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutInvitationsInput = {
@@ -2380,6 +2458,7 @@ export type WorkspaceUncheckedUpdateWithoutInvitationsInput = {
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutBusinessProfileInput = {
@@ -2404,6 +2483,7 @@ export type WorkspaceCreateWithoutBusinessProfileInput = {
   budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBusinessProfileInput = {
@@ -2428,6 +2508,7 @@ export type WorkspaceUncheckedCreateWithoutBusinessProfileInput = {
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
   goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBusinessProfileInput = {
@@ -2468,6 +2549,7 @@ export type WorkspaceUpdateWithoutBusinessProfileInput = {
   budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBusinessProfileInput = {
@@ -2492,6 +2574,123 @@ export type WorkspaceUncheckedUpdateWithoutBusinessProfileInput = {
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutChatConversationsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  createdBy: Prisma.UserCreateNestedOneWithoutWorkspacesInput
+  members?: Prisma.WorkspaceMemberCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileCreateNestedOneWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutChatConversationsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountUncheckedCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagUncheckedCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutWorkspaceInput
+  businessProfile?: Prisma.BusinessProfileUncheckedCreateNestedOneWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutChatConversationsInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutChatConversationsInput, Prisma.WorkspaceUncheckedCreateWithoutChatConversationsInput>
+}
+
+export type WorkspaceUpsertWithoutChatConversationsInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutChatConversationsInput, Prisma.WorkspaceUncheckedUpdateWithoutChatConversationsInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutChatConversationsInput, Prisma.WorkspaceUncheckedCreateWithoutChatConversationsInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutChatConversationsInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutChatConversationsInput, Prisma.WorkspaceUncheckedUpdateWithoutChatConversationsInput>
+}
+
+export type WorkspaceUpdateWithoutChatConversationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutWorkspacesNestedInput
+  members?: Prisma.WorkspaceMemberUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutChatConversationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUncheckedUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUncheckedUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
+  businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateManyCreatedByInput = {
@@ -2525,6 +2724,7 @@ export type WorkspaceUpdateWithoutCreatedByInput = {
   goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCreatedByInput = {
@@ -2549,6 +2749,7 @@ export type WorkspaceUncheckedUpdateWithoutCreatedByInput = {
   goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutWorkspaceNestedInput
   businessProfile?: Prisma.BusinessProfileUncheckedUpdateOneWithoutWorkspaceNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateManyWithoutCreatedByInput = {
@@ -2580,6 +2781,7 @@ export type WorkspaceCountOutputType = {
   budgets: number
   goals: number
   invitations: number
+  chatConversations: number
 }
 
 export type WorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2597,6 +2799,7 @@ export type WorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensi
   budgets?: boolean | WorkspaceCountOutputTypeCountBudgetsArgs
   goals?: boolean | WorkspaceCountOutputTypeCountGoalsArgs
   invitations?: boolean | WorkspaceCountOutputTypeCountInvitationsArgs
+  chatConversations?: boolean | WorkspaceCountOutputTypeCountChatConversationsArgs
 }
 
 /**
@@ -2707,6 +2910,13 @@ export type WorkspaceCountOutputTypeCountInvitationsArgs<ExtArgs extends runtime
   where?: Prisma.InvitationWhereInput
 }
 
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountChatConversationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ChatConversationWhereInput
+}
+
 
 export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2732,6 +2942,7 @@ export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   goals?: boolean | Prisma.Workspace$goalsArgs<ExtArgs>
   invitations?: boolean | Prisma.Workspace$invitationsArgs<ExtArgs>
   businessProfile?: boolean | Prisma.Workspace$businessProfileArgs<ExtArgs>
+  chatConversations?: boolean | Prisma.Workspace$chatConversationsArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["workspace"]>
 
@@ -2785,6 +2996,7 @@ export type WorkspaceInclude<ExtArgs extends runtime.Types.Extensions.InternalAr
   goals?: boolean | Prisma.Workspace$goalsArgs<ExtArgs>
   invitations?: boolean | Prisma.Workspace$invitationsArgs<ExtArgs>
   businessProfile?: boolean | Prisma.Workspace$businessProfileArgs<ExtArgs>
+  chatConversations?: boolean | Prisma.Workspace$chatConversationsArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type WorkspaceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2813,6 +3025,7 @@ export type $WorkspacePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     goals: Prisma.$GoalPayload<ExtArgs>[]
     invitations: Prisma.$InvitationPayload<ExtArgs>[]
     businessProfile: Prisma.$BusinessProfilePayload<ExtArgs> | null
+    chatConversations: Prisma.$ChatConversationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3232,6 +3445,7 @@ export interface Prisma__WorkspaceClient<T, Null = never, ExtArgs extends runtim
   goals<T extends Prisma.Workspace$goalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$goalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GoalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   invitations<T extends Prisma.Workspace$invitationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$invitationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   businessProfile<T extends Prisma.Workspace$businessProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$businessProfileArgs<ExtArgs>>): Prisma.Prisma__BusinessProfileClient<runtime.Types.Result.GetResult<Prisma.$BusinessProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  chatConversations<T extends Prisma.Workspace$chatConversationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$chatConversationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4021,6 +4235,30 @@ export type Workspace$businessProfileArgs<ExtArgs extends runtime.Types.Extensio
    */
   include?: Prisma.BusinessProfileInclude<ExtArgs> | null
   where?: Prisma.BusinessProfileWhereInput
+}
+
+/**
+ * Workspace.chatConversations
+ */
+export type Workspace$chatConversationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ChatConversation
+   */
+  select?: Prisma.ChatConversationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ChatConversation
+   */
+  omit?: Prisma.ChatConversationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ChatConversationInclude<ExtArgs> | null
+  where?: Prisma.ChatConversationWhereInput
+  orderBy?: Prisma.ChatConversationOrderByWithRelationInput | Prisma.ChatConversationOrderByWithRelationInput[]
+  cursor?: Prisma.ChatConversationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ChatConversationScalarFieldEnum | Prisma.ChatConversationScalarFieldEnum[]
 }
 
 /**
