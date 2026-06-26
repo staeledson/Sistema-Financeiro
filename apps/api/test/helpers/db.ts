@@ -1,9 +1,5 @@
-import "dotenv/config";
-import { PrismaClient } from "../../generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-
-const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"]! });
-export const prisma = new PrismaClient({ adapter });
+import { prisma } from "../../src/database";
+export { prisma };
 
 export async function cleanDb() {
   await prisma.$transaction([
