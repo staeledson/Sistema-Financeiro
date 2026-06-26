@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, fase-0-fundacao, fase-1-nucleo-financeiro]
+    branches: [main, fase-0-fundacao, fase-1-nucleo-financeiro, fase-2-ingestao-ia]
   pull_request:
     branches: [main]
 
@@ -54,11 +54,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma client
-        run: pnpm --filter @app/api exec prisma generate
+      - name: Generate Prisma clients
+        run: pnpm exec prisma generate
 
       - name: Run migrations
-        run: pnpm --filter @app/api exec prisma migrate deploy
+        run: pnpm exec prisma migrate deploy
 
       - name: Test api
         run: pnpm --filter @app/api test run

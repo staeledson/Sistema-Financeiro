@@ -3,6 +3,8 @@ export { prisma };
 
 export async function cleanDb() {
   await prisma.$transaction([
+    prisma.transactionDraft.deleteMany(),
+    prisma.aiJob.deleteMany(),
     prisma.transactionTag.deleteMany(),
     prisma.transaction.deleteMany(),
     prisma.tag.deleteMany(),

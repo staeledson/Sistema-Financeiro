@@ -3,6 +3,11 @@ generator client {
   output   = "../apps/api/generated/prisma"
 }
 
+generator worker_client {
+  provider = "prisma-client"
+  output   = "../apps/worker/generated/prisma"
+}
+
 datasource db {
   provider = "postgresql"
 }
@@ -20,9 +25,11 @@ model User {
 
   sessions     Session[]
   accounts     Account[]
-  workspaces   Workspace[]       @relation("WorkspaceCreator")
+  workspaces   Workspace[]        @relation("WorkspaceCreator")
   memberships  WorkspaceMember[]
-  transactions Transaction[]     @relation("TransactionCreator")
+  transactions Transaction[]      @relation("TransactionCreator")
+  aiJobs       AiJob[]            @relation("AiJobCreator")
+  drafts       TransactionDraft[] @relation("DraftCreator")
 
   @@map("user")
 }
@@ -101,6 +108,8 @@ model Workspace {
   categories   Category[]
   tags         Tag[]
   transactions Transaction[]
+  aiJobs       AiJob[]
+  drafts       TransactionDraft[]
 
   @@map("workspaces")
 }
@@ -151,9 +160,10 @@ model BankAccount {
   archived            Boolean     @default(false)
   createdAt           DateTime    @default(now())
 
-  transactions       Transaction[] @relation("TransactionAccount")
-  sourceTransactions Transaction[] @relation("TransactionSource")
-  destTransactions   Transaction[] @relation("TransactionDest")
+  transactions       Transaction[]      @relation("TransactionAccount")
+  sourceTransactions Transaction[]      @relation("TransactionSource")
+  destTransactions   Transaction[]      @relation("TransactionDest")
+  drafts             TransactionDraft[]
 
   @@index([workspaceId])
   @@map("bank_accounts")
@@ -173,6 +183,7 @@ model Category {
   isSystem    Boolean      @default(false)
 
   transactions Transaction[]
+  drafts       TransactionDraft[]
 
   @@index([workspaceId])
   @@map("categories")
@@ -226,4 +237,72 @@ model TransactionTag {
 
   @@id([transactionId, tagId])
   @@map("transaction_tags")
+}
+
+// --- Ingestão por IA ---
+
+enum AiJobKind {
+  parse_text
+  parse_image
+  parse_audio
+}
+
+enum AiJobStatus {
+  queued
+  processing
+  done
+  failed
+}
+
+enum DraftStatus {
+  draft
+  discarded
+}
+
+model AiJob {
+  id          String      @id @default(cuid())
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  kind        AiJobKind
+  status      AiJobStatus @default(queued)
+  inputRef    String?
+  result      Json?
+  error       String?
+  costTokens  Int?
+  createdById String
+  createdBy   User        @relation("AiJobCreator", fields: [createdById], references: [id])
+  createdAt   DateTime    @default(now())
+
+  drafts TransactionDraft[]
+
+  @@index([workspaceId])
+  @@map("ai_jobs")
+}
+
+model TransactionDraft {
+  id                String           @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  aiJobId           String?
+  aiJob             AiJob?           @relation(fields: [aiJobId], references: [id], onDelete: SetNull)
+  kind              AiJobKind
+  status            DraftStatus      @default(draft)
+  type              TransactionType?
+  amountCents       BigInt?
+  date              DateTime?        @db.Date
+  description       String?
+  counterparty      String?
+  suggestedCategory String?
+  categoryId        String?
+  category          Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId         String?
+  account           BankAccount?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  confidence        Float?
+  sourceRef         String?
+  createdById       String
+  createdBy         User             @relation("DraftCreator", fields: [createdById], references: [id])
+  createdAt         DateTime         @default(now())
+
+  @@index([workspaceId, status])
+  @@map("transaction_drafts")
 }

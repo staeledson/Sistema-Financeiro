@@ -7,6 +7,8 @@ import { TagsModule } from "./tags/tags.module";
 import { TransactionsModule } from "./transactions/transactions.module";
 import { BalancesModule } from "./balances/balances.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
+import { IngestModule } from "./ingest/ingest.module";
+import { DraftsModule } from "./drafts/drafts.module";
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { DashboardModule } from "./dashboard/dashboard.module";
     TransactionsModule,
     BalancesModule,
     DashboardModule,
+    IngestModule,
+    DraftsModule,
   ],
 })
 export class AppModule {}
