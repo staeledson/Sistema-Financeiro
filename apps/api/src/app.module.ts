@@ -17,6 +17,7 @@ import { GoalsModule } from "./goals/goals.module";
 import { InvitationsModule } from "./invitations/invitations.module";
 import { SplitsModule } from "./splits/splits.module";
 import { BusinessModule } from "./business/business.module";
+import { ChatModule } from "./chat/chat.module";
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { BusinessModule } from "./business/business.module";
     InvitationsModule,
     SplitsModule,
     BusinessModule,
+    ChatModule,
   ],
 })
 export class AppModule {}

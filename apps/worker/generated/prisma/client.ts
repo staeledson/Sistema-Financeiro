@@ -156,3 +156,13 @@ export type TransactionSplit = Prisma.TransactionSplitModel
  * 
  */
 export type BusinessProfile = Prisma.BusinessProfileModel
+/**
+ * Model ChatConversation
+ * 
+ */
+export type ChatConversation = Prisma.ChatConversationModel
+/**
+ * Model ChatMessage
+ * 
+ */
+export type ChatMessage = Prisma.ChatMessageModel

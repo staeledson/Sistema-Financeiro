@@ -12,6 +12,7 @@ import BudgetsView from "./views/BudgetsView.vue";
 import GoalsView from "./views/GoalsView.vue";
 import MembersView from "./views/MembersView.vue";
 import InviteAcceptView from "./views/InviteAcceptView.vue";
+import ChatView from "./views/ChatView.vue";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher.vue";
 import { useAuthStore } from "./stores/auth";
 import { useWorkspaceStore } from "./stores/workspace";
@@ -19,7 +20,7 @@ import { useWorkspaceStore } from "./stores/workspace";
 const auth = useAuthStore();
 const wsStore = useWorkspaceStore();
 
-type Tab = "dashboard" | "accounts" | "transactions" | "ingest" | "review" | "import" | "insights" | "budgets" | "goals" | "members";
+type Tab = "dashboard" | "accounts" | "transactions" | "ingest" | "review" | "import" | "insights" | "budgets" | "goals" | "members" | "chat";
 const tab = ref<Tab>("dashboard");
 
 const inviteToken = computed(() => new URLSearchParams(window.location.search).get("token"));
@@ -52,6 +53,7 @@ function onInviteAcceptDone() {
         <button :class="{ active: tab === 'budgets' }" @click="tab = 'budgets'">Orçamentos</button>
         <button :class="{ active: tab === 'goals' }" @click="tab = 'goals'">Metas</button>
         <button :class="{ active: tab === 'members' }" @click="tab = 'members'">Membros</button>
+        <button :class="{ active: tab === 'chat' }" @click="tab = 'chat'">Chat IA</button>
       </div>
       <WorkspaceSwitcher />
       <button class="btn-signout" @click="auth.signOut()">Sair</button>
@@ -68,6 +70,7 @@ function onInviteAcceptDone() {
       <BudgetsView v-else-if="tab === 'budgets'" />
       <GoalsView v-else-if="tab === 'goals'" />
       <MembersView v-else-if="tab === 'members'" />
+      <ChatView v-else-if="tab === 'chat'" />
     </main>
   </div>
 </template>

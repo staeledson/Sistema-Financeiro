@@ -73,7 +73,9 @@ export const ModelName = {
   GoalContribution: 'GoalContribution',
   Invitation: 'Invitation',
   TransactionSplit: 'TransactionSplit',
-  BusinessProfile: 'BusinessProfile'
+  BusinessProfile: 'BusinessProfile',
+  ChatConversation: 'ChatConversation',
+  ChatMessage: 'ChatMessage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -404,6 +406,30 @@ export const BusinessProfileScalarFieldEnum = {
 } as const
 
 export type BusinessProfileScalarFieldEnum = (typeof BusinessProfileScalarFieldEnum)[keyof typeof BusinessProfileScalarFieldEnum]
+
+
+export const ChatConversationScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  createdById: 'createdById',
+  title: 'title',
+  createdAt: 'createdAt'
+} as const
+
+export type ChatConversationScalarFieldEnum = (typeof ChatConversationScalarFieldEnum)[keyof typeof ChatConversationScalarFieldEnum]
+
+
+export const ChatMessageScalarFieldEnum = {
+  id: 'id',
+  conversationId: 'conversationId',
+  role: 'role',
+  content: 'content',
+  toolResults: 'toolResults',
+  chartSpec: 'chartSpec',
+  createdAt: 'createdAt'
+} as const
+
+export type ChatMessageScalarFieldEnum = (typeof ChatMessageScalarFieldEnum)[keyof typeof ChatMessageScalarFieldEnum]
 
 
 export const SortOrder = {

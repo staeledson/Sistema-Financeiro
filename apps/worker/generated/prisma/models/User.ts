@@ -209,6 +209,7 @@ export type UserWhereInput = {
   goalContributions?: Prisma.GoalContributionListRelationFilter
   sentInvitations?: Prisma.InvitationListRelationFilter
   transactionSplits?: Prisma.TransactionSplitListRelationFilter
+  chatConversations?: Prisma.ChatConversationListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -230,6 +231,7 @@ export type UserOrderByWithRelationInput = {
   goalContributions?: Prisma.GoalContributionOrderByRelationAggregateInput
   sentInvitations?: Prisma.InvitationOrderByRelationAggregateInput
   transactionSplits?: Prisma.TransactionSplitOrderByRelationAggregateInput
+  chatConversations?: Prisma.ChatConversationOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -254,6 +256,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   goalContributions?: Prisma.GoalContributionListRelationFilter
   sentInvitations?: Prisma.InvitationListRelationFilter
   transactionSplits?: Prisma.TransactionSplitListRelationFilter
+  chatConversations?: Prisma.ChatConversationListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -301,6 +304,7 @@ export type UserCreateInput = {
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -322,6 +326,7 @@ export type UserUncheckedCreateInput = {
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUpdateInput = {
@@ -343,6 +348,7 @@ export type UserUpdateInput = {
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -364,6 +370,7 @@ export type UserUncheckedUpdateInput = {
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -601,6 +608,20 @@ export type UserUpdateOneRequiredWithoutTransactionSplitsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTransactionSplitsInput, Prisma.UserUpdateWithoutTransactionSplitsInput>, Prisma.UserUncheckedUpdateWithoutTransactionSplitsInput>
 }
 
+export type UserCreateNestedOneWithoutChatConversationsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutChatConversationsInput, Prisma.UserUncheckedCreateWithoutChatConversationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutChatConversationsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutChatConversationsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutChatConversationsInput, Prisma.UserUncheckedCreateWithoutChatConversationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutChatConversationsInput
+  upsert?: Prisma.UserUpsertWithoutChatConversationsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutChatConversationsInput, Prisma.UserUpdateWithoutChatConversationsInput>, Prisma.UserUncheckedUpdateWithoutChatConversationsInput>
+}
+
 export type UserCreateWithoutSessionsInput = {
   id: string
   name: string
@@ -619,6 +640,7 @@ export type UserCreateWithoutSessionsInput = {
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -639,6 +661,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -675,6 +698,7 @@ export type UserUpdateWithoutSessionsInput = {
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -695,6 +719,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -715,6 +740,7 @@ export type UserCreateWithoutAccountsInput = {
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -735,6 +761,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -771,6 +798,7 @@ export type UserUpdateWithoutAccountsInput = {
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -791,6 +819,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutWorkspacesInput = {
@@ -811,6 +840,7 @@ export type UserCreateWithoutWorkspacesInput = {
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutWorkspacesInput = {
@@ -831,6 +861,7 @@ export type UserUncheckedCreateWithoutWorkspacesInput = {
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutWorkspacesInput = {
@@ -867,6 +898,7 @@ export type UserUpdateWithoutWorkspacesInput = {
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutWorkspacesInput = {
@@ -887,6 +919,7 @@ export type UserUncheckedUpdateWithoutWorkspacesInput = {
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutMembershipsInput = {
@@ -907,6 +940,7 @@ export type UserCreateWithoutMembershipsInput = {
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -927,6 +961,7 @@ export type UserUncheckedCreateWithoutMembershipsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -963,6 +998,7 @@ export type UserUpdateWithoutMembershipsInput = {
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -983,6 +1019,7 @@ export type UserUncheckedUpdateWithoutMembershipsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutTransactionsInput = {
@@ -1003,6 +1040,7 @@ export type UserCreateWithoutTransactionsInput = {
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutTransactionsInput = {
@@ -1023,6 +1061,7 @@ export type UserUncheckedCreateWithoutTransactionsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutTransactionsInput = {
@@ -1059,6 +1098,7 @@ export type UserUpdateWithoutTransactionsInput = {
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTransactionsInput = {
@@ -1079,6 +1119,7 @@ export type UserUncheckedUpdateWithoutTransactionsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutImportBatchesInput = {
@@ -1099,6 +1140,7 @@ export type UserCreateWithoutImportBatchesInput = {
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutImportBatchesInput = {
@@ -1119,6 +1161,7 @@ export type UserUncheckedCreateWithoutImportBatchesInput = {
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutImportBatchesInput = {
@@ -1155,6 +1198,7 @@ export type UserUpdateWithoutImportBatchesInput = {
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImportBatchesInput = {
@@ -1175,6 +1219,7 @@ export type UserUncheckedUpdateWithoutImportBatchesInput = {
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutAiJobsInput = {
@@ -1195,6 +1240,7 @@ export type UserCreateWithoutAiJobsInput = {
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutAiJobsInput = {
@@ -1215,6 +1261,7 @@ export type UserUncheckedCreateWithoutAiJobsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutAiJobsInput = {
@@ -1251,6 +1298,7 @@ export type UserUpdateWithoutAiJobsInput = {
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAiJobsInput = {
@@ -1271,6 +1319,7 @@ export type UserUncheckedUpdateWithoutAiJobsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutDraftsInput = {
@@ -1291,6 +1340,7 @@ export type UserCreateWithoutDraftsInput = {
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutDraftsInput = {
@@ -1311,6 +1361,7 @@ export type UserUncheckedCreateWithoutDraftsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutDraftsInput = {
@@ -1347,6 +1398,7 @@ export type UserUpdateWithoutDraftsInput = {
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDraftsInput = {
@@ -1367,6 +1419,7 @@ export type UserUncheckedUpdateWithoutDraftsInput = {
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutGoalContributionsInput = {
@@ -1387,6 +1440,7 @@ export type UserCreateWithoutGoalContributionsInput = {
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutGoalContributionsInput = {
@@ -1407,6 +1461,7 @@ export type UserUncheckedCreateWithoutGoalContributionsInput = {
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutGoalContributionsInput = {
@@ -1443,6 +1498,7 @@ export type UserUpdateWithoutGoalContributionsInput = {
   importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutGoalContributionsInput = {
@@ -1463,6 +1519,7 @@ export type UserUncheckedUpdateWithoutGoalContributionsInput = {
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutSentInvitationsInput = {
@@ -1483,6 +1540,7 @@ export type UserCreateWithoutSentInvitationsInput = {
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutSentInvitationsInput = {
@@ -1503,6 +1561,7 @@ export type UserUncheckedCreateWithoutSentInvitationsInput = {
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutSentInvitationsInput = {
@@ -1539,6 +1598,7 @@ export type UserUpdateWithoutSentInvitationsInput = {
   importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSentInvitationsInput = {
@@ -1559,6 +1619,7 @@ export type UserUncheckedUpdateWithoutSentInvitationsInput = {
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutTransactionSplitsInput = {
@@ -1579,6 +1640,7 @@ export type UserCreateWithoutTransactionSplitsInput = {
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
   goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
+  chatConversations?: Prisma.ChatConversationCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutTransactionSplitsInput = {
@@ -1599,6 +1661,7 @@ export type UserUncheckedCreateWithoutTransactionSplitsInput = {
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
   goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
   sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
+  chatConversations?: Prisma.ChatConversationUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutTransactionSplitsInput = {
@@ -1635,6 +1698,7 @@ export type UserUpdateWithoutTransactionSplitsInput = {
   importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
   goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
+  chatConversations?: Prisma.ChatConversationUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTransactionSplitsInput = {
@@ -1655,6 +1719,107 @@ export type UserUncheckedUpdateWithoutTransactionSplitsInput = {
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
   goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
   sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+  chatConversations?: Prisma.ChatConversationUncheckedUpdateManyWithoutCreatedByNestedInput
+}
+
+export type UserCreateWithoutChatConversationsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified: boolean
+  image?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  workspaces?: Prisma.WorkspaceCreateNestedManyWithoutCreatedByInput
+  memberships?: Prisma.WorkspaceMemberCreateNestedManyWithoutUserInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutCreatedByInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutCreatedByInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
+  goalContributions?: Prisma.GoalContributionCreateNestedManyWithoutCreatedByInput
+  sentInvitations?: Prisma.InvitationCreateNestedManyWithoutInvitedByInput
+  transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutChatConversationsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified: boolean
+  image?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  workspaces?: Prisma.WorkspaceUncheckedCreateNestedManyWithoutCreatedByInput
+  memberships?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutUserInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCreatedByInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutCreatedByInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
+  goalContributions?: Prisma.GoalContributionUncheckedCreateNestedManyWithoutCreatedByInput
+  sentInvitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutInvitedByInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutChatConversationsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutChatConversationsInput, Prisma.UserUncheckedCreateWithoutChatConversationsInput>
+}
+
+export type UserUpsertWithoutChatConversationsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutChatConversationsInput, Prisma.UserUncheckedUpdateWithoutChatConversationsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutChatConversationsInput, Prisma.UserUncheckedCreateWithoutChatConversationsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutChatConversationsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutChatConversationsInput, Prisma.UserUncheckedUpdateWithoutChatConversationsInput>
+}
+
+export type UserUpdateWithoutChatConversationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  workspaces?: Prisma.WorkspaceUpdateManyWithoutCreatedByNestedInput
+  memberships?: Prisma.WorkspaceMemberUpdateManyWithoutUserNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutCreatedByNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutCreatedByNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
+  goalContributions?: Prisma.GoalContributionUpdateManyWithoutCreatedByNestedInput
+  sentInvitations?: Prisma.InvitationUpdateManyWithoutInvitedByNestedInput
+  transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutChatConversationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  workspaces?: Prisma.WorkspaceUncheckedUpdateManyWithoutCreatedByNestedInput
+  memberships?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutUserNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCreatedByNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutCreatedByNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
+  goalContributions?: Prisma.GoalContributionUncheckedUpdateManyWithoutCreatedByNestedInput
+  sentInvitations?: Prisma.InvitationUncheckedUpdateManyWithoutInvitedByNestedInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -1674,6 +1839,7 @@ export type UserCountOutputType = {
   goalContributions: number
   sentInvitations: number
   transactionSplits: number
+  chatConversations: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1688,6 +1854,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   goalContributions?: boolean | UserCountOutputTypeCountGoalContributionsArgs
   sentInvitations?: boolean | UserCountOutputTypeCountSentInvitationsArgs
   transactionSplits?: boolean | UserCountOutputTypeCountTransactionSplitsArgs
+  chatConversations?: boolean | UserCountOutputTypeCountChatConversationsArgs
 }
 
 /**
@@ -1777,6 +1944,13 @@ export type UserCountOutputTypeCountTransactionSplitsArgs<ExtArgs extends runtim
   where?: Prisma.TransactionSplitWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountChatConversationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ChatConversationWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1797,6 +1971,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   goalContributions?: boolean | Prisma.User$goalContributionsArgs<ExtArgs>
   sentInvitations?: boolean | Prisma.User$sentInvitationsArgs<ExtArgs>
   transactionSplits?: boolean | Prisma.User$transactionSplitsArgs<ExtArgs>
+  chatConversations?: boolean | Prisma.User$chatConversationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1843,6 +2018,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   goalContributions?: boolean | Prisma.User$goalContributionsArgs<ExtArgs>
   sentInvitations?: boolean | Prisma.User$sentInvitationsArgs<ExtArgs>
   transactionSplits?: boolean | Prisma.User$transactionSplitsArgs<ExtArgs>
+  chatConversations?: boolean | Prisma.User$chatConversationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1862,6 +2038,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     goalContributions: Prisma.$GoalContributionPayload<ExtArgs>[]
     sentInvitations: Prisma.$InvitationPayload<ExtArgs>[]
     transactionSplits: Prisma.$TransactionSplitPayload<ExtArgs>[]
+    chatConversations: Prisma.$ChatConversationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2276,6 +2453,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   goalContributions<T extends Prisma.User$goalContributionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$goalContributionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GoalContributionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sentInvitations<T extends Prisma.User$sentInvitationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$sentInvitationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   transactionSplits<T extends Prisma.User$transactionSplitsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$transactionSplitsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionSplitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  chatConversations<T extends Prisma.User$chatConversationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$chatConversationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2966,6 +3144,30 @@ export type User$transactionSplitsArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.TransactionSplitScalarFieldEnum | Prisma.TransactionSplitScalarFieldEnum[]
+}
+
+/**
+ * User.chatConversations
+ */
+export type User$chatConversationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ChatConversation
+   */
+  select?: Prisma.ChatConversationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ChatConversation
+   */
+  omit?: Prisma.ChatConversationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ChatConversationInclude<ExtArgs> | null
+  where?: Prisma.ChatConversationWhereInput
+  orderBy?: Prisma.ChatConversationOrderByWithRelationInput | Prisma.ChatConversationOrderByWithRelationInput[]
+  cursor?: Prisma.ChatConversationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ChatConversationScalarFieldEnum | Prisma.ChatConversationScalarFieldEnum[]
 }
 
 /**
