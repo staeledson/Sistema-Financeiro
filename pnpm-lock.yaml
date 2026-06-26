@@ -212,6 +212,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@app/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@aws-sdk/client-s3':
         specifier: ^3.1075.0
         version: 3.1075.0

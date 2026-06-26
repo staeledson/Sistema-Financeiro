@@ -65,7 +65,12 @@ export const ModelName = {
   ImportMapping: 'ImportMapping',
   TransactionTag: 'TransactionTag',
   AiJob: 'AiJob',
-  TransactionDraft: 'TransactionDraft'
+  TransactionDraft: 'TransactionDraft',
+  CategoryRule: 'CategoryRule',
+  Insight: 'Insight',
+  Budget: 'Budget',
+  Goal: 'Goal',
+  GoalContribution: 'GoalContribution'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -187,6 +192,7 @@ export const CategoryScalarFieldEnum = {
   name: 'name',
   icon: 'icon',
   color: 'color',
+  bucket: 'bucket',
   isSystem: 'isSystem'
 } as const
 
@@ -296,6 +302,70 @@ export const TransactionDraftScalarFieldEnum = {
 } as const
 
 export type TransactionDraftScalarFieldEnum = (typeof TransactionDraftScalarFieldEnum)[keyof typeof TransactionDraftScalarFieldEnum]
+
+
+export const CategoryRuleScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  matchType: 'matchType',
+  pattern: 'pattern',
+  categoryId: 'categoryId',
+  priority: 'priority',
+  createdAt: 'createdAt'
+} as const
+
+export type CategoryRuleScalarFieldEnum = (typeof CategoryRuleScalarFieldEnum)[keyof typeof CategoryRuleScalarFieldEnum]
+
+
+export const InsightScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  type: 'type',
+  dedupKey: 'dedupKey',
+  period: 'period',
+  payload: 'payload',
+  read: 'read',
+  createdAt: 'createdAt'
+} as const
+
+export type InsightScalarFieldEnum = (typeof InsightScalarFieldEnum)[keyof typeof InsightScalarFieldEnum]
+
+
+export const BudgetScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  method: 'method',
+  categoryId: 'categoryId',
+  limitCents: 'limitCents',
+  createdAt: 'createdAt'
+} as const
+
+export type BudgetScalarFieldEnum = (typeof BudgetScalarFieldEnum)[keyof typeof BudgetScalarFieldEnum]
+
+
+export const GoalScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  name: 'name',
+  targetCents: 'targetCents',
+  savedCents: 'savedCents',
+  deadline: 'deadline',
+  createdAt: 'createdAt'
+} as const
+
+export type GoalScalarFieldEnum = (typeof GoalScalarFieldEnum)[keyof typeof GoalScalarFieldEnum]
+
+
+export const GoalContributionScalarFieldEnum = {
+  id: 'id',
+  goalId: 'goalId',
+  amountCents: 'amountCents',
+  date: 'date',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type GoalContributionScalarFieldEnum = (typeof GoalContributionScalarFieldEnum)[keyof typeof GoalContributionScalarFieldEnum]
 
 
 export const SortOrder = {

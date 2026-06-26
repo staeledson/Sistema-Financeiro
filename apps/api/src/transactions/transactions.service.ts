@@ -1,9 +1,39 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, Optional } from "@nestjs/common";
 import { transactionInputSchema, type TransactionInput } from "@app/shared";
 import { prisma } from "../database";
+import { CategoryRulesService } from "../category-rules/category-rules.service";
 
 @Injectable()
 export class TransactionsService {
+  constructor(@Optional() private readonly rules?: CategoryRulesService) {}
+
+  async updateCategory(workspaceId: string, id: string, categoryId: string | null) {
+    const tx = await prisma.transaction.findFirst({
+      where: { id, workspaceId },
+      select: { id: true, counterparty: true, description: true },
+    });
+    if (!tx) throw new NotFoundException("transação não encontrada");
+
+    await prisma.transaction.update({ where: { id }, data: { categoryId } });
+
+    if (categoryId && this.rules) {
+      await this.rules.learnFromCorrection(
+        { counterparty: tx.counterparty, description: tx.description },
+        categoryId,
+        workspaceId,
+      );
+    }
+    return { id, categoryId };
+  }
+
+  async enqueueCategorizationJob(workspaceId: string, userId: string) {
+    const job = await prisma.aiJob.create({
+      data: { workspaceId, kind: "categorize", createdById: userId },
+      select: { id: true },
+    });
+    return job;
+  }
+
   async create(workspaceId: string, userId: string, body: unknown) {
     const dto: TransactionInput = transactionInputSchema.parse(body);
 

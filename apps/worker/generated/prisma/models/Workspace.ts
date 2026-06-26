@@ -208,6 +208,10 @@ export type WorkspaceWhereInput = {
   drafts?: Prisma.TransactionDraftListRelationFilter
   importBatches?: Prisma.ImportBatchListRelationFilter
   importMappings?: Prisma.ImportMappingListRelationFilter
+  categoryRules?: Prisma.CategoryRuleListRelationFilter
+  insights?: Prisma.InsightListRelationFilter
+  budgets?: Prisma.BudgetListRelationFilter
+  goals?: Prisma.GoalListRelationFilter
 }
 
 export type WorkspaceOrderByWithRelationInput = {
@@ -228,6 +232,10 @@ export type WorkspaceOrderByWithRelationInput = {
   drafts?: Prisma.TransactionDraftOrderByRelationAggregateInput
   importBatches?: Prisma.ImportBatchOrderByRelationAggregateInput
   importMappings?: Prisma.ImportMappingOrderByRelationAggregateInput
+  categoryRules?: Prisma.CategoryRuleOrderByRelationAggregateInput
+  insights?: Prisma.InsightOrderByRelationAggregateInput
+  budgets?: Prisma.BudgetOrderByRelationAggregateInput
+  goals?: Prisma.GoalOrderByRelationAggregateInput
 }
 
 export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
@@ -251,6 +259,10 @@ export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
   drafts?: Prisma.TransactionDraftListRelationFilter
   importBatches?: Prisma.ImportBatchListRelationFilter
   importMappings?: Prisma.ImportMappingListRelationFilter
+  categoryRules?: Prisma.CategoryRuleListRelationFilter
+  insights?: Prisma.InsightListRelationFilter
+  budgets?: Prisma.BudgetListRelationFilter
+  goals?: Prisma.GoalListRelationFilter
 }, "id">
 
 export type WorkspaceOrderByWithAggregationInput = {
@@ -296,6 +308,10 @@ export type WorkspaceCreateInput = {
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateInput = {
@@ -315,6 +331,10 @@ export type WorkspaceUncheckedCreateInput = {
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUpdateInput = {
@@ -334,6 +354,10 @@ export type WorkspaceUpdateInput = {
   drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateInput = {
@@ -353,6 +377,10 @@ export type WorkspaceUncheckedUpdateInput = {
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateManyInput = {
@@ -601,6 +629,62 @@ export type WorkspaceUpdateOneRequiredWithoutDraftsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutDraftsInput, Prisma.WorkspaceUpdateWithoutDraftsInput>, Prisma.WorkspaceUncheckedUpdateWithoutDraftsInput>
 }
 
+export type WorkspaceCreateNestedOneWithoutCategoryRulesInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutCategoryRulesInput, Prisma.WorkspaceUncheckedCreateWithoutCategoryRulesInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutCategoryRulesInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutCategoryRulesNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutCategoryRulesInput, Prisma.WorkspaceUncheckedCreateWithoutCategoryRulesInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutCategoryRulesInput
+  upsert?: Prisma.WorkspaceUpsertWithoutCategoryRulesInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutCategoryRulesInput, Prisma.WorkspaceUpdateWithoutCategoryRulesInput>, Prisma.WorkspaceUncheckedUpdateWithoutCategoryRulesInput>
+}
+
+export type WorkspaceCreateNestedOneWithoutInsightsInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutInsightsInput, Prisma.WorkspaceUncheckedCreateWithoutInsightsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutInsightsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutInsightsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutInsightsInput, Prisma.WorkspaceUncheckedCreateWithoutInsightsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutInsightsInput
+  upsert?: Prisma.WorkspaceUpsertWithoutInsightsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutInsightsInput, Prisma.WorkspaceUpdateWithoutInsightsInput>, Prisma.WorkspaceUncheckedUpdateWithoutInsightsInput>
+}
+
+export type WorkspaceCreateNestedOneWithoutBudgetsInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutBudgetsInput, Prisma.WorkspaceUncheckedCreateWithoutBudgetsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutBudgetsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutBudgetsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutBudgetsInput, Prisma.WorkspaceUncheckedCreateWithoutBudgetsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutBudgetsInput
+  upsert?: Prisma.WorkspaceUpsertWithoutBudgetsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutBudgetsInput, Prisma.WorkspaceUpdateWithoutBudgetsInput>, Prisma.WorkspaceUncheckedUpdateWithoutBudgetsInput>
+}
+
+export type WorkspaceCreateNestedOneWithoutGoalsInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutGoalsInput, Prisma.WorkspaceUncheckedCreateWithoutGoalsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutGoalsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutGoalsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutGoalsInput, Prisma.WorkspaceUncheckedCreateWithoutGoalsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutGoalsInput
+  upsert?: Prisma.WorkspaceUpsertWithoutGoalsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutGoalsInput, Prisma.WorkspaceUpdateWithoutGoalsInput>, Prisma.WorkspaceUncheckedUpdateWithoutGoalsInput>
+}
+
 export type WorkspaceCreateWithoutCreatedByInput = {
   id?: string
   type: $Enums.WorkspaceType
@@ -617,6 +701,10 @@ export type WorkspaceCreateWithoutCreatedByInput = {
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCreatedByInput = {
@@ -635,6 +723,10 @@ export type WorkspaceUncheckedCreateWithoutCreatedByInput = {
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCreatedByInput = {
@@ -692,6 +784,10 @@ export type WorkspaceCreateWithoutMembersInput = {
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutMembersInput = {
@@ -710,6 +806,10 @@ export type WorkspaceUncheckedCreateWithoutMembersInput = {
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutMembersInput = {
@@ -744,6 +844,10 @@ export type WorkspaceUpdateWithoutMembersInput = {
   drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutMembersInput = {
@@ -762,6 +866,10 @@ export type WorkspaceUncheckedUpdateWithoutMembersInput = {
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutBankAccountsInput = {
@@ -780,6 +888,10 @@ export type WorkspaceCreateWithoutBankAccountsInput = {
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBankAccountsInput = {
@@ -798,6 +910,10 @@ export type WorkspaceUncheckedCreateWithoutBankAccountsInput = {
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBankAccountsInput = {
@@ -832,6 +948,10 @@ export type WorkspaceUpdateWithoutBankAccountsInput = {
   drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBankAccountsInput = {
@@ -850,6 +970,10 @@ export type WorkspaceUncheckedUpdateWithoutBankAccountsInput = {
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutCategoriesInput = {
@@ -868,6 +992,10 @@ export type WorkspaceCreateWithoutCategoriesInput = {
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutCategoriesInput = {
@@ -886,6 +1014,10 @@ export type WorkspaceUncheckedCreateWithoutCategoriesInput = {
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutCategoriesInput = {
@@ -920,6 +1052,10 @@ export type WorkspaceUpdateWithoutCategoriesInput = {
   drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCategoriesInput = {
@@ -938,6 +1074,10 @@ export type WorkspaceUncheckedUpdateWithoutCategoriesInput = {
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutTagsInput = {
@@ -956,6 +1096,10 @@ export type WorkspaceCreateWithoutTagsInput = {
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutTagsInput = {
@@ -974,6 +1118,10 @@ export type WorkspaceUncheckedCreateWithoutTagsInput = {
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutTagsInput = {
@@ -1008,6 +1156,10 @@ export type WorkspaceUpdateWithoutTagsInput = {
   drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutTagsInput = {
@@ -1026,6 +1178,10 @@ export type WorkspaceUncheckedUpdateWithoutTagsInput = {
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutTransactionsInput = {
@@ -1044,6 +1200,10 @@ export type WorkspaceCreateWithoutTransactionsInput = {
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutTransactionsInput = {
@@ -1062,6 +1222,10 @@ export type WorkspaceUncheckedCreateWithoutTransactionsInput = {
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutTransactionsInput = {
@@ -1096,6 +1260,10 @@ export type WorkspaceUpdateWithoutTransactionsInput = {
   drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutTransactionsInput = {
@@ -1114,6 +1282,10 @@ export type WorkspaceUncheckedUpdateWithoutTransactionsInput = {
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutImportBatchesInput = {
@@ -1132,6 +1304,10 @@ export type WorkspaceCreateWithoutImportBatchesInput = {
   aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutImportBatchesInput = {
@@ -1150,6 +1326,10 @@ export type WorkspaceUncheckedCreateWithoutImportBatchesInput = {
   aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutImportBatchesInput = {
@@ -1184,6 +1364,10 @@ export type WorkspaceUpdateWithoutImportBatchesInput = {
   aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutImportBatchesInput = {
@@ -1202,6 +1386,10 @@ export type WorkspaceUncheckedUpdateWithoutImportBatchesInput = {
   aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutImportMappingsInput = {
@@ -1220,6 +1408,10 @@ export type WorkspaceCreateWithoutImportMappingsInput = {
   aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutImportMappingsInput = {
@@ -1238,6 +1430,10 @@ export type WorkspaceUncheckedCreateWithoutImportMappingsInput = {
   aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutImportMappingsInput = {
@@ -1272,6 +1468,10 @@ export type WorkspaceUpdateWithoutImportMappingsInput = {
   aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutImportMappingsInput = {
@@ -1290,6 +1490,10 @@ export type WorkspaceUncheckedUpdateWithoutImportMappingsInput = {
   aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutAiJobsInput = {
@@ -1308,6 +1512,10 @@ export type WorkspaceCreateWithoutAiJobsInput = {
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutAiJobsInput = {
@@ -1326,6 +1534,10 @@ export type WorkspaceUncheckedCreateWithoutAiJobsInput = {
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutAiJobsInput = {
@@ -1360,6 +1572,10 @@ export type WorkspaceUpdateWithoutAiJobsInput = {
   drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutAiJobsInput = {
@@ -1378,6 +1594,10 @@ export type WorkspaceUncheckedUpdateWithoutAiJobsInput = {
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutDraftsInput = {
@@ -1396,6 +1616,10 @@ export type WorkspaceCreateWithoutDraftsInput = {
   aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutDraftsInput = {
@@ -1414,6 +1638,10 @@ export type WorkspaceUncheckedCreateWithoutDraftsInput = {
   aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
   importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
   importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutDraftsInput = {
@@ -1448,6 +1676,10 @@ export type WorkspaceUpdateWithoutDraftsInput = {
   aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutDraftsInput = {
@@ -1466,6 +1698,426 @@ export type WorkspaceUncheckedUpdateWithoutDraftsInput = {
   aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutCategoryRulesInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  createdBy: Prisma.UserCreateNestedOneWithoutWorkspacesInput
+  members?: Prisma.WorkspaceMemberCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutCategoryRulesInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountUncheckedCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagUncheckedCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutCategoryRulesInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutCategoryRulesInput, Prisma.WorkspaceUncheckedCreateWithoutCategoryRulesInput>
+}
+
+export type WorkspaceUpsertWithoutCategoryRulesInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutCategoryRulesInput, Prisma.WorkspaceUncheckedUpdateWithoutCategoryRulesInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutCategoryRulesInput, Prisma.WorkspaceUncheckedCreateWithoutCategoryRulesInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutCategoryRulesInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutCategoryRulesInput, Prisma.WorkspaceUncheckedUpdateWithoutCategoryRulesInput>
+}
+
+export type WorkspaceUpdateWithoutCategoryRulesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutWorkspacesNestedInput
+  members?: Prisma.WorkspaceMemberUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutCategoryRulesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUncheckedUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUncheckedUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutInsightsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  createdBy: Prisma.UserCreateNestedOneWithoutWorkspacesInput
+  members?: Prisma.WorkspaceMemberCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutInsightsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountUncheckedCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagUncheckedCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutInsightsInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutInsightsInput, Prisma.WorkspaceUncheckedCreateWithoutInsightsInput>
+}
+
+export type WorkspaceUpsertWithoutInsightsInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutInsightsInput, Prisma.WorkspaceUncheckedUpdateWithoutInsightsInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutInsightsInput, Prisma.WorkspaceUncheckedCreateWithoutInsightsInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutInsightsInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutInsightsInput, Prisma.WorkspaceUncheckedUpdateWithoutInsightsInput>
+}
+
+export type WorkspaceUpdateWithoutInsightsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutWorkspacesNestedInput
+  members?: Prisma.WorkspaceMemberUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutInsightsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUncheckedUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUncheckedUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutBudgetsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  createdBy: Prisma.UserCreateNestedOneWithoutWorkspacesInput
+  members?: Prisma.WorkspaceMemberCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutBudgetsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountUncheckedCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagUncheckedCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  goals?: Prisma.GoalUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutBudgetsInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutBudgetsInput, Prisma.WorkspaceUncheckedCreateWithoutBudgetsInput>
+}
+
+export type WorkspaceUpsertWithoutBudgetsInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutBudgetsInput, Prisma.WorkspaceUncheckedUpdateWithoutBudgetsInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutBudgetsInput, Prisma.WorkspaceUncheckedCreateWithoutBudgetsInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutBudgetsInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutBudgetsInput, Prisma.WorkspaceUncheckedUpdateWithoutBudgetsInput>
+}
+
+export type WorkspaceUpdateWithoutBudgetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutWorkspacesNestedInput
+  members?: Prisma.WorkspaceMemberUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutBudgetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUncheckedUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUncheckedUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutGoalsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  createdBy: Prisma.UserCreateNestedOneWithoutWorkspacesInput
+  members?: Prisma.WorkspaceMemberCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutGoalsInput = {
+  id?: string
+  type: $Enums.WorkspaceType
+  name: string
+  currency?: string
+  createdById: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutWorkspaceInput
+  bankAccounts?: Prisma.BankAccountUncheckedCreateNestedManyWithoutWorkspaceInput
+  categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutWorkspaceInput
+  tags?: Prisma.TagUncheckedCreateNestedManyWithoutWorkspaceInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutWorkspaceInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutWorkspaceInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutWorkspaceInput
+  importMappings?: Prisma.ImportMappingUncheckedCreateNestedManyWithoutWorkspaceInput
+  categoryRules?: Prisma.CategoryRuleUncheckedCreateNestedManyWithoutWorkspaceInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutWorkspaceInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutGoalsInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutGoalsInput, Prisma.WorkspaceUncheckedCreateWithoutGoalsInput>
+}
+
+export type WorkspaceUpsertWithoutGoalsInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutGoalsInput, Prisma.WorkspaceUncheckedUpdateWithoutGoalsInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutGoalsInput, Prisma.WorkspaceUncheckedCreateWithoutGoalsInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutGoalsInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutGoalsInput, Prisma.WorkspaceUncheckedUpdateWithoutGoalsInput>
+}
+
+export type WorkspaceUpdateWithoutGoalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutWorkspacesNestedInput
+  members?: Prisma.WorkspaceMemberUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutGoalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumWorkspaceTypeFieldUpdateOperationsInput | $Enums.WorkspaceType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutWorkspaceNestedInput
+  bankAccounts?: Prisma.BankAccountUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categories?: Prisma.CategoryUncheckedUpdateManyWithoutWorkspaceNestedInput
+  tags?: Prisma.TagUncheckedUpdateManyWithoutWorkspaceNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutWorkspaceNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
+  importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateManyCreatedByInput = {
@@ -1493,6 +2145,10 @@ export type WorkspaceUpdateWithoutCreatedByInput = {
   drafts?: Prisma.TransactionDraftUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutCreatedByInput = {
@@ -1511,6 +2167,10 @@ export type WorkspaceUncheckedUpdateWithoutCreatedByInput = {
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutWorkspaceNestedInput
   importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutWorkspaceNestedInput
   importMappings?: Prisma.ImportMappingUncheckedUpdateManyWithoutWorkspaceNestedInput
+  categoryRules?: Prisma.CategoryRuleUncheckedUpdateManyWithoutWorkspaceNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutWorkspaceNestedInput
+  goals?: Prisma.GoalUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateManyWithoutCreatedByInput = {
@@ -1537,6 +2197,10 @@ export type WorkspaceCountOutputType = {
   drafts: number
   importBatches: number
   importMappings: number
+  categoryRules: number
+  insights: number
+  budgets: number
+  goals: number
 }
 
 export type WorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1549,6 +2213,10 @@ export type WorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensi
   drafts?: boolean | WorkspaceCountOutputTypeCountDraftsArgs
   importBatches?: boolean | WorkspaceCountOutputTypeCountImportBatchesArgs
   importMappings?: boolean | WorkspaceCountOutputTypeCountImportMappingsArgs
+  categoryRules?: boolean | WorkspaceCountOutputTypeCountCategoryRulesArgs
+  insights?: boolean | WorkspaceCountOutputTypeCountInsightsArgs
+  budgets?: boolean | WorkspaceCountOutputTypeCountBudgetsArgs
+  goals?: boolean | WorkspaceCountOutputTypeCountGoalsArgs
 }
 
 /**
@@ -1624,6 +2292,34 @@ export type WorkspaceCountOutputTypeCountImportMappingsArgs<ExtArgs extends runt
   where?: Prisma.ImportMappingWhereInput
 }
 
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountCategoryRulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CategoryRuleWhereInput
+}
+
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountInsightsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.InsightWhereInput
+}
+
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountBudgetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BudgetWhereInput
+}
+
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountGoalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.GoalWhereInput
+}
+
 
 export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1643,6 +2339,10 @@ export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   drafts?: boolean | Prisma.Workspace$draftsArgs<ExtArgs>
   importBatches?: boolean | Prisma.Workspace$importBatchesArgs<ExtArgs>
   importMappings?: boolean | Prisma.Workspace$importMappingsArgs<ExtArgs>
+  categoryRules?: boolean | Prisma.Workspace$categoryRulesArgs<ExtArgs>
+  insights?: boolean | Prisma.Workspace$insightsArgs<ExtArgs>
+  budgets?: boolean | Prisma.Workspace$budgetsArgs<ExtArgs>
+  goals?: boolean | Prisma.Workspace$goalsArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["workspace"]>
 
@@ -1690,6 +2390,10 @@ export type WorkspaceInclude<ExtArgs extends runtime.Types.Extensions.InternalAr
   drafts?: boolean | Prisma.Workspace$draftsArgs<ExtArgs>
   importBatches?: boolean | Prisma.Workspace$importBatchesArgs<ExtArgs>
   importMappings?: boolean | Prisma.Workspace$importMappingsArgs<ExtArgs>
+  categoryRules?: boolean | Prisma.Workspace$categoryRulesArgs<ExtArgs>
+  insights?: boolean | Prisma.Workspace$insightsArgs<ExtArgs>
+  budgets?: boolean | Prisma.Workspace$budgetsArgs<ExtArgs>
+  goals?: boolean | Prisma.Workspace$goalsArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type WorkspaceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1712,6 +2416,10 @@ export type $WorkspacePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     drafts: Prisma.$TransactionDraftPayload<ExtArgs>[]
     importBatches: Prisma.$ImportBatchPayload<ExtArgs>[]
     importMappings: Prisma.$ImportMappingPayload<ExtArgs>[]
+    categoryRules: Prisma.$CategoryRulePayload<ExtArgs>[]
+    insights: Prisma.$InsightPayload<ExtArgs>[]
+    budgets: Prisma.$BudgetPayload<ExtArgs>[]
+    goals: Prisma.$GoalPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2125,6 +2833,10 @@ export interface Prisma__WorkspaceClient<T, Null = never, ExtArgs extends runtim
   drafts<T extends Prisma.Workspace$draftsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$draftsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionDraftPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   importBatches<T extends Prisma.Workspace$importBatchesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$importBatchesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImportBatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   importMappings<T extends Prisma.Workspace$importMappingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$importMappingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImportMappingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  categoryRules<T extends Prisma.Workspace$categoryRulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$categoryRulesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CategoryRulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  insights<T extends Prisma.Workspace$insightsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$insightsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InsightPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  budgets<T extends Prisma.Workspace$budgetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$budgetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BudgetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  goals<T extends Prisma.Workspace$goalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$goalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GoalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2775,6 +3487,102 @@ export type Workspace$importMappingsArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.ImportMappingScalarFieldEnum | Prisma.ImportMappingScalarFieldEnum[]
+}
+
+/**
+ * Workspace.categoryRules
+ */
+export type Workspace$categoryRulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CategoryRule
+   */
+  select?: Prisma.CategoryRuleSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CategoryRule
+   */
+  omit?: Prisma.CategoryRuleOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CategoryRuleInclude<ExtArgs> | null
+  where?: Prisma.CategoryRuleWhereInput
+  orderBy?: Prisma.CategoryRuleOrderByWithRelationInput | Prisma.CategoryRuleOrderByWithRelationInput[]
+  cursor?: Prisma.CategoryRuleWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CategoryRuleScalarFieldEnum | Prisma.CategoryRuleScalarFieldEnum[]
+}
+
+/**
+ * Workspace.insights
+ */
+export type Workspace$insightsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Insight
+   */
+  select?: Prisma.InsightSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Insight
+   */
+  omit?: Prisma.InsightOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.InsightInclude<ExtArgs> | null
+  where?: Prisma.InsightWhereInput
+  orderBy?: Prisma.InsightOrderByWithRelationInput | Prisma.InsightOrderByWithRelationInput[]
+  cursor?: Prisma.InsightWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.InsightScalarFieldEnum | Prisma.InsightScalarFieldEnum[]
+}
+
+/**
+ * Workspace.budgets
+ */
+export type Workspace$budgetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Budget
+   */
+  select?: Prisma.BudgetSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Budget
+   */
+  omit?: Prisma.BudgetOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BudgetInclude<ExtArgs> | null
+  where?: Prisma.BudgetWhereInput
+  orderBy?: Prisma.BudgetOrderByWithRelationInput | Prisma.BudgetOrderByWithRelationInput[]
+  cursor?: Prisma.BudgetWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BudgetScalarFieldEnum | Prisma.BudgetScalarFieldEnum[]
+}
+
+/**
+ * Workspace.goals
+ */
+export type Workspace$goalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Goal
+   */
+  select?: Prisma.GoalSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Goal
+   */
+  omit?: Prisma.GoalOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.GoalInclude<ExtArgs> | null
+  where?: Prisma.GoalWhereInput
+  orderBy?: Prisma.GoalOrderByWithRelationInput | Prisma.GoalOrderByWithRelationInput[]
+  cursor?: Prisma.GoalWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.GoalScalarFieldEnum | Prisma.GoalScalarFieldEnum[]
 }
 
 /**
