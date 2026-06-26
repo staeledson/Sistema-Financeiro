@@ -166,3 +166,13 @@ export type ChatConversation = Prisma.ChatConversationModel
  * 
  */
 export type ChatMessage = Prisma.ChatMessageModel
+/**
+ * Model PushSubscription
+ * 
+ */
+export type PushSubscription = Prisma.PushSubscriptionModel
+/**
+ * Model ScheduledBill
+ * 
+ */
+export type ScheduledBill = Prisma.ScheduledBillModel

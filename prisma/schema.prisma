@@ -35,6 +35,8 @@ model User {
   sentInvitations      Invitation[]        @relation("InvitationSender")
   transactionSplits    TransactionSplit[]
   chatConversations    ChatConversation[]
+  pushSubscriptions    PushSubscription[]
+  scheduledBills       ScheduledBill[]
 
   @@map("user")
 }
@@ -154,9 +156,11 @@ model Workspace {
   insights         Insight[]
   budgets          Budget[]
   goals            Goal[]
-  invitations       Invitation[]
-  businessProfile   BusinessProfile?
-  chatConversations ChatConversation[]
+  invitations        Invitation[]
+  businessProfile    BusinessProfile?
+  chatConversations  ChatConversation[]
+  pushSubscriptions  PushSubscription[]
+  scheduledBills     ScheduledBill[]
 
   @@map("workspaces")
 }
@@ -231,10 +235,11 @@ model Category {
   bucket      CategoryBucket?
   isSystem    Boolean      @default(false)
 
-  transactions  Transaction[]
-  drafts        TransactionDraft[]
-  categoryRules CategoryRule[]
-  budgets       Budget[]
+  transactions    Transaction[]
+  drafts          TransactionDraft[]
+  categoryRules   CategoryRule[]
+  budgets         Budget[]
+  scheduledBills  ScheduledBill[]
 
   @@index([workspaceId])
   @@map("categories")
@@ -561,4 +566,47 @@ model ChatMessage {
 
   @@index([conversationId])
   @@map("chat_messages")
+}
+
+// --- Fase 8: PWA & Engajamento ---
+
+model PushSubscription {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint    String    @unique
+  p256dh      String
+  auth        String
+  createdAt   DateTime  @default(now())
+
+  @@index([workspaceId])
+  @@map("push_subscriptions")
+}
+
+enum Recurrence {
+  once
+  weekly
+  monthly
+  yearly
+}
+
+model ScheduledBill {
+  id          String     @id @default(cuid())
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  amountCents BigInt
+  dueDate     DateTime   @db.Date
+  recurrence  Recurrence @default(monthly)
+  categoryId  String?
+  category    Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  active      Boolean    @default(true)
+  createdById String
+  createdBy   User       @relation(fields: [createdById], references: [id])
+  createdAt   DateTime   @default(now())
+
+  @@index([workspaceId])
+  @@map("scheduled_bills")
 }

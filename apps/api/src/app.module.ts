@@ -18,6 +18,9 @@ import { InvitationsModule } from "./invitations/invitations.module";
 import { SplitsModule } from "./splits/splits.module";
 import { BusinessModule } from "./business/business.module";
 import { ChatModule } from "./chat/chat.module";
+import { PushModule } from "./push/push.module";
+import { BillsModule } from "./bills/bills.module";
+import { ExportModule } from "./export/export.module";
 
 @Module({
   imports: [
@@ -39,6 +42,9 @@ import { ChatModule } from "./chat/chat.module";
     SplitsModule,
     BusinessModule,
     ChatModule,
+    PushModule,
+    BillsModule,
+    ExportModule,
   ],
 })
 export class AppModule {}
