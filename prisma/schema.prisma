@@ -22,6 +22,7 @@ model User {
   accounts     Account[]
   workspaces   Workspace[]       @relation("WorkspaceCreator")
   memberships  WorkspaceMember[]
+  transactions Transaction[]     @relation("TransactionCreator")
 
   @@map("user")
 }
@@ -95,7 +96,11 @@ model Workspace {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  members WorkspaceMember[]
+  members      WorkspaceMember[]
+  bankAccounts BankAccount[]
+  categories   Category[]
+  tags         Tag[]
+  transactions Transaction[]
 
   @@map("workspaces")
 }
@@ -113,4 +118,112 @@ model WorkspaceMember {
   @@index([userId])
   @@index([workspaceId])
   @@map("workspace_members")
+}
+
+// --- Financeiro ---
+
+enum AccountType {
+  checking
+  savings
+  credit_card
+  cash
+  investment
+}
+
+enum CategoryType {
+  income
+  expense
+}
+
+enum TransactionType {
+  income
+  expense
+  transfer
+}
+
+model BankAccount {
+  id                  String      @id @default(cuid())
+  workspaceId         String
+  workspace           Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type                AccountType
+  name                String
+  openingBalanceCents BigInt      @default(0)
+  archived            Boolean     @default(false)
+  createdAt           DateTime    @default(now())
+
+  transactions       Transaction[] @relation("TransactionAccount")
+  sourceTransactions Transaction[] @relation("TransactionSource")
+  destTransactions   Transaction[] @relation("TransactionDest")
+
+  @@index([workspaceId])
+  @@map("bank_accounts")
+}
+
+model Category {
+  id          String       @id @default(cuid())
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type        CategoryType
+  parentId    String?
+  parent      Category?    @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[]   @relation("CategoryParent")
+  name        String
+  icon        String?
+  color       String?
+  isSystem    Boolean      @default(false)
+
+  transactions Transaction[]
+
+  @@index([workspaceId])
+  @@map("categories")
+}
+
+model Tag {
+  id          String           @id @default(cuid())
+  workspaceId String
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  tags        TransactionTag[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("tags")
+}
+
+model Transaction {
+  id              String          @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type            TransactionType
+  amountCents     BigInt
+  date            DateTime        @db.Date
+  accountId       String?
+  account         BankAccount?    @relation("TransactionAccount", fields: [accountId], references: [id])
+  sourceAccountId String?
+  sourceAccount   BankAccount?    @relation("TransactionSource", fields: [sourceAccountId], references: [id])
+  destAccountId   String?
+  destAccount     BankAccount?    @relation("TransactionDest", fields: [destAccountId], references: [id])
+  categoryId      String?
+  category        Category?       @relation(fields: [categoryId], references: [id])
+  description     String?
+  counterparty    String?
+  source          String          @default("manual")
+  createdById     String
+  createdBy       User            @relation("TransactionCreator", fields: [createdById], references: [id])
+  createdAt       DateTime        @default(now())
+
+  tags TransactionTag[]
+
+  @@index([workspaceId, date])
+  @@map("transactions")
+}
+
+model TransactionTag {
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  tagId         String
+  tag           Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([transactionId, tagId])
+  @@map("transaction_tags")
 }
