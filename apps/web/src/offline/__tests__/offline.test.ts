@@ -1,19 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import "fake-indexeddb/auto";
+import { IDBFactory } from "fake-indexeddb";
 
-async function deleteDb(name: string) {
-  await new Promise<void>((res, rej) => {
-    const req = indexedDB.deleteDatabase(name);
-    req.onsuccess = () => res();
-    req.onerror = () => rej(req.error);
-  });
-}
-
-// Reset both module instances and underlying IDB storage between tests
-beforeEach(async () => {
+// Replace the global indexedDB with a fresh empty factory before each test,
+// then reset module cache so cache.ts / write-queue.ts reconnect to the new store.
+beforeEach(() => {
+  (globalThis as any).indexedDB = new IDBFactory();
   vi.resetModules();
-  await deleteDb("financas-cache");
-  await deleteDb("financas-write-queue");
 });
 
 describe("offline cache (put / get)", () => {
