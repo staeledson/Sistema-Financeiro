@@ -394,6 +394,8 @@ export const ModelName = {
   Category: 'Category',
   Tag: 'Tag',
   Transaction: 'Transaction',
+  ImportBatch: 'ImportBatch',
+  ImportMapping: 'ImportMapping',
   TransactionTag: 'TransactionTag',
   AiJob: 'AiJob',
   TransactionDraft: 'TransactionDraft'
@@ -412,7 +414,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "workspace" | "workspaceMember" | "bankAccount" | "category" | "tag" | "transaction" | "transactionTag" | "aiJob" | "transactionDraft"
+    modelProps: "user" | "session" | "account" | "verification" | "workspace" | "workspaceMember" | "bankAccount" | "category" | "tag" | "transaction" | "importBatch" | "importMapping" | "transactionTag" | "aiJob" | "transactionDraft"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1156,6 +1158,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ImportBatch: {
+      payload: Prisma.$ImportBatchPayload<ExtArgs>
+      fields: Prisma.ImportBatchFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ImportBatchFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ImportBatchFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload>
+        }
+        findFirst: {
+          args: Prisma.ImportBatchFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ImportBatchFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload>
+        }
+        findMany: {
+          args: Prisma.ImportBatchFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload>[]
+        }
+        create: {
+          args: Prisma.ImportBatchCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload>
+        }
+        createMany: {
+          args: Prisma.ImportBatchCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ImportBatchCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload>[]
+        }
+        delete: {
+          args: Prisma.ImportBatchDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload>
+        }
+        update: {
+          args: Prisma.ImportBatchUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload>
+        }
+        deleteMany: {
+          args: Prisma.ImportBatchDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ImportBatchUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ImportBatchUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload>[]
+        }
+        upsert: {
+          args: Prisma.ImportBatchUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportBatchPayload>
+        }
+        aggregate: {
+          args: Prisma.ImportBatchAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateImportBatch>
+        }
+        groupBy: {
+          args: Prisma.ImportBatchGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImportBatchGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ImportBatchCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImportBatchCountAggregateOutputType> | number
+        }
+      }
+    }
+    ImportMapping: {
+      payload: Prisma.$ImportMappingPayload<ExtArgs>
+      fields: Prisma.ImportMappingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ImportMappingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ImportMappingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload>
+        }
+        findFirst: {
+          args: Prisma.ImportMappingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ImportMappingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload>
+        }
+        findMany: {
+          args: Prisma.ImportMappingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload>[]
+        }
+        create: {
+          args: Prisma.ImportMappingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload>
+        }
+        createMany: {
+          args: Prisma.ImportMappingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ImportMappingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload>[]
+        }
+        delete: {
+          args: Prisma.ImportMappingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload>
+        }
+        update: {
+          args: Prisma.ImportMappingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload>
+        }
+        deleteMany: {
+          args: Prisma.ImportMappingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ImportMappingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ImportMappingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload>[]
+        }
+        upsert: {
+          args: Prisma.ImportMappingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImportMappingPayload>
+        }
+        aggregate: {
+          args: Prisma.ImportMappingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateImportMapping>
+        }
+        groupBy: {
+          args: Prisma.ImportMappingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImportMappingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ImportMappingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImportMappingCountAggregateOutputType> | number
+        }
+      }
+    }
     TransactionTag: {
       payload: Prisma.$TransactionTagPayload<ExtArgs>
       fields: Prisma.TransactionTagFieldRefs
@@ -1548,11 +1698,40 @@ export const TransactionScalarFieldEnum = {
   description: 'description',
   counterparty: 'counterparty',
   source: 'source',
+  importFingerprint: 'importFingerprint',
+  importBatchId: 'importBatchId',
   createdById: 'createdById',
   createdAt: 'createdAt'
 } as const
 
 export type TransactionScalarFieldEnum = (typeof TransactionScalarFieldEnum)[keyof typeof TransactionScalarFieldEnum]
+
+
+export const ImportBatchScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  accountId: 'accountId',
+  format: 'format',
+  status: 'status',
+  fileRef: 'fileRef',
+  rowCount: 'rowCount',
+  dupCount: 'dupCount',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type ImportBatchScalarFieldEnum = (typeof ImportBatchScalarFieldEnum)[keyof typeof ImportBatchScalarFieldEnum]
+
+
+export const ImportMappingScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  name: 'name',
+  format: 'format',
+  mapping: 'mapping'
+} as const
+
+export type ImportMappingScalarFieldEnum = (typeof ImportMappingScalarFieldEnum)[keyof typeof ImportMappingScalarFieldEnum]
 
 
 export const TransactionTagScalarFieldEnum = {
@@ -1608,6 +1787,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullableJsonNullValueInput = {
@@ -1769,6 +1955,62 @@ export type ListEnumTransactionTypeFieldRefInput<$PrismaModel> = FieldRefInputTy
 
 
 /**
+ * Reference to a field of type 'ImportFormat'
+ */
+export type EnumImportFormatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ImportFormat'>
+    
+
+
+/**
+ * Reference to a field of type 'ImportFormat[]'
+ */
+export type ListEnumImportFormatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ImportFormat[]'>
+    
+
+
+/**
+ * Reference to a field of type 'ImportStatus'
+ */
+export type EnumImportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ImportStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'ImportStatus[]'
+ */
+export type ListEnumImportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ImportStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
  * Reference to a field of type 'AiJobKind'
  */
 export type EnumAiJobKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiJobKind'>
@@ -1793,34 +2035,6 @@ export type EnumAiJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pris
  * Reference to a field of type 'AiJobStatus[]'
  */
 export type ListEnumAiJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiJobStatus[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -1971,6 +2185,8 @@ export type GlobalOmitConfig = {
   category?: Prisma.CategoryOmit
   tag?: Prisma.TagOmit
   transaction?: Prisma.TransactionOmit
+  importBatch?: Prisma.ImportBatchOmit
+  importMapping?: Prisma.ImportMappingOmit
   transactionTag?: Prisma.TransactionTagOmit
   aiJob?: Prisma.AiJobOmit
   transactionDraft?: Prisma.TransactionDraftOmit

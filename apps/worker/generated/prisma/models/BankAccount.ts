@@ -237,6 +237,7 @@ export type BankAccountWhereInput = {
   sourceTransactions?: Prisma.TransactionListRelationFilter
   destTransactions?: Prisma.TransactionListRelationFilter
   drafts?: Prisma.TransactionDraftListRelationFilter
+  importBatches?: Prisma.ImportBatchListRelationFilter
 }
 
 export type BankAccountOrderByWithRelationInput = {
@@ -252,6 +253,7 @@ export type BankAccountOrderByWithRelationInput = {
   sourceTransactions?: Prisma.TransactionOrderByRelationAggregateInput
   destTransactions?: Prisma.TransactionOrderByRelationAggregateInput
   drafts?: Prisma.TransactionDraftOrderByRelationAggregateInput
+  importBatches?: Prisma.ImportBatchOrderByRelationAggregateInput
 }
 
 export type BankAccountWhereUniqueInput = Prisma.AtLeast<{
@@ -270,6 +272,7 @@ export type BankAccountWhereUniqueInput = Prisma.AtLeast<{
   sourceTransactions?: Prisma.TransactionListRelationFilter
   destTransactions?: Prisma.TransactionListRelationFilter
   drafts?: Prisma.TransactionDraftListRelationFilter
+  importBatches?: Prisma.ImportBatchListRelationFilter
 }, "id">
 
 export type BankAccountOrderByWithAggregationInput = {
@@ -312,6 +315,7 @@ export type BankAccountCreateInput = {
   sourceTransactions?: Prisma.TransactionCreateNestedManyWithoutSourceAccountInput
   destTransactions?: Prisma.TransactionCreateNestedManyWithoutDestAccountInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutAccountInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountUncheckedCreateInput = {
@@ -326,6 +330,7 @@ export type BankAccountUncheckedCreateInput = {
   sourceTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutSourceAccountInput
   destTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutDestAccountInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutAccountInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountUpdateInput = {
@@ -340,6 +345,7 @@ export type BankAccountUpdateInput = {
   sourceTransactions?: Prisma.TransactionUpdateManyWithoutSourceAccountNestedInput
   destTransactions?: Prisma.TransactionUpdateManyWithoutDestAccountNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutAccountNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountUncheckedUpdateInput = {
@@ -354,6 +360,7 @@ export type BankAccountUncheckedUpdateInput = {
   sourceTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutSourceAccountNestedInput
   destTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutDestAccountNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutAccountNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountCreateManyInput = {
@@ -540,6 +547,22 @@ export type BankAccountUpdateOneWithoutDestTransactionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BankAccountUpdateToOneWithWhereWithoutDestTransactionsInput, Prisma.BankAccountUpdateWithoutDestTransactionsInput>, Prisma.BankAccountUncheckedUpdateWithoutDestTransactionsInput>
 }
 
+export type BankAccountCreateNestedOneWithoutImportBatchesInput = {
+  create?: Prisma.XOR<Prisma.BankAccountCreateWithoutImportBatchesInput, Prisma.BankAccountUncheckedCreateWithoutImportBatchesInput>
+  connectOrCreate?: Prisma.BankAccountCreateOrConnectWithoutImportBatchesInput
+  connect?: Prisma.BankAccountWhereUniqueInput
+}
+
+export type BankAccountUpdateOneWithoutImportBatchesNestedInput = {
+  create?: Prisma.XOR<Prisma.BankAccountCreateWithoutImportBatchesInput, Prisma.BankAccountUncheckedCreateWithoutImportBatchesInput>
+  connectOrCreate?: Prisma.BankAccountCreateOrConnectWithoutImportBatchesInput
+  upsert?: Prisma.BankAccountUpsertWithoutImportBatchesInput
+  disconnect?: Prisma.BankAccountWhereInput | boolean
+  delete?: Prisma.BankAccountWhereInput | boolean
+  connect?: Prisma.BankAccountWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BankAccountUpdateToOneWithWhereWithoutImportBatchesInput, Prisma.BankAccountUpdateWithoutImportBatchesInput>, Prisma.BankAccountUncheckedUpdateWithoutImportBatchesInput>
+}
+
 export type BankAccountCreateNestedOneWithoutDraftsInput = {
   create?: Prisma.XOR<Prisma.BankAccountCreateWithoutDraftsInput, Prisma.BankAccountUncheckedCreateWithoutDraftsInput>
   connectOrCreate?: Prisma.BankAccountCreateOrConnectWithoutDraftsInput
@@ -567,6 +590,7 @@ export type BankAccountCreateWithoutWorkspaceInput = {
   sourceTransactions?: Prisma.TransactionCreateNestedManyWithoutSourceAccountInput
   destTransactions?: Prisma.TransactionCreateNestedManyWithoutDestAccountInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutAccountInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountUncheckedCreateWithoutWorkspaceInput = {
@@ -580,6 +604,7 @@ export type BankAccountUncheckedCreateWithoutWorkspaceInput = {
   sourceTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutSourceAccountInput
   destTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutDestAccountInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutAccountInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountCreateOrConnectWithoutWorkspaceInput = {
@@ -632,6 +657,7 @@ export type BankAccountCreateWithoutTransactionsInput = {
   sourceTransactions?: Prisma.TransactionCreateNestedManyWithoutSourceAccountInput
   destTransactions?: Prisma.TransactionCreateNestedManyWithoutDestAccountInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutAccountInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountUncheckedCreateWithoutTransactionsInput = {
@@ -645,6 +671,7 @@ export type BankAccountUncheckedCreateWithoutTransactionsInput = {
   sourceTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutSourceAccountInput
   destTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutDestAccountInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutAccountInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountCreateOrConnectWithoutTransactionsInput = {
@@ -663,6 +690,7 @@ export type BankAccountCreateWithoutSourceTransactionsInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutAccountInput
   destTransactions?: Prisma.TransactionCreateNestedManyWithoutDestAccountInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutAccountInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountUncheckedCreateWithoutSourceTransactionsInput = {
@@ -676,6 +704,7 @@ export type BankAccountUncheckedCreateWithoutSourceTransactionsInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutAccountInput
   destTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutDestAccountInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutAccountInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountCreateOrConnectWithoutSourceTransactionsInput = {
@@ -694,6 +723,7 @@ export type BankAccountCreateWithoutDestTransactionsInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutAccountInput
   sourceTransactions?: Prisma.TransactionCreateNestedManyWithoutSourceAccountInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutAccountInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountUncheckedCreateWithoutDestTransactionsInput = {
@@ -707,6 +737,7 @@ export type BankAccountUncheckedCreateWithoutDestTransactionsInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutAccountInput
   sourceTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutSourceAccountInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutAccountInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountCreateOrConnectWithoutDestTransactionsInput = {
@@ -736,6 +767,7 @@ export type BankAccountUpdateWithoutTransactionsInput = {
   sourceTransactions?: Prisma.TransactionUpdateManyWithoutSourceAccountNestedInput
   destTransactions?: Prisma.TransactionUpdateManyWithoutDestAccountNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutAccountNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountUncheckedUpdateWithoutTransactionsInput = {
@@ -749,6 +781,7 @@ export type BankAccountUncheckedUpdateWithoutTransactionsInput = {
   sourceTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutSourceAccountNestedInput
   destTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutDestAccountNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutAccountNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountUpsertWithoutSourceTransactionsInput = {
@@ -773,6 +806,7 @@ export type BankAccountUpdateWithoutSourceTransactionsInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutAccountNestedInput
   destTransactions?: Prisma.TransactionUpdateManyWithoutDestAccountNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutAccountNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountUncheckedUpdateWithoutSourceTransactionsInput = {
@@ -786,6 +820,7 @@ export type BankAccountUncheckedUpdateWithoutSourceTransactionsInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutAccountNestedInput
   destTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutDestAccountNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutAccountNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountUpsertWithoutDestTransactionsInput = {
@@ -810,6 +845,7 @@ export type BankAccountUpdateWithoutDestTransactionsInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutAccountNestedInput
   sourceTransactions?: Prisma.TransactionUpdateManyWithoutSourceAccountNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutAccountNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountUncheckedUpdateWithoutDestTransactionsInput = {
@@ -822,6 +858,79 @@ export type BankAccountUncheckedUpdateWithoutDestTransactionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutAccountNestedInput
   sourceTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutSourceAccountNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutAccountNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutAccountNestedInput
+}
+
+export type BankAccountCreateWithoutImportBatchesInput = {
+  id?: string
+  type: $Enums.AccountType
+  name: string
+  openingBalanceCents?: bigint | number
+  archived?: boolean
+  createdAt?: Date | string
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutBankAccountsInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutAccountInput
+  sourceTransactions?: Prisma.TransactionCreateNestedManyWithoutSourceAccountInput
+  destTransactions?: Prisma.TransactionCreateNestedManyWithoutDestAccountInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutAccountInput
+}
+
+export type BankAccountUncheckedCreateWithoutImportBatchesInput = {
+  id?: string
+  workspaceId: string
+  type: $Enums.AccountType
+  name: string
+  openingBalanceCents?: bigint | number
+  archived?: boolean
+  createdAt?: Date | string
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutAccountInput
+  sourceTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutSourceAccountInput
+  destTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutDestAccountInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutAccountInput
+}
+
+export type BankAccountCreateOrConnectWithoutImportBatchesInput = {
+  where: Prisma.BankAccountWhereUniqueInput
+  create: Prisma.XOR<Prisma.BankAccountCreateWithoutImportBatchesInput, Prisma.BankAccountUncheckedCreateWithoutImportBatchesInput>
+}
+
+export type BankAccountUpsertWithoutImportBatchesInput = {
+  update: Prisma.XOR<Prisma.BankAccountUpdateWithoutImportBatchesInput, Prisma.BankAccountUncheckedUpdateWithoutImportBatchesInput>
+  create: Prisma.XOR<Prisma.BankAccountCreateWithoutImportBatchesInput, Prisma.BankAccountUncheckedCreateWithoutImportBatchesInput>
+  where?: Prisma.BankAccountWhereInput
+}
+
+export type BankAccountUpdateToOneWithWhereWithoutImportBatchesInput = {
+  where?: Prisma.BankAccountWhereInput
+  data: Prisma.XOR<Prisma.BankAccountUpdateWithoutImportBatchesInput, Prisma.BankAccountUncheckedUpdateWithoutImportBatchesInput>
+}
+
+export type BankAccountUpdateWithoutImportBatchesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumAccountTypeFieldUpdateOperationsInput | $Enums.AccountType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  openingBalanceCents?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  archived?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBankAccountsNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutAccountNestedInput
+  sourceTransactions?: Prisma.TransactionUpdateManyWithoutSourceAccountNestedInput
+  destTransactions?: Prisma.TransactionUpdateManyWithoutDestAccountNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutAccountNestedInput
+}
+
+export type BankAccountUncheckedUpdateWithoutImportBatchesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumAccountTypeFieldUpdateOperationsInput | $Enums.AccountType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  openingBalanceCents?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  archived?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutAccountNestedInput
+  sourceTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutSourceAccountNestedInput
+  destTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutDestAccountNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
@@ -836,6 +945,7 @@ export type BankAccountCreateWithoutDraftsInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutAccountInput
   sourceTransactions?: Prisma.TransactionCreateNestedManyWithoutSourceAccountInput
   destTransactions?: Prisma.TransactionCreateNestedManyWithoutDestAccountInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountUncheckedCreateWithoutDraftsInput = {
@@ -849,6 +959,7 @@ export type BankAccountUncheckedCreateWithoutDraftsInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutAccountInput
   sourceTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutSourceAccountInput
   destTransactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutDestAccountInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BankAccountCreateOrConnectWithoutDraftsInput = {
@@ -878,6 +989,7 @@ export type BankAccountUpdateWithoutDraftsInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutAccountNestedInput
   sourceTransactions?: Prisma.TransactionUpdateManyWithoutSourceAccountNestedInput
   destTransactions?: Prisma.TransactionUpdateManyWithoutDestAccountNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountUncheckedUpdateWithoutDraftsInput = {
@@ -891,6 +1003,7 @@ export type BankAccountUncheckedUpdateWithoutDraftsInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutAccountNestedInput
   sourceTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutSourceAccountNestedInput
   destTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutDestAccountNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountCreateManyWorkspaceInput = {
@@ -913,6 +1026,7 @@ export type BankAccountUpdateWithoutWorkspaceInput = {
   sourceTransactions?: Prisma.TransactionUpdateManyWithoutSourceAccountNestedInput
   destTransactions?: Prisma.TransactionUpdateManyWithoutDestAccountNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutAccountNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountUncheckedUpdateWithoutWorkspaceInput = {
@@ -926,6 +1040,7 @@ export type BankAccountUncheckedUpdateWithoutWorkspaceInput = {
   sourceTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutSourceAccountNestedInput
   destTransactions?: Prisma.TransactionUncheckedUpdateManyWithoutDestAccountNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutAccountNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BankAccountUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -947,6 +1062,7 @@ export type BankAccountCountOutputType = {
   sourceTransactions: number
   destTransactions: number
   drafts: number
+  importBatches: number
 }
 
 export type BankAccountCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -954,6 +1070,7 @@ export type BankAccountCountOutputTypeSelect<ExtArgs extends runtime.Types.Exten
   sourceTransactions?: boolean | BankAccountCountOutputTypeCountSourceTransactionsArgs
   destTransactions?: boolean | BankAccountCountOutputTypeCountDestTransactionsArgs
   drafts?: boolean | BankAccountCountOutputTypeCountDraftsArgs
+  importBatches?: boolean | BankAccountCountOutputTypeCountImportBatchesArgs
 }
 
 /**
@@ -994,6 +1111,13 @@ export type BankAccountCountOutputTypeCountDraftsArgs<ExtArgs extends runtime.Ty
   where?: Prisma.TransactionDraftWhereInput
 }
 
+/**
+ * BankAccountCountOutputType without action
+ */
+export type BankAccountCountOutputTypeCountImportBatchesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ImportBatchWhereInput
+}
+
 
 export type BankAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1008,6 +1132,7 @@ export type BankAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   sourceTransactions?: boolean | Prisma.BankAccount$sourceTransactionsArgs<ExtArgs>
   destTransactions?: boolean | Prisma.BankAccount$destTransactionsArgs<ExtArgs>
   drafts?: boolean | Prisma.BankAccount$draftsArgs<ExtArgs>
+  importBatches?: boolean | Prisma.BankAccount$importBatchesArgs<ExtArgs>
   _count?: boolean | Prisma.BankAccountCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["bankAccount"]>
 
@@ -1050,6 +1175,7 @@ export type BankAccountInclude<ExtArgs extends runtime.Types.Extensions.Internal
   sourceTransactions?: boolean | Prisma.BankAccount$sourceTransactionsArgs<ExtArgs>
   destTransactions?: boolean | Prisma.BankAccount$destTransactionsArgs<ExtArgs>
   drafts?: boolean | Prisma.BankAccount$draftsArgs<ExtArgs>
+  importBatches?: boolean | Prisma.BankAccount$importBatchesArgs<ExtArgs>
   _count?: boolean | Prisma.BankAccountCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type BankAccountIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1067,6 +1193,7 @@ export type $BankAccountPayload<ExtArgs extends runtime.Types.Extensions.Interna
     sourceTransactions: Prisma.$TransactionPayload<ExtArgs>[]
     destTransactions: Prisma.$TransactionPayload<ExtArgs>[]
     drafts: Prisma.$TransactionDraftPayload<ExtArgs>[]
+    importBatches: Prisma.$ImportBatchPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1475,6 +1602,7 @@ export interface Prisma__BankAccountClient<T, Null = never, ExtArgs extends runt
   sourceTransactions<T extends Prisma.BankAccount$sourceTransactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BankAccount$sourceTransactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   destTransactions<T extends Prisma.BankAccount$destTransactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BankAccount$destTransactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   drafts<T extends Prisma.BankAccount$draftsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BankAccount$draftsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionDraftPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  importBatches<T extends Prisma.BankAccount$importBatchesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BankAccount$importBatchesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImportBatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2005,6 +2133,30 @@ export type BankAccount$draftsArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.TransactionDraftScalarFieldEnum | Prisma.TransactionDraftScalarFieldEnum[]
+}
+
+/**
+ * BankAccount.importBatches
+ */
+export type BankAccount$importBatchesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ImportBatch
+   */
+  select?: Prisma.ImportBatchSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ImportBatch
+   */
+  omit?: Prisma.ImportBatchOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ImportBatchInclude<ExtArgs> | null
+  where?: Prisma.ImportBatchWhereInput
+  orderBy?: Prisma.ImportBatchOrderByWithRelationInput | Prisma.ImportBatchOrderByWithRelationInput[]
+  cursor?: Prisma.ImportBatchWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ImportBatchScalarFieldEnum | Prisma.ImportBatchScalarFieldEnum[]
 }
 
 /**

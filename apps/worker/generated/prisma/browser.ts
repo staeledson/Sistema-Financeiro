@@ -68,6 +68,16 @@ export type Tag = Prisma.TagModel
  */
 export type Transaction = Prisma.TransactionModel
 /**
+ * Model ImportBatch
+ * 
+ */
+export type ImportBatch = Prisma.ImportBatchModel
+/**
+ * Model ImportMapping
+ * 
+ */
+export type ImportMapping = Prisma.ImportMappingModel
+/**
  * Model TransactionTag
  * 
  */

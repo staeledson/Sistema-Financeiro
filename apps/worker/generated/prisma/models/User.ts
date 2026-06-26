@@ -205,6 +205,7 @@ export type UserWhereInput = {
   transactions?: Prisma.TransactionListRelationFilter
   aiJobs?: Prisma.AiJobListRelationFilter
   drafts?: Prisma.TransactionDraftListRelationFilter
+  importBatches?: Prisma.ImportBatchListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -222,6 +223,7 @@ export type UserOrderByWithRelationInput = {
   transactions?: Prisma.TransactionOrderByRelationAggregateInput
   aiJobs?: Prisma.AiJobOrderByRelationAggregateInput
   drafts?: Prisma.TransactionDraftOrderByRelationAggregateInput
+  importBatches?: Prisma.ImportBatchOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -242,6 +244,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   transactions?: Prisma.TransactionListRelationFilter
   aiJobs?: Prisma.AiJobListRelationFilter
   drafts?: Prisma.TransactionDraftListRelationFilter
+  importBatches?: Prisma.ImportBatchListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -285,6 +288,7 @@ export type UserCreateInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -302,6 +306,7 @@ export type UserUncheckedCreateInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUpdateInput = {
@@ -319,6 +324,7 @@ export type UserUpdateInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -336,6 +342,7 @@ export type UserUncheckedUpdateInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -489,6 +496,20 @@ export type UserUpdateOneRequiredWithoutTransactionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTransactionsInput, Prisma.UserUpdateWithoutTransactionsInput>, Prisma.UserUncheckedUpdateWithoutTransactionsInput>
 }
 
+export type UserCreateNestedOneWithoutImportBatchesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutImportBatchesInput, Prisma.UserUncheckedCreateWithoutImportBatchesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutImportBatchesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutImportBatchesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutImportBatchesInput, Prisma.UserUncheckedCreateWithoutImportBatchesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutImportBatchesInput
+  upsert?: Prisma.UserUpsertWithoutImportBatchesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutImportBatchesInput, Prisma.UserUpdateWithoutImportBatchesInput>, Prisma.UserUncheckedUpdateWithoutImportBatchesInput>
+}
+
 export type UserCreateNestedOneWithoutAiJobsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutAiJobsInput, Prisma.UserUncheckedCreateWithoutAiJobsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutAiJobsInput
@@ -531,6 +552,7 @@ export type UserCreateWithoutSessionsInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -547,6 +569,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -579,6 +602,7 @@ export type UserUpdateWithoutSessionsInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -595,6 +619,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -611,6 +636,7 @@ export type UserCreateWithoutAccountsInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -627,6 +653,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -659,6 +686,7 @@ export type UserUpdateWithoutAccountsInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -675,6 +703,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutWorkspacesInput = {
@@ -691,6 +720,7 @@ export type UserCreateWithoutWorkspacesInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutWorkspacesInput = {
@@ -707,6 +737,7 @@ export type UserUncheckedCreateWithoutWorkspacesInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutWorkspacesInput = {
@@ -739,6 +770,7 @@ export type UserUpdateWithoutWorkspacesInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutWorkspacesInput = {
@@ -755,6 +787,7 @@ export type UserUncheckedUpdateWithoutWorkspacesInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutMembershipsInput = {
@@ -771,6 +804,7 @@ export type UserCreateWithoutMembershipsInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -787,6 +821,7 @@ export type UserUncheckedCreateWithoutMembershipsInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -819,6 +854,7 @@ export type UserUpdateWithoutMembershipsInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -835,6 +871,7 @@ export type UserUncheckedUpdateWithoutMembershipsInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutTransactionsInput = {
@@ -851,6 +888,7 @@ export type UserCreateWithoutTransactionsInput = {
   memberships?: Prisma.WorkspaceMemberCreateNestedManyWithoutUserInput
   aiJobs?: Prisma.AiJobCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutTransactionsInput = {
@@ -867,6 +905,7 @@ export type UserUncheckedCreateWithoutTransactionsInput = {
   memberships?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutUserInput
   aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutTransactionsInput = {
@@ -899,6 +938,7 @@ export type UserUpdateWithoutTransactionsInput = {
   memberships?: Prisma.WorkspaceMemberUpdateManyWithoutUserNestedInput
   aiJobs?: Prisma.AiJobUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTransactionsInput = {
@@ -913,6 +953,91 @@ export type UserUncheckedUpdateWithoutTransactionsInput = {
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   workspaces?: Prisma.WorkspaceUncheckedUpdateManyWithoutCreatedByNestedInput
   memberships?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutUserNestedInput
+  aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutCreatedByNestedInput
+  drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
+}
+
+export type UserCreateWithoutImportBatchesInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified: boolean
+  image?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  workspaces?: Prisma.WorkspaceCreateNestedManyWithoutCreatedByInput
+  memberships?: Prisma.WorkspaceMemberCreateNestedManyWithoutUserInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutCreatedByInput
+  aiJobs?: Prisma.AiJobCreateNestedManyWithoutCreatedByInput
+  drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCreatedByInput
+}
+
+export type UserUncheckedCreateWithoutImportBatchesInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified: boolean
+  image?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  workspaces?: Prisma.WorkspaceUncheckedCreateNestedManyWithoutCreatedByInput
+  memberships?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutUserInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCreatedByInput
+  aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutCreatedByInput
+  drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCreatedByInput
+}
+
+export type UserCreateOrConnectWithoutImportBatchesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutImportBatchesInput, Prisma.UserUncheckedCreateWithoutImportBatchesInput>
+}
+
+export type UserUpsertWithoutImportBatchesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutImportBatchesInput, Prisma.UserUncheckedUpdateWithoutImportBatchesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutImportBatchesInput, Prisma.UserUncheckedCreateWithoutImportBatchesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutImportBatchesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutImportBatchesInput, Prisma.UserUncheckedUpdateWithoutImportBatchesInput>
+}
+
+export type UserUpdateWithoutImportBatchesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  workspaces?: Prisma.WorkspaceUpdateManyWithoutCreatedByNestedInput
+  memberships?: Prisma.WorkspaceMemberUpdateManyWithoutUserNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutCreatedByNestedInput
+  aiJobs?: Prisma.AiJobUpdateManyWithoutCreatedByNestedInput
+  drafts?: Prisma.TransactionDraftUpdateManyWithoutCreatedByNestedInput
+}
+
+export type UserUncheckedUpdateWithoutImportBatchesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  workspaces?: Prisma.WorkspaceUncheckedUpdateManyWithoutCreatedByNestedInput
+  memberships?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutUserNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCreatedByNestedInput
 }
@@ -931,6 +1056,7 @@ export type UserCreateWithoutAiJobsInput = {
   memberships?: Prisma.WorkspaceMemberCreateNestedManyWithoutUserInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutAiJobsInput = {
@@ -947,6 +1073,7 @@ export type UserUncheckedCreateWithoutAiJobsInput = {
   memberships?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutUserInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCreatedByInput
   drafts?: Prisma.TransactionDraftUncheckedCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutAiJobsInput = {
@@ -979,6 +1106,7 @@ export type UserUpdateWithoutAiJobsInput = {
   memberships?: Prisma.WorkspaceMemberUpdateManyWithoutUserNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAiJobsInput = {
@@ -995,6 +1123,7 @@ export type UserUncheckedUpdateWithoutAiJobsInput = {
   memberships?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutUserNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCreatedByNestedInput
   drafts?: Prisma.TransactionDraftUncheckedUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutDraftsInput = {
@@ -1011,6 +1140,7 @@ export type UserCreateWithoutDraftsInput = {
   memberships?: Prisma.WorkspaceMemberCreateNestedManyWithoutUserInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutDraftsInput = {
@@ -1027,6 +1157,7 @@ export type UserUncheckedCreateWithoutDraftsInput = {
   memberships?: Prisma.WorkspaceMemberUncheckedCreateNestedManyWithoutUserInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCreatedByInput
   aiJobs?: Prisma.AiJobUncheckedCreateNestedManyWithoutCreatedByInput
+  importBatches?: Prisma.ImportBatchUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutDraftsInput = {
@@ -1059,6 +1190,7 @@ export type UserUpdateWithoutDraftsInput = {
   memberships?: Prisma.WorkspaceMemberUpdateManyWithoutUserNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDraftsInput = {
@@ -1075,6 +1207,7 @@ export type UserUncheckedUpdateWithoutDraftsInput = {
   memberships?: Prisma.WorkspaceMemberUncheckedUpdateManyWithoutUserNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCreatedByNestedInput
   aiJobs?: Prisma.AiJobUncheckedUpdateManyWithoutCreatedByNestedInput
+  importBatches?: Prisma.ImportBatchUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 
@@ -1090,6 +1223,7 @@ export type UserCountOutputType = {
   transactions: number
   aiJobs: number
   drafts: number
+  importBatches: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1100,6 +1234,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   transactions?: boolean | UserCountOutputTypeCountTransactionsArgs
   aiJobs?: boolean | UserCountOutputTypeCountAiJobsArgs
   drafts?: boolean | UserCountOutputTypeCountDraftsArgs
+  importBatches?: boolean | UserCountOutputTypeCountImportBatchesArgs
 }
 
 /**
@@ -1161,6 +1296,13 @@ export type UserCountOutputTypeCountDraftsArgs<ExtArgs extends runtime.Types.Ext
   where?: Prisma.TransactionDraftWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountImportBatchesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ImportBatchWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1177,6 +1319,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   transactions?: boolean | Prisma.User$transactionsArgs<ExtArgs>
   aiJobs?: boolean | Prisma.User$aiJobsArgs<ExtArgs>
   drafts?: boolean | Prisma.User$draftsArgs<ExtArgs>
+  importBatches?: boolean | Prisma.User$importBatchesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1219,6 +1362,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   transactions?: boolean | Prisma.User$transactionsArgs<ExtArgs>
   aiJobs?: boolean | Prisma.User$aiJobsArgs<ExtArgs>
   drafts?: boolean | Prisma.User$draftsArgs<ExtArgs>
+  importBatches?: boolean | Prisma.User$importBatchesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1234,6 +1378,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     transactions: Prisma.$TransactionPayload<ExtArgs>[]
     aiJobs: Prisma.$AiJobPayload<ExtArgs>[]
     drafts: Prisma.$TransactionDraftPayload<ExtArgs>[]
+    importBatches: Prisma.$ImportBatchPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1644,6 +1789,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   transactions<T extends Prisma.User$transactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$transactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiJobs<T extends Prisma.User$aiJobsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$aiJobsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   drafts<T extends Prisma.User$draftsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$draftsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionDraftPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  importBatches<T extends Prisma.User$importBatchesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$importBatchesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImportBatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2238,6 +2384,30 @@ export type User$draftsArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   distinct?: Prisma.TransactionDraftScalarFieldEnum | Prisma.TransactionDraftScalarFieldEnum[]
+}
+
+/**
+ * User.importBatches
+ */
+export type User$importBatchesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ImportBatch
+   */
+  select?: Prisma.ImportBatchSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ImportBatch
+   */
+  omit?: Prisma.ImportBatchOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ImportBatchInclude<ExtArgs> | null
+  where?: Prisma.ImportBatchWhereInput
+  orderBy?: Prisma.ImportBatchOrderByWithRelationInput | Prisma.ImportBatchOrderByWithRelationInput[]
+  cursor?: Prisma.ImportBatchWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ImportBatchScalarFieldEnum | Prisma.ImportBatchScalarFieldEnum[]
 }
 
 /**
