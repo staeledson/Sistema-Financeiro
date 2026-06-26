@@ -2,12 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main, fase-0-fundacao]
+    branches: [main, fase-0-fundacao, fase-1-nucleo-financeiro]
   pull_request:
     branches: [main]
 
 env:
-  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+  DATABASE_URL: postgresql://app:app@localhost:5432/financas
   REDIS_URL: redis://localhost:6379
 
 jobs:
@@ -18,9 +18,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: testdb
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: financas
         ports:
           - 5432:5432
         options: >-
