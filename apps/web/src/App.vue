@@ -29,12 +29,12 @@ const inviteToken = computed(() => new URLSearchParams(window.location.search).g
 const isSharedEntry = computed(() => window.location.pathname.startsWith("/lancar/compartilhado"));
 
 onMounted(() => {
-  if (auth.isAuthenticated) wsStore.load();
+  if (auth.isAuthenticated) void wsStore.load().catch(() => {});
 });
 
 function onInviteAcceptDone() {
   history.replaceState(null, "", window.location.pathname);
-  wsStore.load();
+  void wsStore.load().catch(() => {});
 }
 
 function onSharedDone() {

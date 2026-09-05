@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useAuthStore } from "./auth";
-import { http, authHeaders } from "../lib/http";
+import { http } from "../lib/http";
 
 export interface WorkspaceInfo {
   id: string;
@@ -14,11 +14,6 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   const workspaces = ref<WorkspaceInfo[]>([]);
   const activeId = ref<string | null>(null);
   const active = computed(() => workspaces.value.find((w) => w.id === activeId.value) ?? workspaces.value[0] ?? null);
-
-  /** @deprecated use `http`/`authHeaders` de `lib/http`. Mantido só para compatibilidade durante a migração. */
-  function headers(extra?: Record<string, string>) {
-    return { ...authHeaders(), "content-type": "application/json", ...extra };
-  }
 
   async function load() {
     const auth = useAuthStore();
@@ -39,5 +34,5 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     return ws;
   }
 
-  return { workspaces, activeId, active, headers, load, setActive, createWorkspace };
+  return { workspaces, activeId, active, load, setActive, createWorkspace };
 });

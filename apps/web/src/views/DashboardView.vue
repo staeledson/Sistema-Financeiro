@@ -7,7 +7,7 @@ const store = useFinanceStore();
 const month = ref(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
 onMounted(async () => {
-  await Promise.all([store.loadCategories(), store.loadDashboard(month.value)]);
+  await store.loadDashboard(month.value);
 });
 
 async function mudarMes() {

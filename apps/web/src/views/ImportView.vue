@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { http, authHeaders } from "../lib/http";
+import { http } from "../lib/http";
 import { useFinanceStore } from "../stores/finance";
 
 const finance = useFinanceStore();

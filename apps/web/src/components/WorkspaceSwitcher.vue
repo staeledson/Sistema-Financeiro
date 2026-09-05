@@ -79,7 +79,7 @@ async function create() {
   }
 }
 
-onMounted(() => store.load());
+onMounted(() => store.load().catch(() => {}));
 </script>
 
 <style scoped>
