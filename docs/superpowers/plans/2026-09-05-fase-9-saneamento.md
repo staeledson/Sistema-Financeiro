@@ -561,6 +561,20 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `.github/workflows/ci.yml` (após o step "Run migrations")
+- Modify: `apps/web/src/components/ChatChart.vue:24`
+- Modify: `apps/web/src/offline/__tests__/offline.test.ts:1-9`
+
+- [ ] **Step 0: Corrigir os dois erros pré-existentes do `vue-tsc` no web**
+
+Baseline: `pnpm --filter @app/web typecheck` falha com duas linhas:
+`src/components/ChatChart.vue(24,48): error TS2724: '...echarts/core' has no exported member named 'EChartsOption'` e
+`src/offline/__tests__/offline.test.ts(9,3): error TS2304: Cannot find name 'vi'`.
+
+Em `apps/web/src/components/ChatChart.vue`, na linha 24, trocar o tipo importado de `echarts/core`: `EChartsOption` → `EChartsCoreOption` (e renomear os usos desse tipo no mesmo arquivo, se houver).
+
+Em `apps/web/src/offline/__tests__/offline.test.ts`, garantir que a primeira linha importe `vi` junto com o que já é importado de `vitest`, por exemplo `import { describe, it, expect, beforeEach, vi } from "vitest";` (manter os nomes já importados; só acrescentar `vi`).
+
+Rodar `pnpm --filter @app/web typecheck` e `pnpm --filter @app/web test`. Esperado: exit 0 em ambos.
 
 - [ ] **Step 1: Adicionar o step**
 
@@ -582,8 +596,8 @@ Esperado: `@app/shared`, `@app/api`, `@app/worker` e `@app/web` todos com sucess
 - [ ] **Step 3: Commit**
 
 ```bash
-git add .github/workflows/ci.yml
-git commit -m "ci: roda typecheck antes dos testes
+git add .github/workflows/ci.yml apps/web/src/components/ChatChart.vue apps/web/src/offline/__tests__/offline.test.ts
+git commit -m "ci: roda typecheck antes dos testes; corrige dois erros de tipo no web
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
