@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "../database";
+import type { Prisma } from "../../generated/prisma/client";
 import { runChat, FetchFn } from "./chat.gateway";
 import { buildChart } from "./chart";
 
@@ -51,7 +52,7 @@ export class ChatService {
         role: "assistant",
         content: answer,
         toolResults: toolResults.length ? (toolResults as object[]) : undefined,
-        chartSpec: chartSpec ?? undefined,
+        chartSpec: chartSpec ? (chartSpec as unknown as Prisma.InputJsonValue) : undefined,
       },
     });
 

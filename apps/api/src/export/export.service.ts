@@ -40,7 +40,7 @@ export class ExportService {
     for (const t of txs) {
       ws.addRow({ ...t, amountCents: Number(t.amountCents), date: t.date.toISOString().slice(0, 10) });
     }
-    return (await wb.xlsx.writeBuffer()) as Buffer;
+    return Buffer.from((await wb.xlsx.writeBuffer()) as unknown as ArrayBuffer);
   }
 
   async backupJson(workspaceId: string): Promise<object> {

@@ -119,7 +119,7 @@ describe("Fase 6 — runChat gateway loop (unit)", () => {
               },
             }],
           }),
-          text: async () => "",
+          text: async (): Promise<string> => "",
         };
       }
       return {
@@ -127,7 +127,7 @@ describe("Fase 6 — runChat gateway loop (unit)", () => {
         json: async () => ({
           choices: [{ message: { role: "assistant", content: "Lazer custou R$ 70,00 em junho.", tool_calls: undefined } }],
         }),
-        text: async () => "",
+        text: async (): Promise<string> => "",
       };
     }) as unknown as typeof fetch;
 
@@ -197,7 +197,7 @@ describe("Fase 6 — POST /chat endpoint", () => {
       json: async () => ({
         choices: [{ message: { role: "assistant", content: "Mercado custou R$ 150,00.", tool_calls: undefined } }],
       }),
-      text: async () => "",
+      text: async (): Promise<string> => "",
     })) as unknown as typeof fetch;
 
     const res = await app.inject({
@@ -217,7 +217,7 @@ describe("Fase 6 — POST /chat endpoint", () => {
     (app.get(ChatService) as { fetchFn: typeof fetch }).fetchFn = vi.fn(async () => ({
       ok: true,
       json: async () => ({ choices: [{ message: { role: "assistant", content: "Tudo certo!" } }] }),
-      text: async () => "",
+      text: async (): Promise<string> => "",
     })) as unknown as typeof fetch;
 
     const sendRes = await app.inject({
@@ -245,7 +245,7 @@ describe("Fase 6 — POST /chat endpoint", () => {
     (app.get(ChatService) as { fetchFn: typeof fetch }).fetchFn = vi.fn(async () => ({
       ok: true,
       json: async () => ({ choices: [{ message: { role: "assistant", content: "Ok!" } }] }),
-      text: async () => "",
+      text: async (): Promise<string> => "",
     })) as unknown as typeof fetch;
 
     await app.inject({ method: "POST", url: "/chat", payload: { message: "Msg 1" }, headers: a.headers });
@@ -277,7 +277,7 @@ describe("Fase 6 — Guardrails de segurança", () => {
             },
           }],
         }),
-        text: async () => "",
+        text: async (): Promise<string> => "",
       };
     }) as unknown as typeof fetch;
 
@@ -297,13 +297,13 @@ describe("Fase 6 — Guardrails de segurança", () => {
               },
             }],
           }),
-          text: async () => "",
+          text: async (): Promise<string> => "",
         };
       }
       return {
         ok: true,
         json: async () => ({ choices: [{ message: { role: "assistant", content: "Não posso executar isso." } }] }),
-        text: async () => "",
+        text: async (): Promise<string> => "",
       };
     }) as unknown as typeof fetch;
 
@@ -348,7 +348,7 @@ describe("Fase 6 — Guardrails de segurança", () => {
           },
         }],
       }),
-      text: async () => "",
+      text: async (): Promise<string> => "",
     })) as unknown as typeof fetch;
 
     // Second call returns answer
@@ -366,13 +366,13 @@ describe("Fase 6 — Guardrails de segurança", () => {
               },
             }],
           }),
-          text: async () => "",
+          text: async (): Promise<string> => "",
         };
       }
       return {
         ok: true,
         json: async () => ({ choices: [{ message: { role: "assistant", content: "Nenhum dado." } }] }),
-        text: async () => "",
+        text: async (): Promise<string> => "",
       };
     }) as unknown as typeof fetch;
 
@@ -406,13 +406,13 @@ describe("Fase 6 — Guardrails de segurança", () => {
               },
             }],
           }),
-          text: async () => "",
+          text: async (): Promise<string> => "",
         };
       }
       return {
         ok: true,
         json: async () => ({ choices: [{ message: { role: "assistant", content: "Busca inválida." } }] }),
-        text: async () => "",
+        text: async (): Promise<string> => "",
       };
     }) as unknown as typeof fetch;
 
@@ -454,7 +454,7 @@ describe("Fase 6 — Guardrails de segurança", () => {
     (app.get(ChatService) as { fetchFn: typeof fetch }).fetchFn = vi.fn(async () => ({
       ok: true,
       json: async () => ({ choices: [{ message: { role: "assistant", content: "Ok!" } }] }),
-      text: async () => "",
+      text: async (): Promise<string> => "",
     })) as unknown as typeof fetch;
 
     const res = await app.inject({

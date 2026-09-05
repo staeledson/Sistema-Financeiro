@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import type { MemberRole } from "../generated/prisma/enums";
+import type { MemberRole } from "../../generated/prisma/enums";
 import { prisma } from "../database";
 import { seedDefaultCategories } from "../categories/seed-categories";
 

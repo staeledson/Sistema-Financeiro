@@ -23,7 +23,7 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          const ws = await prisma.workspace.create({
+          await prisma.workspace.create({
             data: {
               type: "personal",
               name: "Pessoal",
@@ -58,7 +58,6 @@ export const auth = betterAuth({
               },
             },
           });
-          return ws;
         },
       },
     },

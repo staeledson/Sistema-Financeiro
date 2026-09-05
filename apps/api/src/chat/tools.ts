@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { prisma } from "../database";
+import type { Prisma } from "../../generated/prisma/client";
 
 export type Ctx = { workspaceId: string };
 
@@ -197,7 +198,7 @@ export const TOOLS = {
       if (a.maxAmountCents != null) where.amountCents = { ...((where.amountCents as object) ?? {}), lte: BigInt(a.maxAmountCents) };
 
       const rows = await prisma.transaction.findMany({
-        where: where as Parameters<typeof prisma.transaction.findMany>[0]["where"],
+        where: where as Prisma.TransactionWhereInput,
         orderBy: { date: "desc" },
         take: 50,
         select: { id: true, type: true, amountCents: true, date: true, description: true, categoryId: true },
