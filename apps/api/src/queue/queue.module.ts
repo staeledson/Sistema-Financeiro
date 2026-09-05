@@ -13,7 +13,11 @@ function redisConnection() {
   providers: [
     {
       provide: AI_QUEUE,
-      useFactory: () => new Queue<IngestJobData>(AI_QUEUE_NAME, { connection: redisConnection() }),
+      useFactory: () =>
+        new Queue<IngestJobData>(AI_QUEUE_NAME, {
+          connection: redisConnection(),
+          prefix: process.env["BULLMQ_PREFIX"] ?? "bull",
+        }),
     },
   ],
   exports: [AI_QUEUE],

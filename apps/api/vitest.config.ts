@@ -26,6 +26,7 @@ export default defineConfig({
       REDIS_URL: process.env.REDIS_URL ?? "redis://localhost:6380",
       BETTER_AUTH_SECRET: "test-secret-with-at-least-32-characters",
       BETTER_AUTH_URL: "http://localhost:3100",
+      BULLMQ_PREFIX: "bull-test",
     },
     server: { deps: { inline: ["@app/shared"] } },
     // test files share a DB; run serially to avoid cleanDb() race conditions

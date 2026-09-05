@@ -141,7 +141,12 @@ export class ImportService {
     });
 
     if (inserted > 0) {
-      await this.transactions.enqueueCategorizationJob(workspaceId, userId, batchId);
+      try {
+        await this.transactions.enqueueCategorizationJob(workspaceId, userId, batchId);
+      } catch (err) {
+        // categorização é enriquecimento assíncrono; falha aqui não invalida a importação já gravada
+        console.error("[import] falha ao enfileirar categorização do lote", batchId, err);
+      }
     }
 
     return { inserted };

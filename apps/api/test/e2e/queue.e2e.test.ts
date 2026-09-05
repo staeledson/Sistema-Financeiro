@@ -18,12 +18,14 @@ beforeAll(async () => {
   app = mod.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
-  queue = new Queue<IngestJobData>("ai", { connection: { host: redisUrl.hostname, port: Number(redisUrl.port) || 6379 } });
-  await queue.drain(true);
+  queue = new Queue<IngestJobData>("ai", {
+    connection: { host: redisUrl.hostname, port: Number(redisUrl.port) || 6379 },
+    prefix: process.env.BULLMQ_PREFIX ?? "bull",
+  });
+  await queue.obliterate({ force: true });
 });
 
 afterAll(async () => {
-  await queue.drain(true);
   await queue.close();
   await cleanDb();
   await prisma.$disconnect();
