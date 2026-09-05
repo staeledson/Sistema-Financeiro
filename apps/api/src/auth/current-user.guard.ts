@@ -4,6 +4,8 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import { APIError } from "better-auth/api";
+import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyRequest } from "fastify";
 import { auth } from "./index";
 import { prisma } from "../database";
@@ -24,9 +26,15 @@ export class CurrentUserGuard implements CanActivate {
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
     if (!token) throw new UnauthorizedException();
 
-    const session = await auth.api.getSession({
-      headers: new Headers({ authorization: `Bearer ${token}` }),
-    });
+    let session;
+    try {
+      session = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+      });
+    } catch (error) {
+      if (error instanceof APIError) throw new UnauthorizedException();
+      throw error;
+    }
     if (!session?.user) throw new UnauthorizedException();
 
     const requestedWorkspaceId = (req.headers as Record<string, string | string[] | undefined>)["x-workspace-id"] as string | undefined;

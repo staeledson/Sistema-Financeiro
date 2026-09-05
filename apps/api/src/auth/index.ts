@@ -1,9 +1,21 @@
+import "../load-env";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer } from "better-auth/plugins";
 import { prisma } from "../database";
 
+const baseURL = process.env["BETTER_AUTH_URL"] ?? "http://localhost:3100";
+
 export const auth = betterAuth({
+  secret: process.env["BETTER_AUTH_SECRET"],
+  baseURL,
+  trustedOrigins: [
+    baseURL,
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+  ],
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: { enabled: true },
   plugins: [bearer()],

@@ -91,13 +91,15 @@ pnpm exec prisma generate
 pnpm dev
 ```
 
+As portas foram escolhidas para não colidir com outras stacks locais (5432/6379/9000/3000 costumam estar ocupadas). Ajuste no `docker-compose.yml` e no `.env` se precisar.
+
 Portas disponíveis após o `pnpm dev`:
 
 | App | URL |
 |---|---|
 | Web (Vue PWA) | http://localhost:5173 |
-| API (NestJS) | http://localhost:3000 |
-| MinIO console | http://localhost:9001 |
+| API (NestJS) | http://localhost:3100 |
+| MinIO console | http://localhost:9011 |
 
 ---
 
@@ -152,13 +154,15 @@ Crie um `.env` na raiz com as variáveis abaixo (todas as que têm padrão já f
 
 ```dotenv
 # Banco de dados
-DATABASE_URL=postgresql://app:app@localhost:5432/financas
+DATABASE_URL=postgresql://app:app@localhost:5433/financas
 
 # Redis
-REDIS_URL=redis://localhost:6379
+REDIS_URL=redis://localhost:6380
 
 # Autenticação
 BETTER_AUTH_SECRET=troque-por-uma-chave-aleatoria-longa
+BETTER_AUTH_URL=http://localhost:3100
+PORT=3100
 
 # OpenRouter (LLM — ingestão e chat)
 OPENROUTER_API_KEY=
@@ -167,7 +171,7 @@ OPENROUTER_API_KEY=
 GROQ_API_KEY=
 
 # MinIO / S3
-MINIO_ENDPOINT=http://localhost:9000
+MINIO_ENDPOINT=http://localhost:9010
 MINIO_ACCESS_KEY=minio
 MINIO_SECRET_KEY=minio123
 MINIO_BUCKET=financas

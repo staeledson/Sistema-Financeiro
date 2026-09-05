@@ -3,6 +3,19 @@ import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  server: {
+    proxy: {
+      "/api/auth": {
+        target: "http://localhost:3100",
+        changeOrigin: true,
+      },
+      "/api": {
+        target: "http://localhost:3100",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
+  },
   plugins: [
     vue(),
     VitePWA({

@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "scripts": {
+    "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
@@ -17,6 +18,7 @@
     "eslint": "^9.39.4",
     "jsdom": "^29.1.1",
     "prisma": "^7.8.0",
+    "tsx": "^4.19.0",
     "turbo": "^2.0.0",
     "typescript": "^5.5.0",
     "typescript-eslint": "^8.62.0",
