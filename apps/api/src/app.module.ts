@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import { Module } from "@nestjs/common";
+import { QueueModule } from "./queue/queue.module";
 import { WorkspacesModule } from "./workspaces/workspaces.module";
 import { AccountsModule } from "./accounts/accounts.module";
 import { CategoriesModule } from "./categories/categories.module";
@@ -24,6 +25,7 @@ import { ExportModule } from "./export/export.module";
 
 @Module({
   imports: [
+    QueueModule,
     WorkspacesModule,
     AccountsModule,
     CategoriesModule,

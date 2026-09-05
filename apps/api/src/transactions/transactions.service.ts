@@ -1,11 +1,17 @@
-import { BadRequestException, Injectable, NotFoundException, Optional } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from "@nestjs/common";
+import { Queue } from "bullmq";
 import { transactionInputSchema, type TransactionInput } from "@app/shared";
 import { prisma } from "../database";
 import { CategoryRulesService } from "../category-rules/category-rules.service";
+import { AI_QUEUE } from "../queue/queue.tokens";
+import type { IngestJobData } from "../ingest/ingest.types";
 
 @Injectable()
 export class TransactionsService {
-  constructor(@Optional() private readonly rules?: CategoryRulesService) {}
+  constructor(
+    @Inject(AI_QUEUE) private readonly queue: Queue<IngestJobData>,
+    @Optional() private readonly rules?: CategoryRulesService,
+  ) {}
 
   async updateCategory(workspaceId: string, id: string, categoryId: string | null) {
     const tx = await prisma.transaction.findFirst({
@@ -26,10 +32,17 @@ export class TransactionsService {
     return { id, categoryId };
   }
 
-  async enqueueCategorizationJob(workspaceId: string, userId: string) {
+  async enqueueCategorizationJob(workspaceId: string, userId: string, batchId?: string) {
     const job = await prisma.aiJob.create({
-      data: { workspaceId, kind: "categorize", createdById: userId },
+      data: { workspaceId, kind: "categorize", createdById: userId, inputRef: batchId ?? null },
       select: { id: true },
+    });
+    await this.queue.add("ingest", {
+      jobId: job.id,
+      workspaceId,
+      userId,
+      kind: "categorize",
+      ...(batchId ? { batchId } : {}),
     });
     return job;
   }

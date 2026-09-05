@@ -18,6 +18,7 @@ export interface IngestJobData {
   kind: "parse_text" | "parse_image" | "parse_audio" | "parse_invoice" | "categorize" | "compute_insights";
   text?: string;
   storagePath?: string;
+  batchId?: string;
 }
 
 export function registerIngestWorker(
@@ -32,14 +33,14 @@ export function registerIngestWorker(
   return new Worker<IngestJobData>(
     AI_QUEUE,
     async (job) => {
-      const { jobId, workspaceId, userId, kind, text, storagePath } = job.data;
+      const { jobId, workspaceId, userId, kind, text, storagePath, batchId } = job.data;
 
       await prisma.aiJob.update({ where: { id: jobId }, data: { status: "processing" } });
 
       try {
         // PDF invoice → multiple drafts; handled separately
         if (kind === "categorize") {
-          await processCategorize({ jobId, workspaceId }, { ai: deps.ai });
+          await processCategorize({ jobId, workspaceId, batchId }, { ai: deps.ai });
           await prisma.aiJob.update({ where: { id: jobId }, data: { status: "done" } });
           return { ok: true };
         }

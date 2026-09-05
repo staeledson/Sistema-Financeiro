@@ -1,24 +1,17 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { Queue } from "bullmq";
 import { randomUUID } from "crypto";
 import { prisma } from "../database";
 import { StorageService } from "../storage/storage.service";
+import { AI_QUEUE } from "../queue/queue.tokens";
 import type { IngestJobData } from "./ingest.types";
-
-const AI_QUEUE = "ai";
 
 @Injectable()
 export class IngestService {
-  private readonly queue: Queue<IngestJobData>;
-
-  constructor(private readonly storage: StorageService) {
-    this.queue = new Queue<IngestJobData>(AI_QUEUE, {
-      connection: {
-        host: new URL(process.env["REDIS_URL"] ?? "redis://localhost:6380").hostname,
-        port: Number(new URL(process.env["REDIS_URL"] ?? "redis://localhost:6380").port) || 6380,
-      },
-    });
-  }
+  constructor(
+    private readonly storage: StorageService,
+    @Inject(AI_QUEUE) private readonly queue: Queue<IngestJobData>,
+  ) {}
 
   async enqueueText(workspaceId: string, userId: string, text: string) {
     const job = await prisma.aiJob.create({

@@ -6,13 +6,15 @@ import { mapCategory } from "./category-map";
 export interface CategorizeJobData {
   jobId: string;
   workspaceId: string;
+  /** Quando informado, categoriza só as transações desse lote de importação. */
+  batchId?: string;
 }
 
 export async function processCategorize(
   data: CategorizeJobData,
   deps: { ai: OpenRouterGateway },
 ) {
-  const { jobId, workspaceId } = data;
+  const { jobId, workspaceId, batchId } = data;
 
   const [rules, categories, uncategorized] = await Promise.all([
     prisma.categoryRule.findMany({
@@ -25,7 +27,7 @@ export async function processCategorize(
       select: { id: true, name: true, type: true },
     }),
     prisma.transaction.findMany({
-      where: { workspaceId, categoryId: null },
+      where: { workspaceId, categoryId: null, ...(batchId ? { importBatchId: batchId } : {}) },
       select: { id: true, counterparty: true, description: true, type: true },
     }),
   ]);

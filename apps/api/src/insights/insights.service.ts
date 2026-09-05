@@ -1,22 +1,12 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { Queue } from "bullmq";
 import { prisma } from "../database";
+import { AI_QUEUE } from "../queue/queue.tokens";
 import type { IngestJobData } from "../ingest/ingest.types";
-
-const AI_QUEUE = "ai";
 
 @Injectable()
 export class InsightsService {
-  private readonly queue: Queue<IngestJobData>;
-
-  constructor() {
-    this.queue = new Queue<IngestJobData>(AI_QUEUE, {
-      connection: {
-        host: new URL(process.env["REDIS_URL"] ?? "redis://localhost:6380").hostname,
-        port: Number(new URL(process.env["REDIS_URL"] ?? "redis://localhost:6380").port) || 6380,
-      },
-    });
-  }
+  constructor(@Inject(AI_QUEUE) private readonly queue: Queue<IngestJobData>) {}
 
   async list(workspaceId: string, read?: string) {
     return prisma.insight.findMany({

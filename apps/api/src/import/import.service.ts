@@ -1,25 +1,20 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import Papa from "papaparse";
 import { Queue } from "bullmq";
 import { csvMappingSchema, csvRowToTransaction, parseOfx, importFingerprint } from "@app/shared";
 import { prisma } from "../database";
 import { StorageService } from "../storage/storage.service";
+import { AI_QUEUE } from "../queue/queue.tokens";
 import type { IngestJobData } from "../ingest/ingest.types";
-
-const AI_QUEUE = "ai";
+import { TransactionsService } from "../transactions/transactions.service";
 
 @Injectable()
 export class ImportService {
-  private readonly queue: Queue<IngestJobData>;
-
-  constructor(private readonly storage: StorageService) {
-    this.queue = new Queue<IngestJobData>(AI_QUEUE, {
-      connection: {
-        host: new URL(process.env["REDIS_URL"] ?? "redis://localhost:6380").hostname,
-        port: Number(new URL(process.env["REDIS_URL"] ?? "redis://localhost:6380").port) || 6380,
-      },
-    });
-  }
+  constructor(
+    private readonly storage: StorageService,
+    @Inject(AI_QUEUE) private readonly queue: Queue<IngestJobData>,
+    private readonly transactions: TransactionsService,
+  ) {}
 
   async csvPreview(
     workspaceId: string,
@@ -144,6 +139,10 @@ export class ImportService {
       where: { id: batchId },
       data: { status: "committed" },
     });
+
+    if (inserted > 0) {
+      await this.transactions.enqueueCategorizationJob(workspaceId, userId, batchId);
+    }
 
     return { inserted };
   }
