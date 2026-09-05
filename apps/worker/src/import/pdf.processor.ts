@@ -19,10 +19,10 @@ export async function processPdfInvoice(
 
   const bytes = await downloadFromS3(deps.s3, deps.s3Bucket, storagePath);
 
-  // Dynamic import because pdf-parse is CJS and may have issues with static ESM
-  const pdfParse = await import("pdf-parse").then((m) => m.default ?? m);
-  const pdfData = await pdfParse(Buffer.from(bytes));
-  const text = pdfData.text;
+  const { PDFParse } = await import("pdf-parse");
+  const parser = new PDFParse({ data: bytes });
+  const { text } = await parser.getText();
+  await parser.destroy();
 
   const { lines, costTokens } = await deps.ai.parseInvoiceText(text);
 

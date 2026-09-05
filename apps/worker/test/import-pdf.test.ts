@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock pdf-parse before importing processor
 vi.mock("pdf-parse", () => ({
-  default: async (_buf: Buffer) => ({ text: "Compra Netflix 15/06/2026 R$ 55,90\nCompra Uber 20/06/2026 R$ 12,40" }),
+  PDFParse: class {
+    constructor(_opts: { data: Uint8Array }) {}
+    async getText() {
+      return { text: "Compra Netflix 15/06/2026 R$ 55,90\nCompra Uber 20/06/2026 R$ 12,40" };
+    }
+    async destroy() {}
+  },
 }));
 
 const fetchMock = vi.fn();

@@ -32,13 +32,16 @@ export function registerRemindersWorker(connection: Redis, sendPushFn = sendPush
         // Create insight per bill
         for (const bill of bills) {
           const fmt = (c: number) => `R$ ${(c / 100).toFixed(2)}`;
+          const period = today.toISOString().slice(0, 10);
+          const dedupKey = `bill:${bill.id}`;
           await prisma.insight.upsert({
-            where: { workspaceId_type_period: { workspaceId, type: "budget_alert", period: `bill:${bill.id}:${today.toISOString().slice(0, 10)}` } },
+            where: { workspaceId_type_dedupKey_period: { workspaceId, type: "budget_alert", dedupKey, period } },
             update: {},
             create: {
               workspaceId,
               type: "budget_alert",
-              period: `bill:${bill.id}:${today.toISOString().slice(0, 10)}`,
+              dedupKey,
+              period,
               payload: { billId: bill.id, name: bill.name, amountCents: Number(bill.amountCents), dueDate: bill.dueDate.toISOString().slice(0, 10) },
             },
           });

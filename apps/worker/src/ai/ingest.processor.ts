@@ -70,7 +70,7 @@ export function registerIngestWorker(
         } else {
           // parse_audio
           const bytes = await downloadFromS3(deps.s3, deps.s3Bucket, storagePath!);
-          const blob = new Blob([bytes], { type: "audio/webm" });
+          const blob = new Blob([Buffer.from(bytes)], { type: "audio/webm" });
           const transcript = await deps.stt.transcribe(blob);
           result = await deps.ai.parseText(transcript);
         }
