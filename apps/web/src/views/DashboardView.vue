@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { useFinanceStore } from "../stores/finance";
+import { sortBreakdown } from "../lib/dashboard-format";
 
 const store = useFinanceStore();
 const month = ref(new Date().toISOString().slice(0, 7)); // YYYY-MM
@@ -20,17 +21,7 @@ function formatBRL(cents: number) {
 const cashflow = computed(() => store.dashboard?.cashflow);
 const saldo = computed(() => (cashflow.value?.incomeCents ?? 0) - (cashflow.value?.expenseCents ?? 0));
 
-const breakdown = computed(() => {
-  if (!store.dashboard) return [];
-  return store.dashboard.expenseBreakdown
-    .map((b) => {
-      const cat = store.categories.find((c) => c.id === b.categoryId);
-      return { name: cat?.name ?? b.categoryId, amountCents: b._sum.amountCents };
-    })
-    .sort((a, b) => b.amountCents - a.amountCents);
-});
-
-const totalBreakdown = computed(() => breakdown.value.reduce((s, b) => s + b.amountCents, 0));
+const breakdown = computed(() => sortBreakdown(store.dashboard?.expenseBreakdown ?? []));
 
 const series = computed(() => store.dashboard?.cashflowSeries ?? []);
 </script>
@@ -66,7 +57,7 @@ const series = computed(() => store.dashboard?.cashflowSeries ?? []);
         <li v-for="item in breakdown" :key="item.name" class="breakdown-item">
           <span class="cat-name">{{ item.name }}</span>
           <div class="bar-wrap">
-            <div class="bar" :style="{ width: `${(item.amountCents / totalBreakdown) * 100}%` }"></div>
+            <div class="bar" :style="{ width: `${item.pct}%` }"></div>
           </div>
           <span class="cat-amount">{{ formatBRL(item.amountCents) }}</span>
         </li>

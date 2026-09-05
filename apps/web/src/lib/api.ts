@@ -53,7 +53,7 @@ export interface Balances {
 
 export interface Dashboard {
   cashflow: { incomeCents: number; expenseCents: number };
-  expenseBreakdown: { categoryId: string; _sum: { amountCents: number } }[];
+  expenseBreakdown: { categoryId: string | null; name: string; totalCents: number }[];
   cashflowSeries: { month: string; incomeCents: number; expenseCents: number }[];
 }
 
