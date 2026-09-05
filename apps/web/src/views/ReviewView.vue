@@ -5,7 +5,7 @@ import { useFinanceStore } from "../stores/finance";
 
 const auth = useAuthStore();
 const finance = useFinanceStore();
-const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const BASE = import.meta.env.VITE_API_URL ?? "/api";
 
 interface Draft {
   id: string;
