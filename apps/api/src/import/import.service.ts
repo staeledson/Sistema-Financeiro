@@ -15,8 +15,8 @@ export class ImportService {
   constructor(private readonly storage: StorageService) {
     this.queue = new Queue<IngestJobData>(AI_QUEUE, {
       connection: {
-        host: new URL(process.env["REDIS_URL"] ?? "redis://localhost:6379").hostname,
-        port: Number(new URL(process.env["REDIS_URL"] ?? "redis://localhost:6379").port) || 6379,
+        host: new URL(process.env["REDIS_URL"] ?? "redis://localhost:6380").hostname,
+        port: Number(new URL(process.env["REDIS_URL"] ?? "redis://localhost:6380").port) || 6380,
       },
     });
   }
