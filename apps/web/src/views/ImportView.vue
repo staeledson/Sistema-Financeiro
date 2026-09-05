@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { useAuthStore } from "../stores/auth";
+import { http, authHeaders } from "../lib/http";
 import { useFinanceStore } from "../stores/finance";
 
-const auth = useAuthStore();
 const finance = useFinanceStore();
-const BASE = import.meta.env.VITE_API_URL ?? "/api";
 
 type Format = "csv" | "ofx" | "pdf";
 type Step = "format" | "upload" | "preview" | "done";
@@ -43,19 +41,6 @@ const batchId = ref("");
 
 onMounted(() => finance.loadAccounts());
 
-async function apiReq(method: string, path: string, body?: unknown) {
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers: {
-      authorization: `Bearer ${auth.token}`,
-      ...(body ? { "content-type": "application/json" } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
 function onFormatChosen() {
   step.value = "upload";
   if (format.value === "csv") loadMappings();
@@ -63,8 +48,7 @@ function onFormatChosen() {
 
 async function loadMappings() {
   try {
-    const list = await apiReq("GET", "/import/mappings");
-    savedMappings.value = list.filter((m: { format: string }) => m.format === "csv");
+    savedMappings.value = (await http<Array<{ id: string; name: string; format: string; mapping: unknown }>>("GET", "/import/mappings")).filter((m) => m.format === "csv");
   } catch { /* ignore */ }
 }
 
@@ -105,13 +89,13 @@ async function preview() {
   try {
     let data: { batchId: string; rows: typeof previewRows.value; rowCount: number; dupCount: number };
     if (format.value === "csv") {
-      data = await apiReq("POST", "/import/csv/preview", {
+      data = await http<{ batchId: string; rows: typeof previewRows.value; rowCount: number; dupCount: number }>("POST", "/import/csv/preview", {
         accountId: selectedAccountId.value,
         mapping: mapping.value,
         csv: csvText.value,
       });
     } else {
-      data = await apiReq("POST", "/import/ofx/preview", {
+      data = await http<{ batchId: string; rows: typeof previewRows.value; rowCount: number; dupCount: number }>("POST", "/import/ofx/preview", {
         accountId: selectedAccountId.value,
         ofx: ofxText.value,
       });
@@ -131,7 +115,7 @@ async function commit() {
   status.value = "Importando...";
   try {
     const rows = previewRows.value.filter((r) => r.selected);
-    const result = await apiReq("POST", `/import/${batchId.value}/commit`, {
+    const result = await http<{ inserted: number }>("POST", `/import/${batchId.value}/commit`, {
       rows: rows.map(({ type, amountCents, date, fingerprint, description }) => ({
         type, amountCents, date, fingerprint, description, accountId: selectedAccountId.value,
       })),
@@ -149,12 +133,12 @@ async function enqueuePdf() {
   erro.value = "";
   status.value = "Enviando PDF...";
   try {
-    const { url, storagePath } = await apiReq("POST", "/ingest/upload-url", {
+    const { url, storagePath } = await http<{ url: string; storagePath: string }>("POST", "/ingest/upload-url", {
       ext: "pdf",
       contentType: "application/pdf",
     });
     await fetch(url, { method: "PUT", body: pdfFile.value, headers: { "content-type": "application/pdf" } });
-    const { jobId } = await apiReq("POST", "/import/pdf", { storagePath });
+    const { jobId } = await http<{ jobId: string }>("POST", "/import/pdf", { storagePath });
     status.value = `PDF enviado para análise! Job: ${jobId}. Os lançamentos aparecerão em "Revisar".`;
     step.value = "done";
   } catch (e) {
@@ -166,7 +150,7 @@ async function enqueuePdf() {
 async function saveMapping() {
   if (!mappingName.value.trim()) return;
   try {
-    await apiReq("POST", "/import/mappings", { name: mappingName.value.trim(), format: "csv", mapping: mapping.value });
+    await http("POST", "/import/mappings", { name: mappingName.value.trim(), format: "csv", mapping: mapping.value });
     mappingName.value = "";
     await loadMappings();
   } catch (e) {

@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useAuthStore } from "../stores/auth";
+import { http } from "../lib/http";
 import { useFinanceStore } from "../stores/finance";
 
-const auth = useAuthStore();
 const finance = useFinanceStore();
-const BASE = import.meta.env.VITE_API_URL ?? "/api";
 
 interface Draft {
   id: string;
@@ -26,21 +24,8 @@ const erro = ref("");
 // per-draft overrides
 const overrides = ref<Record<string, { accountId: string; categoryId: string }>>({});
 
-async function apiReq(method: string, path: string, body?: unknown) {
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers: {
-      authorization: `Bearer ${auth.token}`,
-      ...(body ? { "content-type": "application/json" } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
 async function load() {
-  drafts.value = await apiReq("GET", "/drafts");
+  drafts.value = await http<Draft[]>("GET", "/drafts");
   drafts.value.forEach((d) => {
     if (!overrides.value[d.id]) overrides.value[d.id] = { accountId: "", categoryId: d.categoryId ?? "" };
   });
@@ -54,7 +39,7 @@ async function confirm(draft: Draft) {
   erro.value = "";
   try {
     const ov = overrides.value[draft.id];
-    await apiReq("POST", `/drafts/${draft.id}/confirm`, {
+    await http("POST", `/drafts/${draft.id}/confirm`, {
       accountId: ov.accountId || null,
       categoryId: ov.categoryId || null,
     });
@@ -65,7 +50,7 @@ async function confirm(draft: Draft) {
 }
 
 async function discard(id: string) {
-  await apiReq("DELETE", `/drafts/${id}`);
+  await http("DELETE", `/drafts/${id}`);
   await load();
 }
 

@@ -1,21 +1,7 @@
-import { useAuthStore } from "../stores/auth";
+import { http } from "./http";
 
-const BASE = import.meta.env.VITE_API_URL ?? "/api";
-
-async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const auth = useAuthStore();
-  const headers: Record<string, string> = { authorization: `Bearer ${auth.token ?? ""}` };
-  if (body !== undefined) headers["content-type"] = "application/json";
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text);
-  }
-  return res.json() as Promise<T>;
+function req<T>(method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE", path: string, body?: unknown): Promise<T> {
+  return http<T>(method, path, body);
 }
 
 export type AccountType = "checking" | "savings" | "credit_card" | "cash" | "investment";

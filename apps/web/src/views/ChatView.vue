@@ -56,10 +56,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from "vue";
-import { useWorkspaceStore } from "../stores/workspace";
+import { http } from "../lib/http";
 import ChatChart from "../components/ChatChart.vue";
-
-const wsStore = useWorkspaceStore();
 
 interface ConvSummary { id: string; title: string; createdAt: string; }
 interface Message { id?: string; _tmp?: number; role: string; content: string; chartSpec?: any; }
@@ -82,22 +80,19 @@ const suggestions = [
 async function loadList() {
   loadingList.value = true;
   try {
-    const res = await fetch("/api/chat", { headers: wsStore.headers() });
-    if (res.ok) conversations.value = await res.json();
-  } finally {
+    conversations.value = await http<ConvSummary[]>("GET", "/chat");
+  } catch { /* lista vazia */ } finally {
     loadingList.value = false;
   }
 }
-
 async function loadConversation(id: string) {
   activeId.value = id;
   messages.value = [];
-  const res = await fetch(`/api/chat/${id}`, { headers: wsStore.headers() });
-  if (res.ok) {
-    const { messages: msgs } = await res.json();
+  try {
+    const { messages: msgs } = await http<{ messages: Message[] }>("GET", `/chat/${id}`);
     messages.value = msgs;
     scrollDown();
-  }
+  } catch { /* mantém vazio */ }
 }
 
 function newConversation() {
@@ -117,13 +112,10 @@ async function send() {
   scrollDown();
 
   try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: wsStore.headers(),
-      body: JSON.stringify({ message: text, conversationId: activeId.value ?? undefined }),
+    const data = await http<{ conversationId: string; answer: string; chart?: any }>("POST", "/chat", {
+      message: text,
+      conversationId: activeId.value ?? undefined,
     });
-    if (!res.ok) throw new Error(await res.text());
-    const data = await res.json();
     activeId.value = data.conversationId;
     messages.value.push({ role: "assistant", content: data.answer, chartSpec: data.chart });
     await loadList();

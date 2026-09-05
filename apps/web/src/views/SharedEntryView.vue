@@ -22,10 +22,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useWorkspaceStore } from "../stores/workspace";
+import { http } from "../lib/http";
 
 const emit = defineEmits<{ (e: "done"): void }>();
-const wsStore = useWorkspaceStore();
 
 const status = ref<"idle" | "loading" | "success" | "error">("idle");
 const errorMsg = ref("");
@@ -41,13 +40,10 @@ onMounted(async () => {
 
   try {
     // Get upload URL
-    const urlRes = await fetch("/api/ingest/upload-url", {
-      method: "POST",
-      headers: wsStore.headers(),
-      body: JSON.stringify({ filename: "shared.jpg", contentType: "image/jpeg" }),
+    const { url: uploadUrl, storagePath } = await http<{ url: string; storagePath: string }>("POST", "/ingest/upload-url", {
+      ext: "jpg",
+      contentType: "image/jpeg",
     });
-    if (!urlRes.ok) throw new Error("Erro ao obter URL de upload");
-    const { uploadUrl, storagePath } = await urlRes.json();
 
     // If file is stored as base64 from SW intercept
     if (storedFile) {
@@ -56,12 +52,7 @@ onMounted(async () => {
     }
 
     // Create ingest job
-    const ingestRes = await fetch("/api/ingest/image", {
-      method: "POST",
-      headers: wsStore.headers(),
-      body: JSON.stringify({ storagePath }),
-    });
-    if (!ingestRes.ok) throw new Error("Erro ao criar job de ingestão");
+    await http("POST", "/ingest/image", { storagePath });
 
     sessionStorage.removeItem("shared-image");
     status.value = "success";

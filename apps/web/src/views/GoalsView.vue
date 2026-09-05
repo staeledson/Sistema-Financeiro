@@ -56,9 +56,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useAuthStore } from "../stores/auth";
+import { http } from "../lib/http";
 
-const auth = useAuthStore();
 const goals = ref<any[]>([]);
 const loading = ref(true);
 const showForm = ref(false);
@@ -69,45 +68,32 @@ const contribAmount = ref(0);
 async function load() {
   loading.value = true;
   try {
-    const r = await fetch("/api/goals", { headers: auth.headers });
-    goals.value = await r.json();
+    goals.value = await http<any[]>("GET", "/goals");
   } finally {
     loading.value = false;
   }
 }
-
 async function createGoal() {
-  await fetch("/api/goals", {
-    method: "POST",
-    headers: { ...auth.headers, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: form.value.name,
-      targetCents: Math.round(form.value.targetCents * 100),
-      deadline: form.value.deadline || null,
-    }),
+  await http("POST", "/goals", {
+    name: form.value.name,
+    targetCents: Math.round(form.value.targetCents * 100),
+    deadline: form.value.deadline || null,
   });
   showForm.value = false;
   form.value = { name: "", targetCents: 0, deadline: "" };
   load();
 }
-
 async function deleteGoal(id: string) {
-  await fetch(`/api/goals/${id}`, { method: "DELETE", headers: auth.headers });
+  await http("DELETE", `/goals/${id}`);
   load();
 }
-
 function openContribute(g: any) {
   contributeGoal.value = g;
   contribAmount.value = 0;
 }
-
 async function submitContribution() {
   if (!contributeGoal.value) return;
-  await fetch(`/api/goals/${contributeGoal.value.id}/contribute`, {
-    method: "POST",
-    headers: { ...auth.headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ amountCents: Math.round(contribAmount.value * 100) }),
-  });
+  await http("POST", `/goals/${contributeGoal.value.id}/contribute`, { amountCents: Math.round(contribAmount.value * 100) });
   contributeGoal.value = null;
   load();
 }

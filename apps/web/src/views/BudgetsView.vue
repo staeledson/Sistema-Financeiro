@@ -50,9 +50,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useAuthStore } from "../stores/auth";
+import { http } from "../lib/http";
 
-const auth = useAuthStore();
 const statuses = ref<any[]>([]);
 const loading = ref(true);
 const showForm = ref(false);
@@ -61,28 +60,21 @@ const form = ref({ method: "fixed", limitCents: 0 });
 async function load() {
   loading.value = true;
   try {
-    const r = await fetch("/api/budgets/status", { headers: auth.headers });
-    statuses.value = await r.json();
+    statuses.value = await http<any[]>("GET", "/budgets/status");
   } finally {
     loading.value = false;
   }
 }
-
 async function save() {
-  await fetch("/api/budgets", {
-    method: "POST",
-    headers: { ...auth.headers, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      method: form.value.method,
-      limitCents: form.value.method === "fixed" ? Math.round(form.value.limitCents * 100) : null,
-    }),
+  await http("POST", "/budgets", {
+    method: form.value.method,
+    limitCents: form.value.method === "fixed" ? Math.round(form.value.limitCents * 100) : null,
   });
   showForm.value = false;
   load();
 }
-
 async function deleteBudget(id: string) {
-  await fetch(`/api/budgets/${id}`, { method: "DELETE", headers: auth.headers });
+  await http("DELETE", `/budgets/${id}`);
   load();
 }
 

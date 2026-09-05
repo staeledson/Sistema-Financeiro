@@ -31,9 +31,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useAuthStore } from "../stores/auth";
+import { http } from "../lib/http";
 
-const auth = useAuthStore();
 const insights = ref<any[]>([]);
 const loading = ref(true);
 const computing = ref(false);
@@ -41,23 +40,20 @@ const computing = ref(false);
 async function load() {
   loading.value = true;
   try {
-    const r = await fetch("/api/insights", { headers: auth.headers });
-    insights.value = await r.json();
+    insights.value = await http<any[]>("GET", "/insights");
   } finally {
     loading.value = false;
   }
 }
-
 async function markRead(ins: any) {
   if (ins.read) return;
-  await fetch(`/api/insights/${ins.id}/read`, { method: "PATCH", headers: auth.headers });
+  await http("PATCH", `/insights/${ins.id}/read`);
   ins.read = true;
 }
-
 async function triggerCompute() {
   computing.value = true;
   try {
-    await fetch("/api/insights/compute", { method: "POST", headers: auth.headers });
+    await http("POST", "/insights/compute");
     setTimeout(load, 3000);
   } finally {
     computing.value = false;

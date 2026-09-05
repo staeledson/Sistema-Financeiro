@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { useAuthStore } from "../stores/auth";
-
-const auth = useAuthStore();
-const BASE = import.meta.env.VITE_API_URL ?? "/api";
+import { http } from "../lib/http";
 
 // text
 const text = ref("");
@@ -19,23 +16,10 @@ const audioChunks = ref<Blob[]>([]);
 const recording = ref(false);
 const audioStatus = ref("");
 
-async function apiPost(path: string, body: unknown) {
-  const res = await fetch(`${BASE}${path}`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${auth.token}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
 async function submitText() {
   textStatus.value = "Enviando...";
   try {
-    const { jobId } = await apiPost("/ingest/text", { text: text.value });
+    const { jobId } = await http<{ jobId: string }>("POST", "/ingest/text", { text: text.value });
     textStatus.value = `Job criado: ${jobId}. Aguarde o processamento.`;
     text.value = "";
   } catch (e) {
@@ -48,10 +32,10 @@ async function submitImage() {
   imageStatus.value = "Obtendo URL de upload...";
   try {
     const ext = imageFile.value.name.split(".").pop() ?? "jpg";
-    const { url, storagePath } = await apiPost("/ingest/upload-url", { ext, contentType: imageFile.value.type });
+    const { url, storagePath } = await http<{ url: string; storagePath: string }>("POST", "/ingest/upload-url", { ext, contentType: imageFile.value.type });
     imageStatus.value = "Enviando imagem...";
     await fetch(url, { method: "PUT", body: imageFile.value, headers: { "content-type": imageFile.value.type } });
-    const { jobId } = await apiPost("/ingest/image", { storagePath });
+    const { jobId } = await http<{ jobId: string }>("POST", "/ingest/image", { storagePath });
     imageStatus.value = `Imagem enviada! Job: ${jobId}`;
     imageFile.value = null;
   } catch (e) {
@@ -75,9 +59,9 @@ async function toggleRecording() {
     const blob = new Blob(audioChunks.value, { type: "audio/webm" });
     try {
       audioStatus.value = "Enviando áudio...";
-      const { url, storagePath } = await apiPost("/ingest/upload-url", { ext: "webm", contentType: "audio/webm" });
+      const { url, storagePath } = await http<{ url: string; storagePath: string }>("POST", "/ingest/upload-url", { ext: "webm", contentType: "audio/webm" });
       await fetch(url, { method: "PUT", body: blob, headers: { "content-type": "audio/webm" } });
-      const { jobId } = await apiPost("/ingest/audio", { storagePath });
+      const { jobId } = await http<{ jobId: string }>("POST", "/ingest/audio", { storagePath });
       audioStatus.value = `Áudio enviado! Job: ${jobId}`;
     } catch (e) {
       audioStatus.value = `Erro: ${(e as Error).message}`;

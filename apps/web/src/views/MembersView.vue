@@ -63,6 +63,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useWorkspaceStore } from "../stores/workspace";
+import { http, HttpError } from "../lib/http";
 
 const wsStore = useWorkspaceStore();
 
@@ -84,75 +85,52 @@ async function loadAll() {
   if (!wsStore.activeId) return;
   loading.value = true;
   try {
-    const [mRes, iRes] = await Promise.all([
-      fetch(`/api/workspaces/${wsStore.activeId}/members`, { headers: wsStore.headers() }),
-      fetch("/api/invitations", { headers: wsStore.headers() }),
+    const [m, i] = await Promise.all([
+      http<any[]>("GET", `/workspaces/${wsStore.activeId}/members`).catch(() => []),
+      http<any[]>("GET", "/invitations").catch(() => []),
     ]);
-    members.value = mRes.ok ? await mRes.json() : [];
-    invitations.value = iRes.ok ? await iRes.json() : [];
+    members.value = m;
+    invitations.value = i;
   } finally {
     loading.value = false;
   }
 }
-
 async function changeRole(member: any, role: string) {
-  const res = await fetch(`/api/workspaces/${wsStore.activeId}/members/${member.user.id}/role`, {
-    method: "PATCH",
-    headers: wsStore.headers(),
-    body: JSON.stringify({ role }),
-  });
-  if (res.ok) {
+  try {
+    await http("PATCH", `/workspaces/${wsStore.activeId}/members/${member.user.id}/role`, { role });
     member.role = role;
-  }
+  } catch { /* mantém o papel anterior */ }
 }
-
 async function removeMember(member: any) {
   if (!confirm(`Remover ${member.user.name}?`)) return;
-  const res = await fetch(`/api/workspaces/${wsStore.activeId}/members/${member.user.id}`, {
-    method: "DELETE",
-    headers: { authorization: wsStore.headers().authorization },
-  });
-  if (res.ok) {
+  try {
+    await http("DELETE", `/workspaces/${wsStore.activeId}/members/${member.user.id}`);
     members.value = members.value.filter((m) => m.user.id !== member.user.id);
-  } else {
-    const body = await res.json().catch(() => ({}));
-    alert(body.message ?? "Erro ao remover membro");
+  } catch (e) {
+    alert(e instanceof HttpError ? e.message : "Erro ao remover membro");
   }
 }
-
 async function sendInvite() {
   sending.value = true;
   inviteMsg.value = "";
   inviteError.value = false;
   try {
-    const res = await fetch("/api/invitations", {
-      method: "POST",
-      headers: wsStore.headers(),
-      body: JSON.stringify({ email: inviteEmail.value, role: inviteRole.value }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      inviteMsg.value = `Convite enviado! Token: ${data.token}`;
-      inviteEmail.value = "";
-      await loadAll();
-    } else {
-      const body = await res.json().catch(() => ({}));
-      inviteMsg.value = body.message ?? "Erro ao convidar";
-      inviteError.value = true;
-    }
+    const data = await http<{ token: string }>("POST", "/invitations", { email: inviteEmail.value, role: inviteRole.value });
+    inviteMsg.value = `Convite enviado! Token: ${data.token}`;
+    inviteEmail.value = "";
+    await loadAll();
+  } catch (e) {
+    inviteMsg.value = e instanceof HttpError ? e.message : "Erro ao convidar";
+    inviteError.value = true;
   } finally {
     sending.value = false;
   }
 }
-
 async function revokeInvitation(inv: any) {
-  const res = await fetch(`/api/invitations/${inv.id}`, {
-    method: "DELETE",
-    headers: { authorization: wsStore.headers().authorization },
-  });
-  if (res.ok) {
+  try {
+    await http("DELETE", `/invitations/${inv.id}`);
     invitations.value = invitations.value.filter((i) => i.id !== inv.id);
-  }
+  } catch { /* mantém a lista */ }
 }
 
 onMounted(loadAll);

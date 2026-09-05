@@ -25,11 +25,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useAuthStore } from "../stores/auth";
+import { http, HttpError } from "../lib/http";
 
 const emit = defineEmits<{ (e: "done"): void }>();
 
-const auth = useAuthStore();
 const status = ref<"idle" | "loading" | "success" | "error">("idle");
 const errorMsg = ref("");
 
@@ -40,20 +39,10 @@ onMounted(async () => {
 
   status.value = "loading";
   try {
-    const res = await fetch("/api/invitations/accept", {
-      method: "POST",
-      headers: auth.headers,
-      body: JSON.stringify({ token }),
-    });
-    if (res.ok) {
-      status.value = "success";
-    } else {
-      const body = await res.json().catch(() => ({}));
-      errorMsg.value = body.message ?? "Erro ao aceitar convite";
-      status.value = "error";
-    }
-  } catch {
-    errorMsg.value = "Erro de conexão";
+    await http("POST", "/invitations/accept", { token });
+    status.value = "success";
+  } catch (e) {
+    errorMsg.value = e instanceof HttpError ? e.message : "Erro de conexão";
     status.value = "error";
   }
 });
