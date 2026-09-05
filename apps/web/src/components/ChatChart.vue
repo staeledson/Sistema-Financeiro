@@ -21,7 +21,7 @@ const props = defineProps<{ spec: ChartSpec }>();
 const chartEl = ref<HTMLDivElement | null>(null);
 let instance: echarts.ECharts | null = null;
 
-function buildOption(spec: ChartSpec): echarts.EChartsOption {
+function buildOption(spec: ChartSpec): echarts.EChartsCoreOption {
   const fmt = (v: number) => `R$ ${(v / 100).toFixed(2)}`;
 
   if (spec.type === "pie") {

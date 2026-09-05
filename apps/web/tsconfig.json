@@ -5,7 +5,8 @@
     "moduleResolution": "Bundler",
     "jsx": "preserve",
     "lib": ["ESNext", "DOM"],
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "declaration": false
   },
   "include": ["src", "env.d.ts"]
 }
