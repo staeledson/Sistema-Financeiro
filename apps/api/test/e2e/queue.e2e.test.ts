@@ -20,7 +20,7 @@ beforeAll(async () => {
   await app.getHttpAdapter().getInstance().ready();
   queue = new Queue<IngestJobData>("ai", {
     connection: { host: redisUrl.hostname, port: Number(redisUrl.port) || 6379 },
-    prefix: process.env.BULLMQ_PREFIX ?? "bull",
+    prefix: process.env.BULLMQ_PREFIX ?? "bull-test",
   });
   await queue.obliterate({ force: true });
 });
