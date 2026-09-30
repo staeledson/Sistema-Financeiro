@@ -5,7 +5,8 @@ export type Rule = {
   priority: number;
 };
 
-export function applyRules(text: string, rules: Rule[]): string | null {
+/** Regra de maior prioridade que casa com o texto (com todos os seus campos, inclusive id). */
+export function matchRule<T extends Rule>(text: string, rules: T[]): T | null {
   const t = text.toLowerCase();
   const sorted = [...rules].sort((a, b) => b.priority - a.priority);
   for (const r of sorted) {
@@ -16,9 +17,13 @@ export function applyRules(text: string, rules: Rule[]): string | null {
         : r.matchType === "contains"
           ? t.includes(p)
           : new RegExp(r.pattern, "i").test(text);
-    if (hit) return r.categoryId;
+    if (hit) return r;
   }
   return null;
+}
+
+export function applyRules(text: string, rules: Rule[]): string | null {
+  return matchRule(text, rules)?.categoryId ?? null;
 }
 
 export function ruleFromCorrection(
