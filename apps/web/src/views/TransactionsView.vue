@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useFinanceStore } from "../stores/finance";
-import type { TransactionType } from "../lib/api";
+import type { Transaction, TransactionType } from "../lib/api";
+import { ENTITY_SHORT, accountsForEntity, categoriesForEntity, type EntityFilter } from "../lib/entity";
 
 const store = useFinanceStore();
 
@@ -10,6 +11,7 @@ const filterFrom = ref("");
 const filterTo = ref("");
 const filterAccountId = ref("");
 const filterQ = ref("");
+const filterEntity = ref<EntityFilter>("all");
 
 // new transaction form
 const txType = ref<TransactionType>("expense");
@@ -24,7 +26,27 @@ const txErro = ref("");
 
 const incomeCategories = computed(() => store.categories.filter((c) => c.type === "income"));
 const expenseCategories = computed(() => store.categories.filter((c) => c.type === "expense"));
-const currentCategories = computed(() => txType.value === "income" ? incomeCategories.value : expenseCategories.value);
+const formAccountEntity = computed(() => store.accounts.find((a) => a.id === txAccountId.value)?.entity);
+const currentCategories = computed(() =>
+  categoriesForEntity(txType.value === "income" ? incomeCategories.value : expenseCategories.value, formAccountEntity.value),
+);
+const filterAccounts = computed(() => accountsForEntity(store.accounts, filterEntity.value));
+
+// trocar a conta ou o tipo pode invalidar a categoria já escolhida
+watch(currentCategories, (list) => {
+  if (txCategoryId.value && !list.some((c) => c.id === txCategoryId.value)) txCategoryId.value = "";
+});
+
+function entityOf(tx: Transaction) {
+  return store.accounts.find((a) => a.id === (tx.accountId ?? tx.sourceAccountId))?.entity;
+}
+
+async function onEntityChange() {
+  if (filterAccountId.value && !filterAccounts.value.some((a) => a.id === filterAccountId.value)) {
+    filterAccountId.value = "";
+  }
+  await filtrar();
+}
 
 onMounted(async () => {
   await Promise.all([store.loadAccounts(), store.loadCategories(), store.loadTransactions()]);
@@ -37,6 +59,7 @@ async function filtrar() {
     to: filterTo.value || undefined,
     accountId: filterAccountId.value || undefined,
     q: filterQ.value || undefined,
+    entity: filterEntity.value === "all" ? undefined : filterEntity.value,
   });
 }
 
@@ -98,7 +121,7 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
         <div class="row">
           <select v-model="txAccountId">
             <option value="">— Conta —</option>
-            <option v-for="a in store.accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+            <option v-for="a in store.accounts" :key="a.id" :value="a.id">{{ a.name }} · {{ ENTITY_SHORT[a.entity] }}</option>
           </select>
           <select v-model="txCategoryId">
             <option value="">— Categoria —</option>
@@ -110,11 +133,11 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
         <div class="row">
           <select v-model="txSrcId">
             <option value="">— Origem —</option>
-            <option v-for="a in store.accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+            <option v-for="a in store.accounts" :key="a.id" :value="a.id">{{ a.name }} · {{ ENTITY_SHORT[a.entity] }}</option>
           </select>
           <select v-model="txDstId">
             <option value="">— Destino —</option>
-            <option v-for="a in store.accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+            <option v-for="a in store.accounts" :key="a.id" :value="a.id">{{ a.name }} · {{ ENTITY_SHORT[a.entity] }}</option>
           </select>
         </div>
       </template>
@@ -128,9 +151,14 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
     <div class="filters">
       <input v-model="filterFrom" type="date" placeholder="De" />
       <input v-model="filterTo" type="date" placeholder="Até" />
+      <select v-model="filterEntity" aria-label="Entidade" @change="onEntityChange">
+        <option value="all">PF e PJ</option>
+        <option value="pf">Pessoa Física</option>
+        <option value="pj">Pessoa Jurídica</option>
+      </select>
       <select v-model="filterAccountId">
         <option value="">Todas as contas</option>
-        <option v-for="a in store.accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+        <option v-for="a in filterAccounts" :key="a.id" :value="a.id">{{ a.name }} · {{ ENTITY_SHORT[a.entity] }}</option>
       </select>
       <input v-model="filterQ" placeholder="Buscar descrição" />
       <button @click="filtrar">Filtrar</button>
@@ -141,6 +169,7 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
       <li v-for="tx in store.transactions" :key="tx.id" class="tx-item" :class="tx.type">
         <div class="tx-info">
           <span class="tx-type">{{ txTypeLabel[tx.type] }}</span>
+          <span v-if="entityOf(tx)" class="tx-entity">{{ ENTITY_SHORT[entityOf(tx)!] }}</span>
           <span class="tx-desc">{{ tx.description ?? "—" }}</span>
           <span class="tx-date">{{ formatDate(tx.date) }}</span>
         </div>
@@ -167,6 +196,7 @@ button { padding: calc(var(--space) * 1.5) calc(var(--space) * 2); border: none;
 .tx-item { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--space) * 2); background: var(--color-surface); border-radius: var(--radius); }
 .tx-info { display: flex; gap: calc(var(--space) * 2); align-items: baseline; flex-wrap: wrap; }
 .tx-type { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em; opacity: 0.7; }
+.tx-entity { font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--color-primary); color: #fff; }
 .tx-desc { font-weight: 500; }
 .tx-date { font-size: 0.8rem; opacity: 0.5; }
 .tx-amount { font-weight: 700; }
