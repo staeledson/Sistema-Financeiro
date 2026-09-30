@@ -1,5 +1,6 @@
 export type OfxTxn = {
-  fitid: string;
+  /** Null quando o arquivo não traz FITID para a transação. */
+  fitid: string | null;
   dateISO: string;
   amountCents: number;
   memo: string | null;
@@ -16,9 +17,8 @@ export function parseOfx(text: string): OfxTxn[] {
     const dateISO = `${dt.slice(0, 4)}-${dt.slice(4, 6)}-${dt.slice(6, 8)}`;
     const amtRaw = (tag(b, "TRNAMT") ?? "0").replace(",", ".");
     const amt = parseFloat(amtRaw);
-    const fitid = tag(b, "FITID") ?? `${dateISO}-${amt}`;
     return {
-      fitid,
+      fitid: tag(b, "FITID") || null,
       dateISO,
       amountCents: Math.round(amt * 100),
       memo: tag(b, "MEMO") ?? tag(b, "NAME"),
