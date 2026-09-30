@@ -29,4 +29,20 @@ describe("schema base", () => {
     expect(rows.map((r) => r.column_name)).toContain("entity");
     expect(await prisma.workspaceSettings.count()).toBeGreaterThanOrEqual(0);
   });
+
+  it("import_batches e transactions têm as colunas da fase 11", async () => {
+    const cols = async (table: string) =>
+      (await prisma.$queryRaw<{ column_name: string }[]>`
+        select column_name from information_schema.columns where table_name = ${table}`).map((r) => r.column_name);
+
+    const batch = await cols("import_batches");
+    for (const c of ["institution", "detectedAccountRef", "balanceCheck", "undoneAt"]) expect(batch).toContain(c);
+    expect(await cols("transactions")).toContain("postedDate");
+  });
+
+  it("ImportFormat aceita pdf_statement", async () => {
+    const rows = await prisma.$queryRaw<{ v: string }[]>`
+      select unnest(enum_range(null::"ImportFormat"))::text as v`;
+    expect(rows.map((r) => r.v)).toContain("pdf_statement");
+  });
 });
