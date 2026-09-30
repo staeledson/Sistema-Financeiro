@@ -15,6 +15,7 @@ describe("normalização", () => {
     expect(normalizeDescriptionKey("  IFOOD   pedido 998 ")).toBe("ifood pedido");
     expect(normalizeDescriptionKey(null)).toBe("");
     expect(normalizeDescriptionKey("PIX 001")).toBe("pix");
+    expect(normalizeDescriptionKey("12345 - 99")).toBe("");
   });
 });
 
@@ -75,6 +76,12 @@ describe("decideAiResult", () => {
     expect(decideAiResult({ transactionId: "t", categoryId: "zzz", confidence: 0.99 }, valid, 0.8)).toEqual(none);
     expect(decideAiResult({ transactionId: "t", categoryId: null, confidence: 0.99 }, valid, 0.8)).toEqual(none);
     expect(decideAiResult(undefined, valid, 0.8)).toEqual(none);
+  });
+
+  it("confiança não finita (NaN/Infinity) conta como sem resultado", () => {
+    const none = { status: "pending", suggestedCategoryId: null, confidence: null };
+    expect(decideAiResult({ transactionId: "t", categoryId: "c1", confidence: Number.NaN }, valid, 0.8)).toEqual(none);
+    expect(decideAiResult({ transactionId: "t", categoryId: "c1", confidence: Number.POSITIVE_INFINITY }, valid, 0.8)).toEqual(none);
   });
 
   it("o schema da resposta rejeita confiança fora de 0–1", () => {
@@ -149,6 +156,67 @@ describe("detectTransferPairs", () => {
     expect(pairs).toHaveLength(2);
     expect(new Set(pairs.flat()).size).toBe(4);
   });
+
+  it("aceita timestamps ISO completos e não pareia datas muito distantes", () => {
+    const base = { ownerNames: OWNERS, windowDays: 2 };
+    const longe = detectTransferPairs([
+      tx({ id: "a", accountId: "x", text: "Stael Edson", date: "2026-01-01T00:00:00.000Z" }),
+      tx({ id: "b", accountId: "y", type: "income", text: "x", date: "2026-09-01T00:00:00.000Z" }),
+    ], base);
+    expect(longe).toEqual([]);
+    const perto = detectTransferPairs([
+      tx({ id: "a", accountId: "x", text: "Stael Edson", date: "2026-06-10T03:00:00.000Z" }),
+      tx({ id: "b", accountId: "y", type: "income", text: "x", date: "2026-06-11T03:00:00.000Z" }),
+    ], base);
+    expect(perto).toEqual([["a", "b"]]);
+  });
+
+  it("data inválida nunca pareia e não lança", () => {
+    const pairs = detectTransferPairs([
+      tx({ id: "a", accountId: "x", text: "Stael Edson", date: "abc" }),
+      tx({ id: "b", accountId: "y", type: "income", text: "x", date: "2026-06-10" }),
+    ], { ownerNames: OWNERS, windowDays: 2 });
+    expect(pairs).toEqual([]);
+  });
+
+  it("nome do titular exige palavra inteira e tamanho mínimo", () => {
+    const run = (text: string, owner: string) =>
+      detectTransferPairs([
+        tx({ id: "a", accountId: "x", text }),
+        tx({ id: "b", accountId: "y", type: "income", text: "x" }),
+      ], { ownerNames: [owner], windowDays: 2 });
+    expect(run("Pix para Banana", "Ana")).toEqual([]);
+    expect(run("Pix para Ana Silva", "Ana")).toEqual([["a", "b"]]);
+    expect(run("PIX ENVIADO PARA STAEL EDSON - 123", "Stael Edson")).toEqual([["a", "b"]]);
+    expect(run("stael-edson", "Stael Edson")).toEqual([["a", "b"]]);
+    expect(run("Pix para A", "A")).toEqual([]);
+    expect(run("Pix para Jo", "Jo")).toEqual([]);
+    expect(run("a jo a", "Jo")).toEqual([]);
+  });
+
+  it("escala com muitos candidatos do mesmo valor espalhados no tempo", () => {
+    const list: TransferCandidate[] = [];
+    for (let i = 0; i < 2000; i++) {
+      const day = new Date(Date.UTC(2020, 0, 1) + i * 5 * 86_400_000).toISOString().slice(0, 10);
+      list.push(tx({
+        id: `t${i}`,
+        accountId: i % 2 === 0 ? "x" : "y",
+        type: i % 2 === 0 ? "expense" : "income",
+        date: day,
+        text: "Stael Edson",
+      }));
+    }
+    const pairs = detectTransferPairs(list, { ownerNames: OWNERS, windowDays: 2 });
+    // vizinhos estão a 5 dias; ninguém cai na janela
+    expect(pairs).toEqual([]);
+
+    const close = [
+      tx({ id: "e1", accountId: "x", type: "expense", date: "2026-06-10", text: "Stael Edson" }),
+      tx({ id: "i1", accountId: "y", type: "income", date: "2026-06-11", text: "x" }),
+      ...list.slice(0, 1000),
+    ];
+    expect(detectTransferPairs(close, { ownerNames: OWNERS, windowDays: 2 })).toEqual([["e1", "i1"]]);
+  });
 });
 
 describe("matchRule", () => {
@@ -160,6 +228,14 @@ describe("matchRule", () => {
     expect(matchRule("iFood Club", rules)?.id).toBe("r2");
     expect(matchRule("iFood Pedido", rules)?.id).toBe("r1");
     expect(matchRule("Uber", rules)).toBeNull();
+  });
+
+  it("regex inválida conta como sem casamento e não impede regras de menor prioridade", () => {
+    const bad = { id: "bad", matchType: "regex" as const, pattern: "(", categoryId: "c", priority: 100 };
+    expect(matchRule("qualquer", [bad])).toBeNull();
+    const uber = { id: "u", matchType: "contains" as const, pattern: "uber", categoryId: "c-uber", priority: 100 };
+    expect(matchRule("Uber viagem", [{ ...bad, priority: 200 }, uber])?.id).toBe("u");
+    expect(applyRules("qualquer", [bad])).toBeNull();
   });
 
   it("applyRules continua devolvendo só o id da categoria", () => {

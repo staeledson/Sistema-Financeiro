@@ -5,6 +5,15 @@ export type Rule = {
   priority: number;
 };
 
+/** Regex salva pelo usuário pode ser inválida: nesse caso simplesmente não casa (nunca derruba o lote). */
+function regexHit(pattern: string, text: string): boolean {
+  try {
+    return new RegExp(pattern, "i").test(text);
+  } catch {
+    return false;
+  }
+}
+
 /** Regra de maior prioridade que casa com o texto (com todos os seus campos, inclusive id). */
 export function matchRule<T extends Rule>(text: string, rules: T[]): T | null {
   const t = text.toLowerCase();
@@ -16,7 +25,7 @@ export function matchRule<T extends Rule>(text: string, rules: T[]): T | null {
         ? t === p
         : r.matchType === "contains"
           ? t.includes(p)
-          : new RegExp(r.pattern, "i").test(text);
+          : regexHit(r.pattern, text);
     if (hit) return r;
   }
   return null;

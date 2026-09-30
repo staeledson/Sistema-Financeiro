@@ -5,7 +5,11 @@ export function foldText(text: string): string {
   return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-/** Chave de agrupamento de descrições: minúsculas, sem acentos, sem dígitos nem pontuação, espaços colapsados. */
+/**
+ * Chave de agrupamento de descrições: minúsculas, sem acentos, sem dígitos nem pontuação, espaços colapsados.
+ * Descrições feitas só de dígitos/pontuação resultam em chave vazia; quem chama deve tratar a chave vazia como
+ * "não agrupável" (usar o texto bruto no lugar).
+ */
 export function normalizeDescriptionKey(text: string | null | undefined): string {
   return foldText(text ?? "")
     .replace(/\d+/g, " ")
@@ -78,7 +82,7 @@ export function decideAiResult(
   threshold: number,
 ): AiDecision {
   const categoryId = result?.categoryId ?? null;
-  if (!result || categoryId === null || !isValidCategory(categoryId)) {
+  if (!result || categoryId === null || !Number.isFinite(result.confidence) || !isValidCategory(categoryId)) {
     return { status: "pending", suggestedCategoryId: null, confidence: null };
   }
   if (result.confidence >= threshold) return { status: "ok", categoryId, confidence: result.confidence };
@@ -91,60 +95,85 @@ export interface TransferCandidate {
   accountType: AccountType;
   type: "income" | "expense";
   amountCents: number;
+  /** Data `YYYY-MM-DD`; um timestamp ISO mais longo é truncado para a data. */
   date: string;
   text: string;
 }
 
 const CARD_PAYMENT = /pgto\.?\s*fat|pagamento\s+(de\s+)?fatura|pag\.?\s*fatura/;
 
-const dayNumber = (iso: string) => Math.floor(Date.parse(`${iso}T00:00:00Z`) / 86_400_000);
+const dayNumber = (iso: string) => Math.floor(Date.parse(`${iso.slice(0, 10)}T00:00:00Z`) / 86_400_000);
 
-function mentionsOwner(text: string, owners: string[]): boolean {
-  const t = foldText(text);
-  return owners.some((o) => {
-    const name = foldText(o).trim();
-    return name.length > 0 && t.includes(name);
-  });
+function normalizeWords(text: string): string {
+  return foldText(text).replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** Nome do titular como palavra inteira (ignora nomes com menos de 3 caracteres após normalizar). */
+function mentionsOwner(normalizedText: string, normalizedOwners: string[]): boolean {
+  const haystack = ` ${normalizedText} `;
+  return normalizedOwners.some((name) => haystack.includes(` ${name} `));
+}
+
+interface Prepared {
+  c: TransferCandidate;
+  index: number;
+  day: number;
+  owner: boolean;
+  cardText: boolean;
 }
 
 /**
  * Pares de transferência interna `[despesaId, receitaId]`: contas diferentes, mesmo valor, sentidos opostos,
  * datas a no máximo `windowDays` e um sinal textual (nome do titular/empresa ou pagamento de fatura com uma conta
  * de cartão). Cada lançamento entra em no máximo um par; vence a contraparte mais próxima no tempo.
+ * Lançamentos com data inválida nunca pareiam.
  */
 export function detectTransferPairs(
   candidates: TransferCandidate[],
   opts: { ownerNames: string[]; windowDays: number },
 ): Array<[string, string]> {
-  const byAmount = new Map<number, TransferCandidate[]>();
+  const owners = opts.ownerNames.map(normalizeWords).filter((n) => n.length >= 3);
+
+  const byAmount = new Map<number, Prepared[]>();
   for (const c of candidates) {
+    const day = dayNumber(c.date);
+    if (!Number.isFinite(day)) continue;
+    const item: Prepared = {
+      c,
+      index: 0,
+      day,
+      owner: mentionsOwner(normalizeWords(c.text), owners),
+      cardText: CARD_PAYMENT.test(foldText(c.text)),
+    };
     const group = byAmount.get(c.amountCents);
-    if (group) group.push(c);
-    else byAmount.set(c.amountCents, [c]);
+    if (group) group.push(item);
+    else byAmount.set(c.amountCents, [item]);
   }
 
-  const edges: Array<{ expense: TransferCandidate; income: TransferCandidate; days: number; order: number }> = [];
-  let order = 0;
+  const edges: Array<{ expense: TransferCandidate; income: TransferCandidate; days: number; g: number; i: number; j: number }> = [];
+  let g = 0;
   for (const group of byAmount.values()) {
-    for (let i = 0; i < group.length; i++) {
-      for (let j = i + 1; j < group.length; j++) {
-        const a = group[i];
-        const b = group[j];
-        if (a.accountId === b.accountId || a.type === b.type) continue;
-        const days = Math.abs(dayNumber(a.date) - dayNumber(b.date));
-        if (days > opts.windowDays) continue;
-        const owner = mentionsOwner(a.text, opts.ownerNames) || mentionsOwner(b.text, opts.ownerNames);
+    group.forEach((p, idx) => { p.index = idx; });
+    const sorted = [...group].sort((x, y) => x.day - y.day || x.index - y.index);
+    for (let i = 0; i < sorted.length; i++) {
+      const a = sorted[i];
+      for (let j = i + 1; j < sorted.length; j++) {
+        const b = sorted[j];
+        const days = b.day - a.day;
+        if (days > opts.windowDays) break;
+        if (a.c.accountId === b.c.accountId || a.c.type === b.c.type) continue;
         const card =
-          (a.accountType === "credit_card" || b.accountType === "credit_card") &&
-          (CARD_PAYMENT.test(foldText(a.text)) || CARD_PAYMENT.test(foldText(b.text)));
-        if (!owner && !card) continue;
-        const [expense, income] = a.type === "expense" ? [a, b] : [b, a];
-        edges.push({ expense, income, days, order: order++ });
+          (a.c.accountType === "credit_card" || b.c.accountType === "credit_card") &&
+          (a.cardText || b.cardText);
+        if (!a.owner && !b.owner && !card) continue;
+        const [expense, income] = a.c.type === "expense" ? [a.c, b.c] : [b.c, a.c];
+        edges.push({ expense, income, days, g, i: Math.min(a.index, b.index), j: Math.max(a.index, b.index) });
       }
     }
+    g++;
   }
 
-  edges.sort((x, y) => x.days - y.days || x.order - y.order);
+  edges.sort((x, y) => x.days - y.days || x.g - y.g || x.i - y.i || x.j - y.j);
   const used = new Set<string>();
   const pairs: Array<[string, string]> = [];
   for (const e of edges) {
