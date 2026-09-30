@@ -43,7 +43,7 @@ O projeto é um monorepo gerenciado com **pnpm workspaces + Turborepo**, compost
 └───────────────────────┬─────────────────────────────┘
                         │ REST  /api/*
 ┌───────────────────────▼─────────────────────────────┐
-│  apps/api   NestJS + Fastify (porta 3000)            │
+│  apps/api   NestJS + Fastify (porta 3100)            │
 │  accounts · transactions · ingest · chat · export   │
 │  bills · budgets · goals · invitations · workspaces  │
 └──────────┬──────────────────────────┬────────────────┘
@@ -121,7 +121,7 @@ sistema-financeiro/
 │   │   │   ├── push/       notificações push (VAPID)
 │   │   │   ├── transactions/
 │   │   │   └── workspaces/ multi-tenant
-│   │   └── test/e2e/       72 testes de integração
+│   │   └── test/e2e/       74 testes de integração
 │   │
 │   ├── worker/             BullMQ job processors
 │   │   └── src/
@@ -142,7 +142,7 @@ sistema-financeiro/
 │   └── shared/             Zod schemas + enums (isomórfico)
 │
 └── prisma/
-    ├── schema.prisma       23 modelos
+    ├── schema.prisma       27 modelos
     └── migrations/         9 migrations
 ```
 
@@ -191,12 +191,13 @@ VAPID_PRIVATE_KEY=
 pnpm test
 
 # por app
-pnpm --filter @app/api    test   # 72 testes e2e
+pnpm --filter @app/shared test   # 32 testes unitários
+pnpm --filter @app/api    test   # 74 testes e2e
 pnpm --filter @app/worker test   # 17 testes unitários
-pnpm --filter @app/web    test   #  9 testes unitários
+pnpm --filter @app/web    test   # 18 testes unitários
 ```
 
-O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda os três suites a cada push.
+O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `turbo typecheck` e as quatro suítes de teste a cada push.
 
 ---
 

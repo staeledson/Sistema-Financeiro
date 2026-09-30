@@ -41,7 +41,7 @@
 **Interfaces:**
 - Produces: API escuta em `process.env.PORT ?? 3100`. Front usa proxy `/api` → `http://localhost:3100`. Worker e API leem `.env` da raiz do monorepo.
 
-- [ ] **Step 1: Atualizar o docker-compose.yml**
+- [x] **Step 1: Atualizar o docker-compose.yml**
 
 Substituir o conteúdo inteiro de `docker-compose.yml` por:
 
@@ -83,7 +83,7 @@ volumes:
   minio_data:
 ```
 
-- [ ] **Step 2: Atualizar `.env.example` e o `.env` local**
+- [x] **Step 2: Atualizar `.env.example` e o `.env` local**
 
 Em `.env.example`, trocar as linhas:
 
@@ -115,7 +115,7 @@ grep -E '^(DATABASE_URL|REDIS_URL|MINIO_ENDPOINT|PORT|BETTER_AUTH_URL)=' .env
 
 Esperado: as cinco linhas com 5433, 6380, 9010, 3100, 3100.
 
-- [ ] **Step 3: Atualizar `apps/api/.env.test` e `apps/api/vitest.config.ts`**
+- [x] **Step 3: Atualizar `apps/api/.env.test` e `apps/api/vitest.config.ts`**
 
 `apps/api/.env.test`:
 
@@ -137,7 +137,7 @@ Em `apps/api/vitest.config.ts`, substituir o bloco `env: { ... }` por:
 
 (O CI define `DATABASE_URL`/`REDIS_URL` nas portas padrão dos service containers; o fallback vale só para a máquina local.)
 
-- [ ] **Step 4: API lê `PORT` e Better Auth aponta para 3100**
+- [x] **Step 4: API lê `PORT` e Better Auth aponta para 3100**
 
 `apps/api/src/main.ts` inteiro:
 
@@ -165,7 +165,7 @@ Em `apps/api/src/auth/index.ts`, linha 7:
 const baseURL = process.env["BETTER_AUTH_URL"] ?? "http://localhost:3100";
 ```
 
-- [ ] **Step 5: Proxy do Vite para 3100**
+- [x] **Step 5: Proxy do Vite para 3100**
 
 Em `apps/web/vite.config.ts`, substituir o bloco `server:` por:
 
@@ -185,7 +185,7 @@ Em `apps/web/vite.config.ts`, substituir o bloco `server:` por:
   },
 ```
 
-- [ ] **Step 6: Worker lê `.env` da raiz**
+- [x] **Step 6: Worker lê `.env` da raiz**
 
 Criar `apps/worker/src/load-env.ts`:
 
@@ -205,13 +205,13 @@ for (const file of [".env", ".env.local"]) {
 
 Em `apps/worker/src/main.ts` e `apps/worker/src/database.ts`, trocar a primeira linha `import "dotenv/config";` por `import "./load-env";`.
 
-- [ ] **Step 7: README**
+- [x] **Step 7: README**
 
 Em `README.md`, na tabela "Portas disponíveis após o `pnpm dev`", trocar `http://localhost:3000` por `http://localhost:3100` e `http://localhost:9001` por `http://localhost:9011`. No bloco `dotenv` de variáveis de ambiente, trocar `5432` por `5433`, `6379` por `6380`, `localhost:9000` por `localhost:9010`, e adicionar as linhas `BETTER_AUTH_URL=http://localhost:3100` e `PORT=3100` logo após `BETTER_AUTH_SECRET`. Adicionar, antes da tabela de portas, o parágrafo:
 
 > As portas foram escolhidas para não colidir com outras stacks locais (5432/6379/9000/3000 costumam estar ocupadas). Ajuste no `docker-compose.yml` e no `.env` se precisar.
 
-- [ ] **Step 8: Subir a infra e aplicar migrations**
+- [x] **Step 8: Subir a infra e aplicar migrations**
 
 ```bash
 docker compose up -d
@@ -223,7 +223,7 @@ pnpm exec prisma generate
 
 Esperado: três containers `financas-*` `Up`; `migrate deploy` termina com "All migrations have been successfully applied" (ou "No pending migrations"); `generate` gera dois clients.
 
-- [ ] **Step 9: Verificar que a API sobe na porta certa**
+- [x] **Step 9: Verificar que a API sobe na porta certa**
 
 ```bash
 (cd apps/api && timeout 25 pnpm dev >/tmp/api-dev.log 2>&1 || true); grep -E "ouvindo|EADDRINUSE|Error" /tmp/api-dev.log | head -5
@@ -231,7 +231,7 @@ Esperado: três containers `financas-*` `Up`; `migrate deploy` termina com "All 
 
 Se `timeout` não existir no macOS, usar `pnpm dev & sleep 15; kill %1`. Esperado: linha `API ouvindo em http://localhost:3100` e nenhum `EADDRINUSE`.
 
-- [ ] **Step 10: Commit (inclui as alterações herdadas de ambiente)**
+- [x] **Step 10: Commit (inclui as alterações herdadas de ambiente)**
 
 ```bash
 git add docker-compose.yml .env.example apps/api/.env.test apps/api/vitest.config.ts apps/api/src/main.ts apps/api/src/auth/index.ts apps/api/src/auth/auth-handler.ts apps/api/src/auth/current-user.guard.ts apps/api/src/load-env.ts apps/api/src/database.ts apps/api/.swcrc apps/api/package.json apps/web/vite.config.ts apps/web/src/lib/auth-client.ts apps/worker/src/load-env.ts apps/worker/src/main.ts apps/worker/src/database.ts apps/worker/package.json package.json turbo.json pnpm-lock.yaml README.md
@@ -251,7 +251,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Delete: `.cursor/debug-ad1492.log`
 - Modify: `.gitignore`
 
-- [ ] **Step 1: Remover o bloco de log em `accounts.controller.ts`**
+- [x] **Step 1: Remover o bloco de log em `accounts.controller.ts`**
 
 Apagar as linhas entre `// #region agent log` e `// #endregion` (inclusive). O método fica:
 
@@ -263,7 +263,7 @@ Apagar as linhas entre `// #region agent log` e `// #endregion` (inclusive). O m
   }
 ```
 
-- [ ] **Step 2: Restaurar `req` limpo em `apps/web/src/lib/api.ts`**
+- [x] **Step 2: Restaurar `req` limpo em `apps/web/src/lib/api.ts`**
 
 Substituir tudo do início do arquivo até o fim da função `req` por:
 
@@ -291,7 +291,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
 
 (As três views mantêm `const BASE = import.meta.env.VITE_API_URL ?? "/api";` — a Task 7 remove isso ao migrar para o cliente único.)
 
-- [ ] **Step 3: Apagar o log e atualizar `.gitignore`**
+- [x] **Step 3: Apagar o log e atualizar `.gitignore`**
 
 ```bash
 rm -f .cursor/debug-ad1492.log
@@ -306,7 +306,7 @@ Acrescentar ao final de `.gitignore`:
 .DS_Store
 ```
 
-- [ ] **Step 4: Verificar que não sobrou debug**
+- [x] **Step 4: Verificar que não sobrou debug**
 
 ```bash
 grep -rn "agent log\|127.0.0.1:7546\|debug-ad1492" apps packages --include=*.ts --include=*.vue
@@ -315,7 +315,7 @@ git status --short | grep -E "\.cursor|\.DS_Store|\.vite" || echo "ok: artefatos
 
 Esperado: o `grep` não retorna nada; a segunda linha imprime `ok: artefatos ignorados`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .gitignore apps/api/src/accounts/accounts.controller.ts apps/web/src/lib/api.ts apps/web/src/views/ImportView.vue apps/web/src/views/IngestView.vue apps/web/src/views/ReviewView.vue
@@ -340,7 +340,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 **Interfaces:**
 - Produces: `pnpm --filter @app/api typecheck` disponível e verde.
 
-- [ ] **Step 1: Ver os erros atuais (baseline)**
+- [x] **Step 1: Ver os erros atuais (baseline)**
 
 ```bash
 cd apps/api && npx tsc --noEmit -p tsconfig.json 2>&1 | grep -c "error TS"; cd ../..
@@ -348,7 +348,7 @@ cd apps/api && npx tsc --noEmit -p tsconfig.json 2>&1 | grep -c "error TS"; cd .
 
 Esperado: 18.
 
-- [ ] **Step 2: Tipos do papaparse e script `typecheck`**
+- [x] **Step 2: Tipos do papaparse e script `typecheck`**
 
 ```bash
 pnpm --filter @app/api add -D @types/papaparse
@@ -356,7 +356,7 @@ pnpm --filter @app/api add -D @types/papaparse
 
 Em `apps/api/package.json`, em `scripts`, adicionar `"typecheck": "tsc --noEmit"` após `"test"`.
 
-- [ ] **Step 3: Caminho dos enums gerados**
+- [x] **Step 3: Caminho dos enums gerados**
 
 `apps/api/src/workspaces/workspaces.service.ts`, linha 2:
 
@@ -364,11 +364,11 @@ Em `apps/api/package.json`, em `scripts`, adicionar `"typecheck": "tsc --noEmit"
 import type { MemberRole } from "../../generated/prisma/enums";
 ```
 
-- [ ] **Step 4: Hook do Better Auth sem retorno**
+- [x] **Step 4: Hook do Better Auth sem retorno**
 
 Em `apps/api/src/auth/index.ts`, dentro de `databaseHooks.user.create.after`, trocar `const ws = await prisma.workspace.create({` por `await prisma.workspace.create({` e apagar a linha `return ws;`.
 
-- [ ] **Step 5: `chartSpec` como JSON do Prisma**
+- [x] **Step 5: `chartSpec` como JSON do Prisma**
 
 Em `apps/api/src/chat/chat.service.ts`, adicionar após a linha 2:
 
@@ -382,7 +382,7 @@ e trocar a linha `chartSpec: chartSpec ?? undefined,` por:
         chartSpec: chartSpec ? (chartSpec as unknown as Prisma.InputJsonValue) : undefined,
 ```
 
-- [ ] **Step 6: `where` tipado em `tools.ts`**
+- [x] **Step 6: `where` tipado em `tools.ts`**
 
 Em `apps/api/src/chat/tools.ts`, adicionar após a linha 2:
 
@@ -396,7 +396,7 @@ e trocar `where: where as Parameters<typeof prisma.transaction.findMany>[0]["whe
         where: where as Prisma.TransactionWhereInput,
 ```
 
-- [ ] **Step 7: Buffer do ExcelJS**
+- [x] **Step 7: Buffer do ExcelJS**
 
 Em `apps/api/src/export/export.service.ts`, trocar `return (await wb.xlsx.writeBuffer()) as Buffer;` por:
 
@@ -404,7 +404,7 @@ Em `apps/api/src/export/export.service.ts`, trocar `return (await wb.xlsx.writeB
     return Buffer.from((await wb.xlsx.writeBuffer()) as unknown as ArrayBuffer);
 ```
 
-- [ ] **Step 8: Anotar o retorno dos mocks no teste de chat**
+- [x] **Step 8: Anotar o retorno dos mocks no teste de chat**
 
 ```bash
 sed -i '' 's/text: async () => ""/text: async (): Promise<string> => ""/g' apps/api/test/e2e/chat.e2e.test.ts
@@ -413,7 +413,7 @@ grep -c 'Promise<string>' apps/api/test/e2e/chat.e2e.test.ts
 
 Esperado: 8.
 
-- [ ] **Step 9: Typecheck e testes da API**
+- [x] **Step 9: Typecheck e testes da API**
 
 ```bash
 pnpm --filter @app/api typecheck
@@ -422,7 +422,7 @@ pnpm --filter @app/api test
 
 Esperado: typecheck sem saída de erro (exit 0); todos os testes e2e passando (o teste de export continua gerando XLSX válido).
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add apps/api/package.json pnpm-lock.yaml apps/api/src/workspaces/workspaces.service.ts apps/api/src/auth/index.ts apps/api/src/chat/chat.service.ts apps/api/src/chat/tools.ts apps/api/src/export/export.service.ts apps/api/test/e2e/chat.e2e.test.ts
@@ -446,7 +446,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 **Interfaces:**
 - Produces: `pnpm --filter @app/worker typecheck` verde; uma única versão de `ioredis` no lockfile.
 
-- [ ] **Step 1: Baseline**
+- [x] **Step 1: Baseline**
 
 ```bash
 cd apps/worker && npx tsc --noEmit -p tsconfig.json 2>&1 | grep -E "^(src|test)/" | wc -l; cd ../..
@@ -454,7 +454,7 @@ cd apps/worker && npx tsc --noEmit -p tsconfig.json 2>&1 | grep -E "^(src|test)/
 
 Esperado: um número maior que zero (dez linhas de erro na análise inicial).
 
-- [ ] **Step 2: Uma versão só de ioredis**
+- [x] **Step 2: Uma versão só de ioredis**
 
 Em `package.json` (raiz), adicionar no nível superior:
 
@@ -475,7 +475,7 @@ grep -E "^  ioredis@" pnpm-lock.yaml
 
 Esperado: uma única linha `ioredis@5.11.x:`.
 
-- [ ] **Step 3: Blob a partir de Uint8Array**
+- [x] **Step 3: Blob a partir de Uint8Array**
 
 Em `apps/worker/src/ai/ingest.processor.ts`, trocar a linha `const blob = new Blob([bytes], { type: "audio/webm" });` por:
 
@@ -483,7 +483,7 @@ Em `apps/worker/src/ai/ingest.processor.ts`, trocar a linha `const blob = new Bl
           const blob = new Blob([Buffer.from(bytes)], { type: "audio/webm" });
 ```
 
-- [ ] **Step 4: pdf-parse v2 (classe `PDFParse`)**
+- [x] **Step 4: pdf-parse v2 (classe `PDFParse`)**
 
 Em `apps/worker/src/import/pdf.processor.ts`, substituir as linhas
 
@@ -517,7 +517,7 @@ vi.mock("pdf-parse", () => ({
 }));
 ```
 
-- [ ] **Step 5: Upsert de insight com a chave única correta**
+- [x] **Step 5: Upsert de insight com a chave única correta**
 
 O `@@unique` de `Insight` é `[workspaceId, type, dedupKey, period]`. Em `apps/worker/src/reminders/reminders.processor.ts`, substituir o bloco `await prisma.insight.upsert({ ... });` por:
 
@@ -537,7 +537,7 @@ O `@@unique` de `Insight` é `[workspaceId, type, dedupKey, period]`. Em `apps/w
           });
 ```
 
-- [ ] **Step 6: Typecheck e testes do worker**
+- [x] **Step 6: Typecheck e testes do worker**
 
 ```bash
 pnpm --filter @app/worker typecheck
@@ -546,7 +546,7 @@ pnpm --filter @app/worker test
 
 Esperado: typecheck exit 0; testes verdes (o `health.test.ts` usa Redis em `REDIS_URL`, que agora vem do `.env` da raiz na porta 6380 — se falhar por conexão, conferir `docker compose ps`).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add package.json pnpm-lock.yaml apps/worker/package.json apps/worker/src/ai/ingest.processor.ts apps/worker/src/import/pdf.processor.ts apps/worker/test/import-pdf.test.ts apps/worker/src/reminders/reminders.processor.ts
@@ -564,7 +564,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/web/src/components/ChatChart.vue:24`
 - Modify: `apps/web/src/offline/__tests__/offline.test.ts:1-9`
 
-- [ ] **Step 0: Corrigir os dois erros pré-existentes do `vue-tsc` no web**
+- [x] **Step 0: Corrigir os dois erros pré-existentes do `vue-tsc` no web**
 
 Baseline: `pnpm --filter @app/web typecheck` falha com duas linhas:
 `src/components/ChatChart.vue(24,48): error TS2724: '...echarts/core' has no exported member named 'EChartsOption'` e
@@ -576,7 +576,7 @@ Em `apps/web/src/offline/__tests__/offline.test.ts`, garantir que a primeira lin
 
 Rodar `pnpm --filter @app/web typecheck` e `pnpm --filter @app/web test`. Esperado: exit 0 em ambos.
 
-- [ ] **Step 1: Adicionar o step**
+- [x] **Step 1: Adicionar o step**
 
 Inserir entre `- name: Run migrations` e `- name: Test api`:
 
@@ -585,7 +585,7 @@ Inserir entre `- name: Run migrations` e `- name: Test api`:
         run: pnpm turbo typecheck
 ```
 
-- [ ] **Step 2: Rodar localmente o mesmo comando**
+- [x] **Step 2: Rodar localmente o mesmo comando**
 
 ```bash
 pnpm turbo typecheck
@@ -593,7 +593,7 @@ pnpm turbo typecheck
 
 Esperado: `@app/shared`, `@app/api`, `@app/worker` e `@app/web` todos com sucesso (o `web` roda `vue-tsc --noEmit`).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add .github/workflows/ci.yml apps/web/src/components/ChatChart.vue apps/web/src/offline/__tests__/offline.test.ts
@@ -621,7 +621,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
   ```
   `http` sempre envia `authorization: Bearer <token>`; envia `x-workspace-id` quando há workspace ativo; envia `content-type: application/json` quando há body; lança `HttpError` com a mensagem do corpo (campo `message` se o corpo for JSON, senão o texto) quando `!res.ok`; retorna `undefined as T` em respostas `204` ou corpo vazio.
 
-- [ ] **Step 1: Escrever o teste que falha**
+- [x] **Step 1: Escrever o teste que falha**
 
 Criar `apps/web/src/lib/__tests__/http.test.ts`:
 
@@ -697,7 +697,7 @@ describe("http", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e ver falhar**
+- [x] **Step 2: Rodar e ver falhar**
 
 ```bash
 pnpm --filter @app/web test -- src/lib/__tests__/http.test.ts
@@ -705,7 +705,7 @@ pnpm --filter @app/web test -- src/lib/__tests__/http.test.ts
 
 Esperado: FAIL — `Cannot find module '../http'`.
 
-- [ ] **Step 3: Implementar `apps/web/src/lib/http.ts`**
+- [x] **Step 3: Implementar `apps/web/src/lib/http.ts`**
 
 ```ts
 import { useAuthStore } from "../stores/auth";
@@ -766,7 +766,7 @@ export async function http<T = unknown>(method: Method, path: string, body?: unk
 
 Observação: `stores/workspace.ts` passará a importar `http` na Task 7. A importação circular é segura porque ambos só usam o outro dentro de funções.
 
-- [ ] **Step 4: Rodar e ver passar**
+- [x] **Step 4: Rodar e ver passar**
 
 ```bash
 pnpm --filter @app/web test -- src/lib/__tests__/http.test.ts
@@ -774,7 +774,7 @@ pnpm --filter @app/web test -- src/lib/__tests__/http.test.ts
 
 Esperado: 7 testes passando.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/lib/http.ts apps/web/src/lib/__tests__/http.test.ts
@@ -797,7 +797,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Consumes: `http`, `authHeaders`, `HttpError` de `apps/web/src/lib/http.ts` (Task 6).
 - Produces: nenhuma view ou store chama `fetch` diretamente para `/api/*`. Uploads para URL pré-assinada (MinIO) continuam com `fetch` puro, sem cabeçalhos de auth.
 
-- [ ] **Step 1: `api.ts` delega para `http`**
+- [x] **Step 1: `api.ts` delega para `http`**
 
 Substituir o topo de `apps/web/src/lib/api.ts` (imports, `BASE` e a função `req`) por:
 
@@ -811,7 +811,7 @@ function req<T>(method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE", path: strin
 
 Manter todo o restante do arquivo (tipos e objeto `api`).
 
-- [ ] **Step 2: `stores/workspace.ts`**
+- [x] **Step 2: `stores/workspace.ts`**
 
 Substituir o arquivo inteiro por:
 
@@ -861,11 +861,11 @@ export const useWorkspaceStore = defineStore("workspace", () => {
 });
 ```
 
-- [ ] **Step 3: `stores/auth.ts` sem `headers`**
+- [x] **Step 3: `stores/auth.ts` sem `headers`**
 
 Remover o `computed` `headers` e a sua exportação no `return` (fica `return { token, userId, isAuthenticated, signIn, signUp, signOut };`). Remover `computed` do import se não for mais usado (ainda é: `isAuthenticated`).
 
-- [ ] **Step 4: `ImportView.vue`**
+- [x] **Step 4: `ImportView.vue`**
 
 Trocar o import de `useAuthStore` e a constante `BASE` e a função `apiReq` por:
 
@@ -875,15 +875,15 @@ import { http, authHeaders } from "../lib/http";
 
 e apagar `const auth = useAuthStore();` e `const BASE = ...;`. Substituir cada `apiReq(` por `http(`, mantendo os argumentos (`apiReq("GET", "/import/mappings")` → `http("GET", "/import/mappings")`, etc.). Em `loadMappings`, `savedMappings.value = (await http<Array<{ id: string; name: string; format: string; mapping: unknown }>>("GET", "/import/mappings")).filter((m) => m.format === "csv");`. Em `preview`, tipar: `let data = await http<{ batchId: string; rows: typeof previewRows.value; rowCount: number; dupCount: number }>(...)` (dois ramos). Em `commit`: `const result = await http<{ inserted: number }>("POST", ...)`. Em `enqueuePdf`: `const { url, storagePath } = await http<{ url: string; storagePath: string }>("POST", "/ingest/upload-url", {...})` e `const { jobId } = await http<{ jobId: string }>("POST", "/import/pdf", { storagePath })`. O `fetch(url, { method: "PUT", ... })` do upload para o MinIO permanece como está (não usa `authHeaders`).
 
-- [ ] **Step 5: `ReviewView.vue`**
+- [x] **Step 5: `ReviewView.vue`**
 
 Mesmo padrão: importar `{ http }` de `../lib/http`, remover `useAuthStore`, `auth`, `BASE` e `apiReq`. `load`: `drafts.value = await http<Draft[]>("GET", "/drafts");`. `confirm`: `await http("POST", \`/drafts/${draft.id}/confirm\`, { accountId: ov.accountId || null, categoryId: ov.categoryId || null });`. `discard`: `await http("DELETE", \`/drafts/${id}\`);`. Manter `useFinanceStore`.
 
-- [ ] **Step 6: `IngestView.vue`**
+- [x] **Step 6: `IngestView.vue`**
 
 Importar `{ http }` de `../lib/http`; remover `useAuthStore`, `auth`, `BASE` e `apiPost`. Cada `apiPost(path, body)` vira `http<{ jobId: string }>("POST", path, body)` para `/ingest/text`, `/ingest/image`, `/ingest/audio`, e `http<{ url: string; storagePath: string }>("POST", "/ingest/upload-url", {...})` para a URL de upload. Os `fetch(url, { method: "PUT", ... })` para o MinIO permanecem.
 
-- [ ] **Step 7: `BudgetsView.vue`, `GoalsView.vue`, `InsightsView.vue`**
+- [x] **Step 7: `BudgetsView.vue`, `GoalsView.vue`, `InsightsView.vue`**
 
 Em cada um, trocar `import { useAuthStore } from "../stores/auth";` e `const auth = useAuthStore();` por `import { http } from "../lib/http";`. Substituições:
 
@@ -969,7 +969,7 @@ async function triggerCompute() {
 }
 ```
 
-- [ ] **Step 8: `InviteAcceptView.vue`**
+- [x] **Step 8: `InviteAcceptView.vue`**
 
 Trocar import/`auth` por `import { http, HttpError } from "../lib/http";` e o `try` do `onMounted` por:
 
@@ -983,7 +983,7 @@ Trocar import/`auth` por `import { http, HttpError } from "../lib/http";` e o `t
   }
 ```
 
-- [ ] **Step 9: `MembersView.vue`**
+- [x] **Step 9: `MembersView.vue`**
 
 Manter `useWorkspaceStore` (usa `activeId` e `active`). Adicionar `import { http, HttpError } from "../lib/http";` e substituir as funções:
 
@@ -1041,7 +1041,7 @@ async function revokeInvitation(inv: any) {
 }
 ```
 
-- [ ] **Step 10: `ChatView.vue`**
+- [x] **Step 10: `ChatView.vue`**
 
 Remover `useWorkspaceStore`/`wsStore`; adicionar `import { http } from "../lib/http";`. Substituir:
 
@@ -1074,7 +1074,7 @@ e, dentro de `send`, o bloco `const res = await fetch("/api/chat", {...}); if (!
     });
 ```
 
-- [ ] **Step 11: `SharedEntryView.vue`**
+- [x] **Step 11: `SharedEntryView.vue`**
 
 Remover `useWorkspaceStore`/`wsStore`; adicionar `import { http } from "../lib/http";`. Substituir as duas chamadas à API:
 
@@ -1093,7 +1093,7 @@ Remover `useWorkspaceStore`/`wsStore`; adicionar `import { http } from "../lib/h
 
 O `fetch(storedFile)` (data URL) e o `fetch(uploadUrl, { method: "PUT", ... })` permanecem.
 
-- [ ] **Step 12: Garantir que não sobrou `fetch("/api`**
+- [x] **Step 12: Garantir que não sobrou `fetch("/api`**
 
 ```bash
 grep -rn 'fetch("/api\|fetch(`/api\|fetch(`${BASE}' apps/web/src --include=*.vue --include=*.ts | grep -v __tests__
@@ -1103,7 +1103,7 @@ pnpm --filter @app/web test
 
 Esperado: `grep` sem resultados; `vue-tsc` exit 0; todos os testes web passando.
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add apps/web/src
@@ -1140,7 +1140,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
   `TransactionsService.enqueueCategorizationJob(workspaceId, userId, batchId?)` cria o `AiJob` **e** adiciona o job `ingest` com `kind: "categorize"` à fila. `ImportService.commit` chama-o ao final com o `batchId`.
 - Produces (worker): `processCategorize({ jobId, workspaceId, batchId? })` filtra `importBatchId = batchId` quando informado.
 
-- [ ] **Step 1: Escrever o teste e2e que falha**
+- [x] **Step 1: Escrever o teste e2e que falha**
 
 Criar `apps/api/test/e2e/queue.e2e.test.ts`:
 
@@ -1234,7 +1234,7 @@ describe("Fase 9 — fila de categorização", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e ver falhar**
+- [x] **Step 2: Rodar e ver falhar**
 
 ```bash
 pnpm --filter @app/api test -- test/e2e/queue.e2e.test.ts
@@ -1242,7 +1242,7 @@ pnpm --filter @app/api test -- test/e2e/queue.e2e.test.ts
 
 Esperado: FAIL — primeiro teste falha em `expect(mine).toBeDefined()` (job nunca enfileirado); segundo idem.
 
-- [ ] **Step 3: Tokens e módulo da fila**
+- [x] **Step 3: Tokens e módulo da fila**
 
 `apps/api/src/queue/queue.tokens.ts`:
 
@@ -1284,7 +1284,7 @@ export class QueueModule implements OnApplicationShutdown {
 
 Registrar em `apps/api/src/app.module.ts`: adicionar `import { QueueModule } from "./queue/queue.module";` e `QueueModule,` como primeiro item de `imports`.
 
-- [ ] **Step 4: `IngestJobData` ganha `batchId`**
+- [x] **Step 4: `IngestJobData` ganha `batchId`**
 
 `apps/api/src/ingest/ingest.types.ts`:
 
@@ -1303,7 +1303,7 @@ export interface IngestJobData {
 }
 ```
 
-- [ ] **Step 5: Serviços passam a injetar a fila**
+- [x] **Step 5: Serviços passam a injetar a fila**
 
 Em `apps/api/src/ingest/ingest.service.ts`, substituir o construtor e a constante:
 
@@ -1389,7 +1389,7 @@ export class InsightsService {
 
 (apagar a constante `AI_QUEUE = "ai"` local e o `new Queue`).
 
-- [ ] **Step 6: `TransactionsService.enqueueCategorizationJob` enfileira**
+- [x] **Step 6: `TransactionsService.enqueueCategorizationJob` enfileira**
 
 Em `apps/api/src/transactions/transactions.service.ts`:
 
@@ -1431,7 +1431,7 @@ e substituir o método:
 
 Como `QueueModule` é `@Global()`, nenhum outro módulo precisa importá-lo.
 
-- [ ] **Step 7: Worker aceita `batchId`**
+- [x] **Step 7: Worker aceita `batchId`**
 
 Em `apps/worker/src/ai/ingest.processor.ts`, na interface `IngestJobData`, adicionar `batchId?: string;` após `storagePath?: string;`. Na desestruturação do job, incluir `batchId`: `const { jobId, workspaceId, userId, kind, text, storagePath, batchId } = job.data;`. Na chamada: `await processCategorize({ jobId, workspaceId, batchId }, { ai: deps.ai });`.
 
@@ -1452,7 +1452,7 @@ e, na consulta `uncategorized`, trocar `where: { workspaceId, categoryId: null }
       where: { workspaceId, categoryId: null, ...(data.batchId ? { importBatchId: data.batchId } : {}) },
 ```
 
-- [ ] **Step 8: Rodar o teste novo e as suítes completas**
+- [x] **Step 8: Rodar o teste novo e as suítes completas**
 
 ```bash
 pnpm --filter @app/api test -- test/e2e/queue.e2e.test.ts
@@ -1463,7 +1463,7 @@ pnpm --filter @app/worker test
 
 Esperado: 2 testes novos passando; typecheck verde nos quatro pacotes; suítes da API e do worker verdes (os testes existentes de ingest/import continuam passando porque a `Queue` agora vem do módulo global).
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add apps/api/src/queue apps/api/src/app.module.ts apps/api/src/ingest apps/api/src/import apps/api/src/insights apps/api/src/transactions apps/api/test/e2e/queue.e2e.test.ts apps/worker/src/ai/ingest.processor.ts apps/worker/src/ai/categorize.processor.ts
@@ -1486,7 +1486,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Consumes: `GET /dashboard?month=YYYY-MM` devolve `{ cashflow: { incomeCents, expenseCents }, expenseBreakdown: Array<{ categoryId: string | null; name: string; totalCents: number }>, cashflowSeries: Array<{ month, incomeCents, expenseCents }> }` (ver `apps/api/src/dashboard/dashboard.service.ts`).
 - Produces: `sortBreakdown(items): Array<{ name: string; amountCents: number; pct: number }>` em `apps/web/src/lib/dashboard-format.ts`.
 
-- [ ] **Step 1: Escrever o teste que falha**
+- [x] **Step 1: Escrever o teste que falha**
 
 Criar `apps/web/src/views/__tests__/dashboard-breakdown.test.ts`:
 
@@ -1513,7 +1513,7 @@ describe("sortBreakdown", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e ver falhar**
+- [x] **Step 2: Rodar e ver falhar**
 
 ```bash
 pnpm --filter @app/web test -- src/views/__tests__/dashboard-breakdown.test.ts
@@ -1521,7 +1521,7 @@ pnpm --filter @app/web test -- src/views/__tests__/dashboard-breakdown.test.ts
 
 Esperado: FAIL — módulo `dashboard-format` não existe.
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 `apps/web/src/lib/dashboard-format.ts`:
 
@@ -1568,7 +1568,7 @@ const breakdown = computed(() => sortBreakdown(store.dashboard?.expenseBreakdown
 
 No template, trocar `:style="{ width: \`${(item.amountCents / totalBreakdown) * 100}%\` }"` por `:style="{ width: \`${item.pct}%\` }"`. A chamada `store.loadCategories()` no `onMounted` pode ficar (a view de categorias continua útil), mas o `breakdown` não depende mais dela.
 
-- [ ] **Step 4: Rodar e ver passar**
+- [x] **Step 4: Rodar e ver passar**
 
 ```bash
 pnpm --filter @app/web test
@@ -1577,7 +1577,7 @@ pnpm --filter @app/web typecheck
 
 Esperado: todos os testes web verdes; `vue-tsc` exit 0.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/lib/api.ts apps/web/src/lib/dashboard-format.ts apps/web/src/views/DashboardView.vue apps/web/src/views/__tests__/dashboard-breakdown.test.ts
@@ -1592,7 +1592,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Files:** nenhum novo. Só execução.
 
-- [ ] **Step 1: Infra e migrations do zero**
+- [x] **Step 1: Infra e migrations do zero**
 
 ```bash
 docker compose down
@@ -1603,7 +1603,7 @@ pnpm exec prisma migrate deploy
 
 Esperado: containers `financas-*` `Up`; migrations aplicadas.
 
-- [ ] **Step 2: Typecheck e testes de todo o monorepo**
+- [x] **Step 2: Typecheck e testes de todo o monorepo**
 
 ```bash
 pnpm turbo typecheck
@@ -1612,7 +1612,7 @@ pnpm turbo test
 
 Esperado: exit 0 em ambos; nenhum teste ignorado ou falhando.
 
-- [ ] **Step 3: Subida manual dos três apps e chamada real**
+- [x] **Step 3: Subida manual dos três apps e chamada real**
 
 ```bash
 pnpm dev > /tmp/dev.log 2>&1 &
@@ -1625,7 +1625,7 @@ kill %1
 
 Esperado: os dois `curl` retornam `401` (rota protegida, mas viva: a API está na 3100 e o proxy do Vite chega nela); o log mostra `API ouvindo em http://localhost:3100` e `Worker started`.
 
-- [ ] **Step 4: Working tree limpo**
+- [x] **Step 4: Working tree limpo**
 
 ```bash
 git status --short
