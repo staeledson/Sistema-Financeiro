@@ -262,3 +262,58 @@ describe("Fase 10 — transações filtradas por entidade", () => {
     expect(res.statusCode).toBe(400);
   });
 });
+
+describe("Fase 10 — configurações do workspace", () => {
+  it("GET devolve os padrões da spec na primeira leitura", async () => {
+    const u = await newUser("set1");
+    const res = await app.inject({ method: "GET", url: "/workspaces/current/settings", headers: u.h });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ aiConfidenceThreshold: 0.8, aiBatchSize: 40, transferMatchWindowDays: 2, ownerNames: [] });
+  });
+
+  it("PATCH parcial persiste e preserva os demais campos", async () => {
+    const u = await newUser("set2");
+    const patched = await app.inject({
+      method: "PATCH", url: "/workspaces/current/settings", headers: u.h,
+      payload: { aiConfidenceThreshold: 0.9, ownerNames: ["  Stael Edson  ", "Plural Med Ltda"] },
+    });
+    expect(patched.statusCode).toBe(200);
+    expect(patched.json()).toEqual({
+      aiConfidenceThreshold: 0.9, aiBatchSize: 40, transferMatchWindowDays: 2, ownerNames: ["Stael Edson", "Plural Med Ltda"],
+    });
+
+    const again = await app.inject({ method: "GET", url: "/workspaces/current/settings", headers: u.h });
+    expect(again.json().aiConfidenceThreshold).toBe(0.9);
+    expect(again.json().ownerNames).toEqual(["Stael Edson", "Plural Med Ltda"]);
+  });
+
+  it("PATCH inválido retorna 400", async () => {
+    const u = await newUser("set3");
+    const res = await app.inject({ method: "PATCH", url: "/workspaces/current/settings", headers: u.h, payload: { aiConfidenceThreshold: 1.5 } });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("viewer lê mas não altera (403)", async () => {
+    const owner = await newUser("set4o");
+    const viewer = await newUser("set4v");
+    const add = await app.inject({
+      method: "POST", url: `/workspaces/${owner.workspaceId}/members`, headers: owner.h,
+      payload: { userId: viewer.userId, role: "viewer" },
+    });
+    expect(add.statusCode).toBe(201);
+
+    const vh = { ...viewer.h, "x-workspace-id": owner.workspaceId };
+    const read = await app.inject({ method: "GET", url: "/workspaces/current/settings", headers: vh });
+    expect(read.statusCode).toBe(200);
+    const write = await app.inject({ method: "PATCH", url: "/workspaces/current/settings", headers: vh, payload: { aiBatchSize: 10 } });
+    expect(write.statusCode).toBe(403);
+  });
+
+  it("cada workspace tem as próprias configurações", async () => {
+    const a = await newUser("set5a");
+    const b = await newUser("set5b");
+    await app.inject({ method: "PATCH", url: "/workspaces/current/settings", headers: a.h, payload: { aiBatchSize: 77 } });
+    const res = await app.inject({ method: "GET", url: "/workspaces/current/settings", headers: b.h });
+    expect(res.json().aiBatchSize).toBe(40);
+  });
+});
