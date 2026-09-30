@@ -45,4 +45,23 @@ describe("schema base", () => {
       select unnest(enum_range(null::"ImportFormat"))::text as v`;
     expect(rows.map((r) => r.v)).toContain("pdf_statement");
   });
+
+  it("transactions e category_rules têm as colunas da fase 12", async () => {
+    const cols = async (table: string) =>
+      (await prisma.$queryRaw<{ column_name: string }[]>`
+        select column_name from information_schema.columns where table_name = ${table}`).map((r) => r.column_name);
+
+    const tx = await cols("transactions");
+    for (const c of ["categorySource", "categoryConfidence", "reviewStatus", "suggestedCategoryId", "transferPairId", "ignored"]) {
+      expect(tx).toContain(c);
+    }
+    expect(await cols("category_rules")).toContain("hitCount");
+  });
+
+  it("enums CategorySource e ReviewStatus têm os valores da spec", async () => {
+    const values = async (type: "CategorySource" | "ReviewStatus") =>
+      (await prisma.$queryRawUnsafe<{ v: string }[]>(`select unnest(enum_range(null::"${type}"))::text as v`)).map((r) => r.v);
+    expect(await values("CategorySource")).toEqual(["manual", "rule", "ai", "import", "none"]);
+    expect(await values("ReviewStatus")).toEqual(["ok", "pending"]);
+  });
 });
