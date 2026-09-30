@@ -1300,6 +1300,45 @@ function commitPayload(rows: Array<Record<string, unknown>>, accountId: string) 
   };
 }
 
+/** Extrato C6 sintético mínimo: blocos mensais com linhas [lançamento, contábil, tipo, descrição, valor]. */
+function c6Extract(blocks: Array<{ title: string; from: string; to: string; rows: string[][] }>): string {
+  const cell = (...c: string[]) => c.join(" \t");
+  return [
+    "Extrato exportado no dia 30 de setembro de 2026 às 10:00",
+    "FULANO DE TESTE • 000.000.000-00",
+    `Agência: 1 • Conta: ${C6_SAMPLE.conta}`,
+    "Saldo do dia • 30 de setembro de 2026 • R$ 0,00",
+    ...blocks.flatMap((b) => [
+      `${b.title} ( ${b.from} - ${b.to} ) \tEntradas: R$ 0,00 • Saídas: R$ 0,00`,
+      "Data",
+      "lançamento",
+      "Data",
+      cell("contábil", "Tipo", "Descrição", "Valor"),
+      ...b.rows.map((r) => cell(...r)),
+    ]),
+  ].join("\n");
+}
+
+const MAIO = {
+  title: "Maio 2026", from: "01/05/2026", to: "31/05/2026",
+  rows: [
+    ["10/05", "10/05", "Saída PIX", "Pix enviado para A", "-R$ 100,00"],
+    ["10/05", "10/05", "Saída PIX", "Pix enviado para A", "-R$ 100,00"], // idêntica à anterior, mesmo dia
+    ["20/05", "20/05", "Entrada PIX", "Pix recebido de B", "R$ 50,00"],
+  ],
+};
+const JUNHO = {
+  title: "Junho 2026", from: "01/06/2026", to: "30/06/2026",
+  rows: [["15/06", "15/06", "Saída PIX", "Pix enviado para C", "-R$ 30,00"]],
+};
+const JULHO = {
+  title: "Julho 2026", from: "01/07/2026", to: "31/07/2026",
+  rows: [["05/07", "05/07", "Saída PIX", "Pix enviado para D", "-R$ 10,00"]],
+};
+/** Dois extratos de períodos que se sobrepõem (maio e junho nos dois): o segundo só acrescenta julho. */
+const OVERLAP_A = c6Extract([MAIO, JUNHO]);
+const OVERLAP_B = c6Extract([MAIO, JUNHO, JULHO]);
+
 const OFX = `OFXHEADER:100
 DATA:OFXSGML
 CHARSET:1252
@@ -1463,6 +1502,60 @@ describe("Fase 11 — POST /import/preview e commit (extrato C6)", () => {
     const res = await post(b, `/import/${body.batchId}/commit`, commitPayload(body.rows, accountA));
     expect(res.statusCode).toBe(400);
     expect(await prisma.transaction.count({ where: { workspaceId: b.workspaceId } })).toBe(0);
+  });
+});
+
+describe("Fase 11 — extratos com períodos sobrepostos", () => {
+  const dups = (rows: Array<{ dup: boolean }>) => rows.map((r) => r.dup);
+
+  it("o segundo extrato só acrescenta o que é novo: não sobrescreve nem duplica", async () => {
+    const u = await newUser("ovl1");
+    const accountId = await newAccount(u);
+
+    const a = await previewC6(u, accountId, OVERLAP_A);
+    expect(a.rowCount).toBe(4);
+    await post(u, `/import/${a.batchId}/commit`, commitPayload(a.rows, accountId));
+
+    const b = await previewC6(u, accountId, OVERLAP_B);
+    expect(b.rowCount).toBe(5);
+    expect(b.dupCount).toBe(4);
+    expect(dups(b.rows)).toEqual([true, true, true, true, false]);
+
+    const res = await post(u, `/import/${b.batchId}/commit`, commitPayload(b.rows, accountId));
+    expect(res.json()).toEqual({ inserted: 1, skipped: 4 });
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(5);
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId, description: "Pix enviado para A" } })).toBe(2);
+  });
+
+  it("a ordem de importação não importa: o extrato maior primeiro torna o menor 100% duplicado", async () => {
+    const u = await newUser("ovl2");
+    const accountId = await newAccount(u);
+    const b = await previewC6(u, accountId, OVERLAP_B);
+    await post(u, `/import/${b.batchId}/commit`, commitPayload(b.rows, accountId));
+
+    const a = await previewC6(u, accountId, OVERLAP_A);
+    expect(a.dupCount).toBe(4);
+    const res = await post(u, `/import/${a.batchId}/commit`, commitPayload(a.rows, accountId));
+    expect(res.json()).toEqual({ inserted: 0, skipped: 4 });
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(5);
+  });
+
+  it("a categoria ajustada depois da 1ª importação sobrevive ao 2º extrato", async () => {
+    const u = await newUser("ovl3");
+    const accountId = await newAccount(u);
+    const a = await previewC6(u, accountId, OVERLAP_A);
+    await post(u, `/import/${a.batchId}/commit`, commitPayload(a.rows, accountId));
+
+    const category = await prisma.category.findFirstOrThrow({ where: { workspaceId: u.workspaceId, type: "income" } });
+    const before = await prisma.transaction.findFirstOrThrow({ where: { workspaceId: u.workspaceId, description: "Pix recebido de B" } });
+    await prisma.transaction.update({ where: { id: before.id }, data: { categoryId: category.id } });
+
+    const b = await previewC6(u, accountId, OVERLAP_B);
+    await post(u, `/import/${b.batchId}/commit`, commitPayload(b.rows, accountId));
+
+    const after = await prisma.transaction.findUniqueOrThrow({ where: { id: before.id } });
+    expect(after.categoryId).toBe(category.id);
+    expect(after.importBatchId).toBe(a.batchId); // a linha continua pertencendo ao primeiro lote
   });
 });
 
@@ -1914,7 +2007,7 @@ pnpm --filter @app/api exec vitest run test/e2e/import-statements.e2e.test.ts te
 pnpm --filter @app/api typecheck
 ```
 
-Esperado: todos passam (os 16 novos e os 4 antigos de `import.e2e.test.ts`, que continuam válidos) e typecheck verde. Se `import.e2e.test.ts` (TM2/TM3) quebrar por causa do novo formato de fingerprint no CSV, os testes devem ser ajustados só onde comparam a string do fingerprint; o comportamento (idempotência e `dupCount` após commit) deve permanecer.
+Esperado: todos passam (os 19 novos e os 4 antigos de `import.e2e.test.ts`, que continuam válidos) e typecheck verde. Se `import.e2e.test.ts` (TM2/TM3) quebrar por causa do novo formato de fingerprint no CSV, os testes devem ser ajustados só onde comparam a string do fingerprint; o comportamento (idempotência e `dupCount` após commit) deve permanecer.
 
 - [ ] **Step 9: Suíte completa da API**
 
@@ -2004,6 +2097,20 @@ describe("Fase 11 — desfazer lote e histórico", () => {
 
     const other = await importC6(a, accountId);
     expect((await post(b, `/import/${other}/undo`, {})).statusCode).toBe(404);
+  });
+
+  it("desfazer o lote do extrato sobreposto remove só as linhas que ele inseriu", async () => {
+    const u = await newUser("undo4");
+    const accountId = await newAccount(u);
+    const a = await previewC6(u, accountId, OVERLAP_A);
+    await post(u, `/import/${a.batchId}/commit`, commitPayload(a.rows, accountId));
+    const b = await previewC6(u, accountId, OVERLAP_B);
+    await post(u, `/import/${b.batchId}/commit`, commitPayload(b.rows, accountId));
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(5);
+
+    const res = await post(u, `/import/${b.batchId}/undo`, {});
+    expect(res.json()).toEqual({ removed: 1 });
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(4);
   });
 
   it("GET /import/batches lista só lotes confirmados, com contagem real, saldo e estado de desfeito", async () => {
@@ -2174,7 +2281,7 @@ pnpm --filter @app/api typecheck
 pnpm --filter @app/api test
 ```
 
-Esperado: tudo verde (5 testes novos de desfazer/histórico; o de PDFs reais passa ou é ignorado).
+Esperado: tudo verde (6 testes novos de desfazer/histórico; o de PDFs reais passa ou é ignorado).
 
 - [ ] **Step 5: Commit**
 
