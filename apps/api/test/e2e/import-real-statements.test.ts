@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { detectStatement, verifyBalances } from "@app/shared";
+import { detectStatement, verifyBalances, type ParsedStatement } from "@app/shared";
 import { extractPdfText } from "../../src/import/pdf-text";
 
 const FILES = {
@@ -20,7 +20,15 @@ describe.each(Object.entries(FILES))("extrato C6 real (%s)", (label, path) => {
     expect(hit?.detected.format === "pdf_statement").toBe(true);
     expect(/^\d+$/.test(hit?.detected.accountRef ?? "")).toBe(true);
 
-    const parsed = hit!.parser.parse(text, { accountId: `real-${label}` });
+    // o erro do parser embute trecho de linha real; não deixa a mensagem chegar ao vitest
+    let result: ParsedStatement | null;
+    try {
+      result = hit!.parser.parse(text, { accountId: `real-${label}` });
+    } catch {
+      result = null;
+    }
+    expect(result !== null).toBe(true);
+    const parsed = result!;
     expect(parsed.rows.length).toBeGreaterThan(0);
     expect(new Set(parsed.rows.map((r) => r.fingerprint)).size).toBe(parsed.rows.length);
 

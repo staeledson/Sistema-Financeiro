@@ -46,6 +46,23 @@ describe("c6StatementParser.parse", () => {
     );
   });
 
+  it("ignora o saldo do cabeçalho quando o período termina antes da data da exportação", () => {
+    const text = c6SampleText().replace("até 5 de novembro de 2025", "até 4 de novembro de 2025");
+    const p = c6StatementParser.parse(text, { accountId: "acc1" });
+    expect(p.period).toEqual({ from: "2025-10-01", to: "2025-11-04" });
+    expect(p.balances.some((b) => b.current === true)).toBe(false);
+    expect(p.balances.map((b) => b.dateISO)).toEqual(["2025-10-02", "2025-10-10", "2025-10-29", "2025-11-03"]);
+    const check = verifyBalances(p.rows, p.balances);
+    expect(check?.ok).toBe(true);
+    expect(check?.checkpoints).toBe(3);
+  });
+
+  it("mantém o saldo do cabeçalho como corrente quando o período alcança a data da exportação", () => {
+    expect(parsed.balances.filter((b) => b.current === true)).toEqual([
+      { dateISO: "2025-11-05", balanceCents: 50000, current: true },
+    ]);
+  });
+
   it("saldo do cabeçalho é corrente: inclui lançamento com data contábil após a exportação", () => {
     const sep = " \t";
     const lines = c6SampleText()

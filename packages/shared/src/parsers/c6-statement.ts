@@ -107,6 +107,16 @@ export const c6StatementParser: StatementParser = {
       raw.push({ date, postedDate, signed: cents, description: cells[3] });
     }
 
+    // O saldo do cabeçalho é o saldo no momento da exportação: se o período do extrato termina antes
+    // dessa data, ele inclui movimentos posteriores ao fim do período que não estão no arquivo e
+    // geraria divergência falsa. Só entra na conferência quando o período alcança a exportação.
+    if (period) {
+      const periodTo = period.to;
+      for (let i = balances.length - 1; i >= 0; i--) {
+        if (balances[i].current === true && balances[i].dateISO > periodTo) balances.splice(i, 1);
+      }
+    }
+
     if (raw.length === 0 && balances.length === 0) {
       throw new StatementParseError("nenhum lançamento ou saldo encontrado no extrato");
     }
