@@ -523,3 +523,69 @@ describe("Fase 11 — endurecimento do commit", () => {
     expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(3);
   });
 });
+
+describe("Fase 11 — correções da revisão da Task 5", () => {
+  async function importC6(u: User, accountId: string) {
+    const body = await previewC6(u, accountId);
+    const commit = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, accountId));
+    expect(commit.json().inserted).toBe(9);
+    return { batchId: body.batchId as string, rows: body.rows as Array<Record<string, unknown>> };
+  }
+
+  it("lote desfeito não pode ser confirmado de novo (409) e não deixa linhas órfãs", async () => {
+    const u = await newUser("fix1");
+    const accountId = await newAccount(u);
+    const { batchId, rows } = await importC6(u, accountId);
+    expect((await post(u, `/import/${batchId}/undo`, {})).statusCode).toBe(200);
+
+    const res = await post(u, `/import/${batchId}/commit`, commitPayload(rows, accountId));
+    expect(res.statusCode).toBe(409);
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(0);
+    expect((await post(u, `/import/${batchId}/undo`, {})).statusCode).toBe(409);
+  });
+
+  it("dois undos simultâneos: um 200 (removed 9) e um 409", async () => {
+    const u = await newUser("fix2");
+    const accountId = await newAccount(u);
+    const { batchId } = await importC6(u, accountId);
+
+    const results = await Promise.all([post(u, `/import/${batchId}/undo`, {}), post(u, `/import/${batchId}/undo`, {})]);
+    const codes = results.map((r) => r.statusCode).sort();
+    expect(codes).toEqual([200, 409]);
+    const ok = results.find((r) => r.statusCode === 200)!;
+    expect(ok.json()).toEqual({ removed: 9 });
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(0);
+  });
+
+  it("commit recusa data inexistente (2026-13-45) com 400 e aceita data válida", async () => {
+    const u = await newUser("fix3");
+    const accountId = await newAccount(u);
+    const pre = await previewC6(u, accountId);
+    const row = (date: string) => ({
+      type: "expense", amountCents: 1000, date, postedDate: null, accountId, description: "x", categoryId: null,
+      fingerprint: `fix3:${accountId}:${date}`,
+    });
+    expect((await post(u, `/import/${pre.batchId}/commit`, { rows: [row("2026-13-45")] })).statusCode).toBe(400);
+    expect((await post(u, `/import/${pre.batchId}/commit`, { rows: [row("2026-02-30")] })).statusCode).toBe(400);
+    const ok = await post(u, `/import/${pre.batchId}/commit`, { rows: [row("2026-02-28")] });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json()).toEqual({ inserted: 1, skipped: 0 });
+  });
+
+  it("preview de extrato marca dup a 1ª linha gravada só com a chave legada (igual ao commit)", async () => {
+    const u = await newUser("fix4");
+    const accountId = await newAccount(u);
+    await prisma.transaction.create({
+      data: {
+        workspaceId: u.workspaceId, type: "income", amountCents: 100000n, date: new Date("2025-10-02"), accountId,
+        source: "import", createdById: u.userId, importFingerprint: `${accountId}|2025-10-02|100000|pix recebido de cliente a`,
+      },
+    });
+    const body = await previewC6(u, accountId);
+    expect(body.rows[0].dup).toBe(true);
+    expect(body.dupCount).toBe(1);
+
+    const res = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, accountId));
+    expect(res.json()).toEqual({ inserted: 8, skipped: 1 });
+  });
+});

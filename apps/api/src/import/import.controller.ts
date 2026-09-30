@@ -12,7 +12,10 @@ const previewBody = z.object({
   format: z.enum(["ofx", "pdf_statement"]),
 });
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((v) => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, "data inválida");
 const commitBody = z.object({
   rows: z.array(
     z.object({

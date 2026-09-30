@@ -107,12 +107,19 @@ export class ImportStatementService {
       throw err;
     }
 
+    const fingerprints = parsed.rows.map((r) => r.fingerprint);
+    // importações antigas gravaram só a chave base (sem ordinal): ela vale para a 1ª ocorrência, como no commit
+    const legacyBases = [...new Set(fingerprints.filter((f) => f.endsWith("|0")).map((f) => f.slice(0, -2)))];
     const existing = await prisma.transaction.findMany({
-      where: { workspaceId, importFingerprint: { in: parsed.rows.map((r) => r.fingerprint) } },
+      where: { workspaceId, importFingerprint: { in: [...fingerprints, ...legacyBases] } },
       select: { importFingerprint: true },
     });
     const seen = new Set(existing.map((e) => e.importFingerprint));
-    const rows = parsed.rows.map((r) => ({ ...r, accountId: account.id, dup: seen.has(r.fingerprint) }));
+    const rows = parsed.rows.map((r) => ({
+      ...r,
+      accountId: account.id,
+      dup: seen.has(r.fingerprint) || (r.fingerprint.endsWith("|0") && seen.has(r.fingerprint.slice(0, -2))),
+    }));
     const dupCount = rows.filter((r) => r.dup).length;
     const balanceCheck = verifyBalances(parsed.rows, parsed.balances);
 
@@ -146,19 +153,24 @@ export class ImportStatementService {
 
   /** Apaga as transações do lote e registra `undoneAt`. O lote precisa estar confirmado e ainda não desfeito. */
   async undo(workspaceId: string, batchId: string) {
-    const batch = await prisma.importBatch.findFirst({
-      where: { id: batchId, workspaceId },
-      select: { status: true, undoneAt: true },
+    return prisma.$transaction(async (tx) => {
+      // o updateMany condicional é o portão atômico: de dois undos simultâneos só um encontra o lote elegível
+      const claimed = await tx.importBatch.updateMany({
+        where: { id: batchId, workspaceId, status: "committed", undoneAt: null },
+        data: { undoneAt: new Date() },
+      });
+      if (claimed.count === 0) {
+        const batch = await tx.importBatch.findFirst({
+          where: { id: batchId, workspaceId },
+          select: { status: true, undoneAt: true },
+        });
+        if (!batch) throw new NotFoundException("lote não encontrado");
+        if (batch.status !== "committed") throw new ConflictException("o lote ainda não foi confirmado");
+        throw new ConflictException("o lote já foi desfeito");
+      }
+      const removed = await tx.transaction.deleteMany({ where: { workspaceId, importBatchId: batchId } });
+      return { removed: removed.count };
     });
-    if (!batch) throw new NotFoundException("lote não encontrado");
-    if (batch.status !== "committed") throw new ConflictException("o lote ainda não foi confirmado");
-    if (batch.undoneAt) throw new ConflictException("o lote já foi desfeito");
-
-    const [removed] = await prisma.$transaction([
-      prisma.transaction.deleteMany({ where: { workspaceId, importBatchId: batchId } }),
-      prisma.importBatch.update({ where: { id: batchId }, data: { undoneAt: new Date() } }),
-    ]);
-    return { removed: removed.count };
   }
 
   async listBatches(workspaceId: string) {

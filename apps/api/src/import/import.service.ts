@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import Papa from "papaparse";
 import { Queue } from "bullmq";
 import { csvMappingSchema, csvRowToTransaction, ordinalFingerprints } from "@app/shared";
@@ -80,9 +80,11 @@ export class ImportService {
   ) {
     const batch = await prisma.importBatch.findFirst({
       where: { id: batchId, workspaceId },
-      select: { id: true },
+      select: { id: true, undoneAt: true },
     });
     if (!batch) throw new NotFoundException("lote não encontrado");
+    // lote desfeito não volta a ser gravado: as linhas ficariam órfãs (undoneAt fica marcado e novo undo dá 409)
+    if (batch.undoneAt) throw new ConflictException("o lote foi desfeito; gere um novo preview");
 
     const accountIds = [...new Set(rows.map((r) => r.accountId))];
     const owned = await prisma.bankAccount.count({ where: { id: { in: accountIds }, workspaceId } });
