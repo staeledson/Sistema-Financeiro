@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { api, type BankAccount, type Category, type Transaction, type Balances, type Dashboard } from "../lib/api";
+import { api, type BankAccount, type Category, type Transaction, type Balances, type Dashboard, type NewAccount, type UpdateAccount } from "../lib/api";
 
 export const useFinanceStore = defineStore("finance", () => {
   const accounts = ref<BankAccount[]>([]);
@@ -13,9 +13,15 @@ export const useFinanceStore = defineStore("finance", () => {
     accounts.value = await api.accounts.list();
   }
 
-  async function createAccount(data: { type: BankAccount["type"]; name: string; openingBalanceCents?: number }) {
+  async function createAccount(data: NewAccount) {
     const acc = await api.accounts.create(data);
     accounts.value.push(acc);
+    return acc;
+  }
+
+  async function updateAccount(id: string, data: UpdateAccount) {
+    const acc = await api.accounts.update(id, data);
+    accounts.value = accounts.value.map((a) => (a.id === id ? acc : a));
     return acc;
   }
 
@@ -51,7 +57,7 @@ export const useFinanceStore = defineStore("finance", () => {
 
   return {
     accounts, categories, transactions, balances, dashboard,
-    loadAccounts, createAccount, archiveAccount,
+    loadAccounts, createAccount, updateAccount, archiveAccount,
     loadCategories, loadTransactions, createTransaction,
     loadBalances, loadDashboard,
   };
