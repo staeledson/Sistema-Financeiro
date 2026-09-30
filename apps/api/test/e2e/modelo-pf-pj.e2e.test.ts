@@ -139,3 +139,81 @@ describe("Fase 10 — contas PF/PJ", () => {
     expect(res.statusCode).toBe(400);
   });
 });
+
+describe("Fase 10 — categorias por entidade", () => {
+  it("novo usuário recebe as 7 categorias PJ de fábrica", async () => {
+    const u = await newUser("cat1");
+    const list = await app.inject({ method: "GET", url: "/categories", headers: u.h });
+    const pj = (list.json() as Array<{ name: string; type: string; entity: string }>).filter((c) => c.entity === "pj");
+    expect(pj.map((c) => c.name).sort()).toEqual([
+      "Fornecedores", "Folha e terceiros", "Impostos e tributos", "Pró-labore",
+      "Receita de serviços", "Serviços contratados", "Tarifas bancárias",
+    ].sort());
+    expect(pj.find((c) => c.name === "Receita de serviços")?.type).toBe("income");
+  });
+
+  it("GET /categories?entity= devolve a entidade pedida mais as compartilhadas (both)", async () => {
+    const u = await newUser("cat2");
+    await app.inject({ method: "POST", url: "/categories", headers: u.h, payload: { type: "expense", name: "Só PF", entity: "pf" } });
+
+    const names = async (q: string) =>
+      ((await app.inject({ method: "GET", url: `/categories${q}`, headers: u.h })).json() as Array<{ name: string }>).map((c) => c.name);
+
+    const pf = await names("?entity=pf");
+    expect(pf).toContain("Só PF");
+    expect(pf).toContain("Supermercado");
+    expect(pf).not.toContain("Pró-labore");
+
+    const pj = await names("?entity=pj");
+    expect(pj).toContain("Pró-labore");
+    expect(pj).toContain("Supermercado");
+    expect(pj).not.toContain("Só PF");
+
+    expect((await names("")).length).toBe(pf.length + pj.length - (await names("?entity=pf")).filter((n) => pj.includes(n)).length);
+  });
+
+  it("combina ?type= e ?entity=", async () => {
+    const u = await newUser("cat3");
+    const res = await app.inject({ method: "GET", url: "/categories?type=income&entity=pj", headers: u.h });
+    const cats = res.json() as Array<{ type: string; entity: string }>;
+    expect(cats.length).toBeGreaterThan(0);
+    expect(cats.every((c) => c.type === "income" && (c.entity === "pj" || c.entity === "both"))).toBe(true);
+  });
+
+  it("?entity=xx retorna 400", async () => {
+    const u = await newUser("cat4");
+    const res = await app.inject({ method: "GET", url: "/categories?entity=xx", headers: u.h });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("POST cria com entity (padrão both) e PATCH altera a entity", async () => {
+    const u = await newUser("cat5");
+    const padrao = await app.inject({ method: "POST", url: "/categories", headers: u.h, payload: { type: "expense", name: "Padrão" } });
+    expect(padrao.statusCode).toBe(201);
+    expect(padrao.json().entity).toBe("both");
+
+    const pj = await app.inject({ method: "POST", url: "/categories", headers: u.h, payload: { type: "expense", name: "Custo PJ", entity: "pj" } });
+    expect(pj.json().entity).toBe("pj");
+
+    const patched = await app.inject({ method: "PATCH", url: `/categories/${pj.json().id}`, headers: u.h, payload: { entity: "both" } });
+    expect(patched.statusCode).toBe(200);
+    expect(patched.json().entity).toBe("both");
+  });
+
+  it("PATCH sem entity não reseta a entity existente", async () => {
+    const u = await newUser("cat6");
+    const created = await app.inject({ method: "POST", url: "/categories", headers: u.h, payload: { type: "expense", name: "Custo PJ", entity: "pj" } });
+    const patched = await app.inject({ method: "PATCH", url: `/categories/${created.json().id}`, headers: u.h, payload: { name: "Custo PJ renomeado" } });
+    expect(patched.json()).toMatchObject({ name: "Custo PJ renomeado", entity: "pj" });
+  });
+
+  it("workspace criado por POST /workspaces também recebe as categorias PJ", async () => {
+    const u = await newUser("cat7");
+    const ws = await app.inject({ method: "POST", url: "/workspaces", headers: u.h, payload: { type: "business", name: "Empresa" } });
+    expect(ws.statusCode).toBe(201);
+    const list = await app.inject({
+      method: "GET", url: "/categories?entity=pj", headers: { ...u.h, "x-workspace-id": ws.json().id },
+    });
+    expect((list.json() as Array<{ name: string }>).map((c) => c.name)).toContain("Pró-labore");
+  });
+});

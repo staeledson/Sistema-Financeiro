@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Use
 import { categorySchema } from "@app/shared";
 import { CurrentUserGuard, type AuthenticatedUser } from "../auth/current-user.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
+import { parseEntityQuery } from "../common/entity-query";
 import { CategoriesService } from "./categories.service";
 
 @Controller("categories")
@@ -10,8 +11,12 @@ export class CategoriesController {
   constructor(private readonly service: CategoriesService) {}
 
   @Get()
-  list(@CurrentUser() user: AuthenticatedUser, @Query("type") type?: string) {
-    return this.service.list(user.workspaceId, type);
+  list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query("type") type?: string,
+    @Query("entity") entity?: string,
+  ) {
+    return this.service.list(user.workspaceId, type, parseEntityQuery(entity));
   }
 
   @Post()
