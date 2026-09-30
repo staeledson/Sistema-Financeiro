@@ -153,6 +153,34 @@ describe("verifyBalances", () => {
     expect(sem?.mismatches).toEqual([{ dateISO: "2025-10-05", expectedCents: 850, computedCents: 900, diffCents: -50 }]);
   });
 
+  it("saldo do dia e saldo corrente na mesma data: o corrente vem depois, mesmo se informado antes", () => {
+    // 50 lançada em 04/10 mas contábil em 08/10: está no saldo corrente (850), não no saldo do dia 05/10 (900)
+    const rows = [row("expense", 100, "2025-10-03"), row("expense", 50, "2025-10-04", "2025-10-08")];
+    const anchor = { dateISO: "2025-10-02", balanceCents: 1000 };
+    const current = { dateISO: "2025-10-05", balanceCents: 850, current: true };
+    const day = { dateISO: "2025-10-05", balanceCents: 900 };
+    const check = verifyBalances(rows, [anchor, current, day], NOW);
+    expect(check).toEqual({ ok: true, checkedAt: NOW.toISOString(), checkpoints: 2, mismatches: [] });
+  });
+
+  it("ponto corrente repetido é deduplicado e checkpoints conta após a deduplicação", () => {
+    const rows = [row("expense", 100, "2025-10-03"), row("expense", 50, "2025-10-04", "2025-10-08")];
+    const anchor = { dateISO: "2025-10-02", balanceCents: 1000 };
+    const current = { dateISO: "2025-10-05", balanceCents: 850, current: true };
+    const check = verifyBalances(rows, [anchor, current, { ...current }], NOW);
+    expect(check).toEqual({ ok: true, checkedAt: NOW.toISOString(), checkpoints: 1, mismatches: [] });
+  });
+
+  it("ponto corrente que não é o último é tratado como ponto comum (limitado pela data)", () => {
+    // 50 é contábil em 06/10: fora de (02/10, 05/10]; como o corrente não é o último, não soma sem limite
+    const rows = [row("expense", 100, "2025-10-03"), row("expense", 50, "2025-10-04", "2025-10-06")];
+    const anchor = { dateISO: "2025-10-02", balanceCents: 1000 };
+    const notLast = { dateISO: "2025-10-05", balanceCents: 900, current: true };
+    const later = { dateISO: "2025-10-07", balanceCents: 850 };
+    const check = verifyBalances(rows, [anchor, notLast, later], NOW);
+    expect(check).toEqual({ ok: true, checkedAt: NOW.toISOString(), checkpoints: 2, mismatches: [] });
+  });
+
   it("registra cada divergência com esperado, calculado e diferença (esperado − calculado)", () => {
     const rows = [row("expense", 100, "2025-10-03")];
     const check = verifyBalances(rows, [
