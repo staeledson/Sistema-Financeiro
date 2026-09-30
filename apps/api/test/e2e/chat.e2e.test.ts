@@ -475,3 +475,66 @@ describe("Fase 6 — Guardrails de segurança", () => {
     expect(notFoundRes.statusCode).toBe(404);
   });
 });
+
+// ── Busca por nome com categorias PJ (nomes parecidos) ────────────────────────
+
+describe("Fase 10 — search_transactions resolve nomes parecidos de categoria e conta", () => {
+  type Row = { description: string };
+  type Signed = Awaited<ReturnType<typeof signUp>>;
+
+  async function categoryTx(u: Signed, categoryName: string, type: "income" | "expense") {
+    const cat = await prisma.category.findFirstOrThrow({ where: { workspaceId: u.ws.id, name: categoryName } });
+    await prisma.transaction.create({
+      data: {
+        workspaceId: u.ws.id, type, amountCents: 1000n, date: new Date("2026-06-01"), source: "manual",
+        createdById: u.user.id, categoryId: cat.id, description: categoryName,
+      },
+    });
+  }
+
+  const search = async (u: Signed, args: Record<string, string>) =>
+    ((await TOOLS.search_transactions.run(args, { workspaceId: u.ws.id })) as Row[]).map((r) => r.description).sort();
+
+  it("CP1: nome parcial busca em todas as categorias que o contêm (impostos)", async () => {
+    const u = await signUp("cp1");
+    await categoryTx(u, "Impostos e taxas", "expense");
+    await categoryTx(u, "Impostos e tributos", "expense");
+    expect(await search(u, { categoryName: "impostos" })).toEqual(["Impostos e taxas", "Impostos e tributos"]);
+  });
+
+  it("CP2: nome parcial atravessa tipos (serviços casa receita e despesa)", async () => {
+    const u = await signUp("cp2");
+    await categoryTx(u, "Receita de serviços", "income");
+    await categoryTx(u, "Serviços contratados", "expense");
+    expect(await search(u, { categoryName: "serviços" })).toEqual(["Receita de serviços", "Serviços contratados"]);
+  });
+
+  it("CP3: nome exato (sem diferenciar caixa) vence os parciais", async () => {
+    const u = await signUp("cp3");
+    await categoryTx(u, "Impostos e taxas", "expense");
+    await categoryTx(u, "Impostos e tributos", "expense");
+    expect(await search(u, { categoryName: "IMPOSTOS E TAXAS" })).toEqual(["Impostos e taxas"]);
+  });
+
+  it("CP4: conta por nome parcial busca em todas, por nome exato em uma", async () => {
+    const u = await signUp("cp4");
+    for (const name of ["Inter PF", "Inter PJ"]) {
+      const acc = await prisma.bankAccount.create({ data: { workspaceId: u.ws.id, type: "checking", name } });
+      await prisma.transaction.create({
+        data: {
+          workspaceId: u.ws.id, type: "expense", amountCents: 500n, date: new Date("2026-06-02"), source: "manual",
+          createdById: u.user.id, accountId: acc.id, description: name,
+        },
+      });
+    }
+    expect(await search(u, { accountName: "inter" })).toEqual(["Inter PF", "Inter PJ"]);
+    expect(await search(u, { accountName: "inter pj" })).toEqual(["Inter PJ"]);
+  });
+
+  it("CP5: nome sem correspondência não filtra nada a mais: retorna vazio", async () => {
+    const u = await signUp("cp5");
+    await categoryTx(u, "Impostos e taxas", "expense");
+    expect(await search(u, { categoryName: "inexistente" })).toEqual([]);
+    expect(await search(u, { accountName: "inexistente" })).toEqual([]);
+  });
+});

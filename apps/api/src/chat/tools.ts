@@ -12,22 +12,24 @@ function parseMonth(month: string): { start: Date; end: Date } {
   return { start, end };
 }
 
-async function resolveCategoryId(ctx: Ctx, name?: string | null): Promise<string | null> {
-  if (!name) return null;
-  const cat = await prisma.category.findFirst({
-    where: { workspaceId: ctx.workspaceId, name: { contains: name, mode: "insensitive" } },
-    select: { id: true },
-  });
-  return cat?.id ?? "___none___";
+/** Nome exato (sem diferenciar caixa) vence; sem exato, valem todos os que contêm o texto. */
+function matchByName<T extends { name: string }>(rows: T[], name: string): T[] {
+  const n = name.trim().toLowerCase();
+  const exact = rows.filter((r) => r.name.toLowerCase() === n);
+  return exact.length ? exact : rows.filter((r) => r.name.toLowerCase().includes(n));
 }
 
-async function resolveAccountId(ctx: Ctx, name?: string | null): Promise<string | null> {
-  if (!name) return null;
-  const acc = await prisma.bankAccount.findFirst({
-    where: { workspaceId: ctx.workspaceId, name: { contains: name, mode: "insensitive" } },
-    select: { id: true },
-  });
-  return acc?.id ?? "___none___";
+/** `null` = sem filtro; `[]` = nome informado que não casa com nada (a busca volta vazia). */
+async function resolveCategoryIds(ctx: Ctx, name?: string | null): Promise<string[] | null> {
+  if (!name?.trim()) return null;
+  const rows = await prisma.category.findMany({ where: { workspaceId: ctx.workspaceId }, select: { id: true, name: true } });
+  return matchByName(rows, name).map((r) => r.id);
+}
+
+async function resolveAccountIds(ctx: Ctx, name?: string | null): Promise<string[] | null> {
+  if (!name?.trim()) return null;
+  const rows = await prisma.bankAccount.findMany({ where: { workspaceId: ctx.workspaceId }, select: { id: true, name: true } });
+  return matchByName(rows, name).map((r) => r.id);
 }
 
 export const TOOLS = {
@@ -183,16 +185,16 @@ export const TOOLS = {
       categoryName?: string | null; accountName?: string | null;
       q?: string | null; minAmountCents?: number | null; maxAmountCents?: number | null;
     }, ctx: Ctx) {
-      const [categoryId, accountId] = await Promise.all([
-        resolveCategoryId(ctx, a.categoryName),
-        resolveAccountId(ctx, a.accountName),
+      const [categoryIds, accountIds] = await Promise.all([
+        resolveCategoryIds(ctx, a.categoryName),
+        resolveAccountIds(ctx, a.accountName),
       ]);
 
       const where: Record<string, unknown> = { workspaceId: ctx.workspaceId };
       if (a.from) where.date = { ...((where.date as object) ?? {}), gte: new Date(a.from) };
       if (a.to) where.date = { ...((where.date as object) ?? {}), lte: new Date(a.to) };
-      if (categoryId) where.categoryId = categoryId;
-      if (accountId) where.accountId = accountId;
+      if (categoryIds) where.categoryId = { in: categoryIds };
+      if (accountIds) where.accountId = { in: accountIds };
       if (a.q) where.description = { contains: a.q, mode: "insensitive" };
       if (a.minAmountCents != null) where.amountCents = { ...((where.amountCents as object) ?? {}), gte: BigInt(a.minAmountCents) };
       if (a.maxAmountCents != null) where.amountCents = { ...((where.amountCents as object) ?? {}), lte: BigInt(a.maxAmountCents) };

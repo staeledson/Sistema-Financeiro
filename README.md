@@ -121,7 +121,7 @@ sistema-financeiro/
 │   │   │   ├── push/       notificações push (VAPID)
 │   │   │   ├── transactions/
 │   │   │   └── workspaces/ multi-tenant
-│   │   └── test/e2e/       103 testes de integração
+│   │   └── test/e2e/       108 testes de integração
 │   │
 │   ├── worker/             BullMQ job processors
 │   │   └── src/
@@ -192,7 +192,7 @@ pnpm test
 
 # por app
 pnpm --filter @app/shared test   # 48 testes unitários
-pnpm --filter @app/api    test   # 103 testes e2e
+pnpm --filter @app/api    test   # 108 testes e2e
 pnpm --filter @app/worker test   # 17 testes unitários
 pnpm --filter @app/web    test   # 33 testes unitários
 ```
