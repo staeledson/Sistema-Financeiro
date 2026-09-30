@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from "@nestjs/common";
 import { Queue } from "bullmq";
-import { transactionInputSchema, type TransactionInput } from "@app/shared";
+import { transactionInputSchema, type AccountEntity, type TransactionInput } from "@app/shared";
+import type { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../database";
 import { CategoryRulesService } from "../category-rules/category-rules.service";
 import { AI_QUEUE } from "../queue/queue.tokens";
@@ -85,8 +86,19 @@ export class TransactionsService {
     });
   }
 
-  async list(workspaceId: string, filters: { from?: string; to?: string; accountId?: string; categoryId?: string; q?: string }) {
-    const { from, to, accountId, categoryId, q } = filters;
+  async list(
+    workspaceId: string,
+    filters: { from?: string; to?: string; accountId?: string; categoryId?: string; q?: string; entity?: AccountEntity },
+  ) {
+    const { from, to, accountId, categoryId, q, entity } = filters;
+
+    const and: Prisma.TransactionWhereInput[] = [];
+    if (accountId) {
+      and.push({ OR: [{ accountId }, { sourceAccountId: accountId }, { destAccountId: accountId }] });
+    }
+    if (entity) {
+      and.push({ OR: [{ account: { entity } }, { sourceAccount: { entity } }, { destAccount: { entity } }] });
+    }
 
     return prisma.transaction.findMany({
       where: {
@@ -95,14 +107,8 @@ export class TransactionsService {
           ? { date: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } }
           : {}),
         ...(categoryId ? { categoryId } : {}),
-        ...(accountId ? {
-          OR: [
-            { accountId },
-            { sourceAccountId: accountId },
-            { destAccountId: accountId },
-          ],
-        } : {}),
         ...(q ? { description: { contains: q, mode: "insensitive" as const } } : {}),
+        ...(and.length ? { AND: and } : {}),
       },
       select: {
         id: true, type: true, amountCents: true, date: true,

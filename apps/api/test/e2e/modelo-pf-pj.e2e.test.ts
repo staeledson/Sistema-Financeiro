@@ -217,3 +217,48 @@ describe("Fase 10 — categorias por entidade", () => {
     expect((list.json() as Array<{ name: string }>).map((c) => c.name)).toContain("Pró-labore");
   });
 });
+
+describe("Fase 10 — transações filtradas por entidade", () => {
+  async function seedPfPj(tag: string) {
+    const u = await newUser(tag);
+    const mk = async (name: string, entity: "pf" | "pj") =>
+      (await app.inject({ method: "POST", url: "/accounts", headers: u.h, payload: { type: "checking", name, entity } })).json().id as string;
+    const pf = await mk("Conta PF", "pf");
+    const pj = await mk("Conta PJ", "pj");
+    const tx = async (payload: Record<string, unknown>) =>
+      app.inject({ method: "POST", url: "/transactions", headers: u.h, payload: { date: "2026-06-10", amountCents: 1000, ...payload } });
+    await tx({ type: "expense", accountId: pf, description: "mercado" });
+    await tx({ type: "income", accountId: pj, description: "nota fiscal" });
+    await tx({ type: "transfer", sourceAccountId: pf, destAccountId: pj, description: "aporte" });
+    return { u, pf, pj };
+  }
+
+  const descs = (res: { json: () => unknown }) =>
+    (res.json() as Array<{ description: string }>).map((t) => t.description).sort();
+
+  it("sem entity devolve tudo; entity=pf e entity=pj filtram pela conta envolvida", async () => {
+    const { u } = await seedPfPj("tx1");
+
+    expect(descs(await app.inject({ method: "GET", url: "/transactions", headers: u.h }))).toEqual(["aporte", "mercado", "nota fiscal"]);
+    expect(descs(await app.inject({ method: "GET", url: "/transactions?entity=pf", headers: u.h }))).toEqual(["aporte", "mercado"]);
+    expect(descs(await app.inject({ method: "GET", url: "/transactions?entity=pj", headers: u.h }))).toEqual(["aporte", "nota fiscal"]);
+  });
+
+  it("entity combina com accountId por AND", async () => {
+    const { u, pf } = await seedPfPj("tx2");
+    const res = await app.inject({ method: "GET", url: `/transactions?entity=pj&accountId=${pf}`, headers: u.h });
+    expect(descs(res)).toEqual(["aporte"]);
+  });
+
+  it("entity combina com busca textual", async () => {
+    const { u } = await seedPfPj("tx3");
+    const res = await app.inject({ method: "GET", url: "/transactions?entity=pf&q=mercado", headers: u.h });
+    expect(descs(res)).toEqual(["mercado"]);
+  });
+
+  it("entity inválida retorna 400", async () => {
+    const u = await newUser("tx4");
+    const res = await app.inject({ method: "GET", url: "/transactions?entity=xx", headers: u.h });
+    expect(res.statusCode).toBe(400);
+  });
+});
