@@ -4,7 +4,7 @@ import { http } from "../lib/http";
 import { useFinanceStore } from "../stores/finance";
 import { INSTITUTION_LABEL } from "../lib/entity";
 import {
-  balanceSummary, detectFile, previewStatement, undoBatch, listBatches,
+  balanceSummary, detectFile, previewStatement, undoBatch, listBatches, decodeText, readFileBytes, formatDate,
   type BatchSummary, type DetectResponse, type PreviewRow, type StatementPreview,
 } from "../lib/import-client";
 
@@ -21,6 +21,7 @@ const rememberAccount = ref(true);
 const erro = ref("");
 const status = ref("");
 const dragging = ref(false);
+const busy = ref(false);
 
 const preview = ref<StatementPreview | null>(null);
 const previewRows = ref<SelectableRow[]>([]);
@@ -51,7 +52,11 @@ const balance = computed(() => balanceSummary(preview.value?.balanceCheck ?? nul
 const selectedCount = computed(() => previewRows.value.filter((r) => r.selected).length);
 const selectedAccount = computed(() => finance.accounts.find((a) => a.id === selectedAccountId.value));
 const canRemember = computed(
-  () => !!detected.value?.accountRef && !!selectedAccount.value && !selectedAccount.value.externalId,
+  () =>
+    !!detected.value?.accountRef &&
+    !!selectedAccount.value &&
+    !selectedAccount.value.externalId &&
+    !finance.accounts.some((a) => a.externalId === detected.value?.accountRef),
 );
 const kindLabel = computed(() => (detected.value?.kind === "card_invoice" ? "Fatura de cartão" : "Extrato de conta"));
 const isStatement = computed(() => detected.value?.format === "ofx" || detected.value?.format === "pdf_statement");
@@ -65,7 +70,9 @@ async function loadBatches() {
 }
 
 function onPick(e: Event) {
-  const f = (e.target as HTMLInputElement).files?.[0];
+  const input = e.target as HTMLInputElement;
+  const f = input.files?.[0];
+  input.value = "";
   if (f) void handleFile(f);
 }
 
@@ -80,6 +87,7 @@ async function handleFile(f: File) {
   file.value = f;
   detected.value = null;
   status.value = "Lendo o arquivo...";
+  busy.value = true;
   try {
     const d = await detectFile(f);
     detected.value = d;
@@ -98,11 +106,13 @@ async function handleFile(f: File) {
   } catch (e) {
     erro.value = (e as Error).message;
     status.value = "";
+  } finally {
+    busy.value = false;
   }
 }
 
 async function prepareCsv(f: File) {
-  csvText.value = await f.text();
+  csvText.value = decodeText(await readFileBytes(f));
   const firstLine = csvText.value.split("\n")[0] ?? "";
   csvHeaders.value = firstLine.split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
   const headers = csvHeaders.value;
@@ -140,11 +150,20 @@ function showPreview(data: { batchId: string; rows: PreviewRow[] }, p: Statement
 
 async function runStatementPreview() {
   erro.value = "";
-  if (!selectedAccountId.value || !detected.value?.text) return;
+  if (!selectedAccountId.value) return;
+  if (!detected.value?.text) {
+    erro.value = "Não consegui ler o conteúdo do arquivo. Tente enviá-lo novamente.";
+    return;
+  }
   status.value = "Analisando...";
+  busy.value = true;
   try {
     if (rememberAccount.value && canRemember.value) {
-      await finance.updateAccount(selectedAccountId.value, { externalId: detected.value.accountRef });
+      try {
+        await finance.updateAccount(selectedAccountId.value, { externalId: detected.value.accountRef });
+      } catch {
+        /* lembrar a conta é opcional e não bloqueia o preview */
+      }
     }
     const format = detected.value.format === "ofx" ? "ofx" : "pdf_statement";
     const p = await previewStatement({ accountId: selectedAccountId.value, text: detected.value.text, format });
@@ -153,6 +172,7 @@ async function runStatementPreview() {
     erro.value = (e as Error).message;
   } finally {
     status.value = "";
+    busy.value = false;
   }
 }
 
@@ -160,6 +180,7 @@ async function runCsvPreview() {
   erro.value = "";
   if (!selectedAccountId.value) { erro.value = "Selecione uma conta."; return; }
   status.value = "Analisando...";
+  busy.value = true;
   try {
     const data = await http<{ batchId: string; rows: PreviewRow[] }>("POST", "/import/csv/preview", {
       accountId: selectedAccountId.value,
@@ -171,12 +192,14 @@ async function runCsvPreview() {
     erro.value = (e as Error).message;
   } finally {
     status.value = "";
+    busy.value = false;
   }
 }
 
 async function commit() {
   erro.value = "";
   status.value = "Importando...";
+  busy.value = true;
   try {
     const rows = previewRows.value.filter((r) => r.selected);
     const result = await http<{ inserted: number; skipped: number }>("POST", `/import/${batchId.value}/commit`, {
@@ -190,6 +213,8 @@ async function commit() {
   } catch (e) {
     erro.value = (e as Error).message;
     status.value = "";
+  } finally {
+    busy.value = false;
   }
 }
 
@@ -197,6 +222,7 @@ async function enqueuePdf() {
   if (!file.value) return;
   erro.value = "";
   status.value = "Enviando PDF...";
+  busy.value = true;
   try {
     const { url, storagePath } = await http<{ url: string; storagePath: string }>("POST", "/ingest/upload-url", {
       ext: "pdf",
@@ -209,30 +235,28 @@ async function enqueuePdf() {
   } catch (e) {
     erro.value = (e as Error).message;
     status.value = "";
+  } finally {
+    busy.value = false;
   }
 }
 
 async function undo(b: BatchSummary) {
   if (!window.confirm(`Desfazer esta importação? ${b.inserted} lançamento(s) serão apagados.`)) return;
   erro.value = "";
+  busy.value = true;
   try {
     const { removed } = await undoBatch(b.id);
     status.value = `${removed} lançamento(s) removido(s).`;
     await loadBatches();
   } catch (e) {
     erro.value = (e as Error).message;
+  } finally {
+    busy.value = false;
   }
 }
 
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function formatDate(iso: string) {
-  // "YYYY-MM-DD" puro vira UTC à meia-noite em new Date(); em UTC-3 mostraria o dia anterior.
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (dateOnly) return `${dateOnly[3]}/${dateOnly[2]}/${dateOnly[1]}`;
-  return new Date(iso).toLocaleDateString("pt-BR");
 }
 
 function reset() {
@@ -245,6 +269,12 @@ function reset() {
   csvText.value = "";
   csvHeaders.value = [];
   selectedAccountId.value = "";
+  rememberAccount.value = true;
+  selectedMappingId.value = "";
+  mappingName.value = "";
+  mapping.value.dateFormat = "DD/MM/YYYY";
+  mapping.value.decimalSeparator = ",";
+  mapping.value.expenseIsNegative = true;
   erro.value = "";
   status.value = "";
 }
@@ -302,7 +332,7 @@ function reset() {
 
       <div class="btn-row">
         <button class="btn-secondary" @click="reset">Trocar arquivo</button>
-        <button :disabled="!selectedAccountId || !isStatement" @click="runStatementPreview">Ver preview</button>
+        <button :disabled="busy || !selectedAccountId || !isStatement" @click="runStatementPreview">Ver preview</button>
       </div>
     </div>
 
@@ -363,7 +393,7 @@ function reset() {
 
       <div class="btn-row">
         <button class="btn-secondary" @click="reset">Trocar arquivo</button>
-        <button :disabled="!selectedAccountId || !csvText" @click="runCsvPreview">Ver preview</button>
+        <button :disabled="busy || !selectedAccountId || !csvText" @click="runCsvPreview">Ver preview</button>
       </div>
     </div>
 
@@ -373,7 +403,7 @@ function reset() {
       <p class="hint">A IA pode extrair os lançamentos. Eles aparecerão em "Revisar" para confirmação.</p>
       <div class="btn-row">
         <button class="btn-secondary" @click="reset">Trocar arquivo</button>
-        <button @click="enqueuePdf">Interpretar com IA</button>
+        <button :disabled="busy" @click="enqueuePdf">Interpretar com IA</button>
       </div>
     </div>
 
@@ -420,7 +450,7 @@ function reset() {
 
       <div class="btn-row">
         <button class="btn-secondary" @click="reset">Cancelar</button>
-        <button @click="commit" :disabled="selectedCount === 0">
+        <button @click="commit" :disabled="busy || selectedCount === 0">
           Importar {{ selectedCount }} lançamento{{ selectedCount !== 1 ? 's' : '' }}
         </button>
       </div>
@@ -445,7 +475,7 @@ function reset() {
           </div>
           <span v-if="b.undoneAt" class="hint">desfeita</span>
           <span v-else-if="b.balanceOk === false" class="balance warn" title="Houve divergência de saldo no preview">⚠ saldo</span>
-          <button v-if="!b.undoneAt" class="btn-small" @click="undo(b)">Desfazer</button>
+          <button v-if="!b.undoneAt" class="btn-small" :disabled="busy" @click="undo(b)">Desfazer</button>
         </div>
       </div>
     </div>
@@ -457,9 +487,10 @@ function reset() {
 h2 { margin-bottom: 0; }
 .card { background: var(--color-surface); padding: calc(var(--space) * 3); border-radius: var(--radius); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
 h3 { margin: 0; font-size: 1rem; }
-.dropzone { display: flex; flex-direction: column; align-items: center; gap: var(--space); padding: calc(var(--space) * 6) calc(var(--space) * 3); border: 2px dashed #444; border-radius: var(--radius); cursor: pointer; text-align: center; }
+.dropzone { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--space); padding: calc(var(--space) * 6) calc(var(--space) * 3); border: 2px dashed #444; border-radius: var(--radius); cursor: pointer; text-align: center; }
 .dropzone.dragging { border-color: var(--color-primary); background: rgba(79,124,255,.07); }
-.dropzone input { display: none; }
+.dropzone input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0 0 0 0); }
+.dropzone:focus-within { border-color: var(--color-primary); }
 .detected { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space) calc(var(--space) * 2); margin: 0; font-size: 0.9rem; }
 .detected dt { opacity: 0.6; }
 .detected dd { margin: 0; font-weight: 600; }

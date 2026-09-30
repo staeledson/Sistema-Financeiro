@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../http", () => ({ http: vi.fn(async () => ({})) }));
 
 import { http } from "../http";
-import { bytesToBase64, fileToBase64, balanceSummary, detectFile, previewStatement, undoBatch, listBatches } from "../import-client";
+import { bytesToBase64, fileToBase64, decodeText, readFileBytes, formatDate, balanceSummary, detectFile, previewStatement, undoBatch, listBatches } from "../import-client";
 
 const lastCall = () => {
   const calls = vi.mocked(http).mock.calls;
@@ -64,5 +64,32 @@ describe("chamadas à API", () => {
     await listBatches();
     expect(lastCall()[0]).toBe("GET");
     expect(lastCall()[1]).toBe("/import/batches");
+  });
+});
+
+describe("decodeText", () => {
+  it("decodifica UTF-8", () => {
+    expect(decodeText(new TextEncoder().encode("Salário"))).toBe("Salário");
+  });
+
+  it("cai para windows-1252 quando o UTF-8 é inválido", () => {
+    expect(decodeText(new Uint8Array([0x53, 0x61, 0x6c, 0xe1, 0x72, 0x69, 0x6f]))).toBe("Salário");
+  });
+});
+
+describe("readFileBytes", () => {
+  it("lê os bytes do arquivo", async () => {
+    const bytes = await readFileBytes(new File(["abc"], "a.csv"));
+    expect(Array.from(bytes)).toEqual([97, 98, 99]);
+  });
+});
+
+describe("formatDate", () => {
+  it("YYYY-MM-DD vira dd/mm/aaaa sem deslocar fuso", () => {
+    expect(formatDate("2025-10-29")).toBe("29/10/2025");
+  });
+
+  it("timestamp ISO completo passa por Date", () => {
+    expect(formatDate("2026-06-10T12:00:00.000Z")).toBe("10/06/2026");
   });
 });
