@@ -150,6 +150,9 @@ importers:
       papaparse:
         specifier: ^5.5.4
         version: 5.5.4
+      pdf-parse:
+        specifier: ^2.4.5
+        version: 2.4.5
       pg:
         specifier: ^8.22.0
         version: 8.22.0
