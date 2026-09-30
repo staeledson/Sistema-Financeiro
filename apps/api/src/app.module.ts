@@ -1,5 +1,7 @@
 import "reflect-metadata";
 import { Module } from "@nestjs/common";
+import { APP_FILTER } from "@nestjs/core";
+import { ZodExceptionFilter } from "./common/zod-exception.filter";
 import { QueueModule } from "./queue/queue.module";
 import { WorkspacesModule } from "./workspaces/workspaces.module";
 import { AccountsModule } from "./accounts/accounts.module";
@@ -48,5 +50,6 @@ import { ExportModule } from "./export/export.module";
     BillsModule,
     ExportModule,
   ],
+  providers: [{ provide: APP_FILTER, useClass: ZodExceptionFilter }],
 })
 export class AppModule {}
