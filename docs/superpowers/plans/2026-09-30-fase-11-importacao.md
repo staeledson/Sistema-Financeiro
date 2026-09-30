@@ -77,7 +77,7 @@
 **Interfaces:**
 - Produces (Prisma): `ImportFormat.pdf_statement`; `ImportBatch.institution: Institution | null`, `detectedAccountRef: string | null`, `balanceCheck: Json | null`, `undoneAt: Date | null`; `Transaction.postedDate: Date | null`.
 
-- [ ] **Step 1: Criar a branch**
+- [x] **Step 1: Criar a branch**
 
 ```bash
 git checkout main
@@ -86,7 +86,7 @@ git checkout -b fase-11-importacao
 
 Esperado: `Switched to a new branch 'fase-11-importacao'`.
 
-- [ ] **Step 2: Escrever o teste de schema do banco (deve falhar)**
+- [x] **Step 2: Escrever o teste de schema do banco (deve falhar)**
 
 Em `apps/api/test/database/schema.test.ts`, acrescentar dentro do `describe("schema base", …)`, depois do último `it`:
 
@@ -108,7 +108,7 @@ Em `apps/api/test/database/schema.test.ts`, acrescentar dentro do `describe("sch
   });
 ```
 
-- [ ] **Step 3: Rodar e confirmar a falha**
+- [x] **Step 3: Rodar e confirmar a falha**
 
 ```bash
 docker compose up -d
@@ -117,7 +117,7 @@ pnpm --filter @app/api exec vitest run test/database/schema.test.ts
 
 Esperado: FAIL nos dois testes novos (colunas e valor de enum inexistentes).
 
-- [ ] **Step 4: Editar o `prisma/schema.prisma`**
+- [x] **Step 4: Editar o `prisma/schema.prisma`**
 
 1. No `enum ImportFormat`, acrescentar o valor:
 
@@ -145,7 +145,7 @@ enum ImportFormat {
   postedDate      DateTime?       @db.Date
 ```
 
-- [ ] **Step 5: Gerar o SQL, aplicar e verificar**
+- [x] **Step 5: Gerar o SQL, aplicar e verificar**
 
 O `HEAD` ainda tem o schema antigo (nada foi commitado).
 
@@ -167,7 +167,7 @@ pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema
 
 Esperado: migration aplicada e a contagem final `1` (sem drift).
 
-- [ ] **Step 6: Rodar testes e typecheck**
+- [x] **Step 6: Rodar testes e typecheck**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/database/schema.test.ts
@@ -176,7 +176,7 @@ pnpm turbo typecheck
 
 Esperado: 6 testes passam em `schema.test.ts` e typecheck verde nos 4 pacotes.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add prisma apps/api/test/database/schema.test.ts
@@ -206,7 +206,7 @@ EOF
   - `balance.ts`: `BalanceMismatch { dateISO; expectedCents; computedCents; diffCents }`, `BalanceCheck { ok; checkedAt; checkpoints; mismatches }`, `verifyBalances(rows, balances, now?): BalanceCheck | null`.
   - `import.ts`: `ordinalFingerprints(keys: string[]): string[]` (devolve `${key}|${n}`, `n` = quantas chaves iguais apareceram antes).
 
-- [ ] **Step 1: Escrever os testes (devem falhar)**
+- [x] **Step 1: Escrever os testes (devem falhar)**
 
 Criar `packages/shared/src/__tests__/statement-core.test.ts`:
 
@@ -349,7 +349,7 @@ describe("verifyBalances", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/shared test
@@ -357,7 +357,7 @@ pnpm --filter @app/shared test
 
 Esperado: FAIL no novo arquivo (módulos `../parsers/*` e `ordinalFingerprints` inexistentes). Os testes antigos continuam passando.
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 Em `packages/shared/src/import.ts`, acrescentar ao final do arquivo:
 
@@ -552,7 +552,7 @@ export function verifyBalances(
 }
 ```
 
-- [ ] **Step 4: Rodar testes e typecheck**
+- [x] **Step 4: Rodar testes e typecheck**
 
 ```bash
 pnpm --filter @app/shared test
@@ -561,7 +561,7 @@ pnpm --filter @app/shared typecheck
 
 Esperado: todos passam (48 anteriores + 16 novos) e typecheck verde. (Os módulos novos ainda não são reexportados; isso acontece na Task 3.)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/shared
@@ -594,7 +594,7 @@ EOF
   - `@app/shared` exporta `./parsers` (tipos, parsers, `verifyBalances`, `detectStatement`, helpers de `text`).
   - Fixture (não exportada pelo `index.ts`): `packages/shared/src/parsers/__fixtures__/c6-sample.ts` com `c6SampleText(opts?: { layout?: boolean; corruptBalance?: boolean }): string` e `C6_SAMPLE` (constantes esperadas). A API a importa por caminho relativo.
 
-- [ ] **Step 1: Criar a fixture sintética do C6**
+- [x] **Step 1: Criar a fixture sintética do C6**
 
 O extrato abaixo é fictício (nomes e números inventados) e reproduz a estrutura dos extratos reais: cabeçalho, blocos mensais, linhas com data de lançamento e contábil diferentes, "Saldo do dia", linha listada depois do saldo do dia a que pertence, duas linhas idênticas no mesmo dia, e saldo final no cabeçalho.
 
@@ -665,7 +665,7 @@ export function c6SampleText(opts: { layout?: boolean; corruptBalance?: boolean 
 }
 ```
 
-- [ ] **Step 2: Escrever os testes dos parsers (devem falhar)**
+- [x] **Step 2: Escrever os testes dos parsers (devem falhar)**
 
 Criar `packages/shared/src/__tests__/statement-parsers.test.ts`:
 
@@ -880,7 +880,7 @@ describe("detectStatement", () => {
 });
 ```
 
-- [ ] **Step 3: Rodar e confirmar a falha**
+- [x] **Step 3: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/shared test
@@ -888,7 +888,7 @@ pnpm --filter @app/shared test
 
 Esperado: FAIL no novo arquivo (`c6StatementParser`, `ofxStatementParser`, `detectStatement`, `StatementParseError` não exportados por `../index`; fitid com fallback).
 
-- [ ] **Step 4: Ajustar `parseOfx` (fitid sem fallback)**
+- [x] **Step 4: Ajustar `parseOfx` (fitid sem fallback)**
 
 Substituir `packages/shared/src/ofx.ts` por:
 
@@ -922,7 +922,7 @@ export function parseOfx(text: string): OfxTxn[] {
 }
 ```
 
-- [ ] **Step 5: Implementar o parser do C6**
+- [x] **Step 5: Implementar o parser do C6**
 
 Criar `packages/shared/src/parsers/c6-statement.ts`:
 
@@ -1052,7 +1052,7 @@ export const c6StatementParser: StatementParser = {
 };
 ```
 
-- [ ] **Step 6: Implementar o parser OFX e o registro**
+- [x] **Step 6: Implementar o parser OFX e o registro**
 
 Criar `packages/shared/src/parsers/ofx-statement.ts`:
 
@@ -1170,7 +1170,7 @@ Em `packages/shared/src/index.ts`, acrescentar antes da linha `// Mesma instânc
 export * from "./parsers";
 ```
 
-- [ ] **Step 7: Rodar testes e typecheck do monorepo**
+- [x] **Step 7: Rodar testes e typecheck do monorepo**
 
 ```bash
 pnpm --filter @app/shared test
@@ -1179,7 +1179,7 @@ pnpm turbo typecheck
 
 Esperado: `@app/shared` com todos os testes passando (64 da Task 2 + 25 novos) e typecheck verde nos 4 pacotes. Se o typecheck da API acusar uso de `OfxTxn.fitid` como `string` (em `import.service.ts`, `ofxPreview`), ignorar: esse método é removido na Task 4 (nesse caso rode o typecheck só do shared agora e o monorepo na Task 4).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/shared
@@ -1215,7 +1215,7 @@ EOF
   - `POST /import/csv/preview` passa a usar fingerprint com ordinal e ainda reconhece duplicatas gravadas com a chave legada.
   - Removido: `POST /import/ofx/preview`.
 
-- [ ] **Step 1: Instalar `pdf-parse` na API**
+- [x] **Step 1: Instalar `pdf-parse` na API**
 
 ```bash
 pnpm --filter @app/api add pdf-parse@^2.4.5
@@ -1224,7 +1224,7 @@ git diff --stat apps/api/package.json pnpm-lock.yaml | tail -2
 
 Esperado: `apps/api/package.json` ganha `"pdf-parse": "^2.4.5"` e o lockfile é atualizado.
 
-- [ ] **Step 2: Escrever os testes e2e (devem falhar)**
+- [x] **Step 2: Escrever os testes e2e (devem falhar)**
 
 Criar `apps/api/test/e2e/import-statements.e2e.test.ts`:
 
@@ -1598,7 +1598,7 @@ describe("Fase 11 — CSV com fingerprint por ordinal e compatibilidade com o le
 });
 ```
 
-- [ ] **Step 3: Rodar e confirmar a falha**
+- [x] **Step 3: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/import-statements.e2e.test.ts
@@ -1606,7 +1606,7 @@ pnpm --filter @app/api exec vitest run test/e2e/import-statements.e2e.test.ts
 
 Esperado: FAIL (rotas `/import/detect` e `/import/preview` inexistentes → 404; o módulo `pdf-text` também não existe, então a suíte pode falhar já no `vi.mock`; em ambos os casos é o vermelho esperado).
 
-- [ ] **Step 4: Criar `pdf-text.ts`**
+- [x] **Step 4: Criar `pdf-text.ts`**
 
 ```ts
 export function isPdf(bytes: Uint8Array): boolean {
@@ -1631,7 +1631,7 @@ export function decodeText(bytes: Uint8Array): string {
 }
 ```
 
-- [ ] **Step 5: Criar `import-statement.service.ts` (detect e preview)**
+- [x] **Step 5: Criar `import-statement.service.ts` (detect e preview)**
 
 ```ts
 import { BadRequestException, Injectable, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
@@ -1775,7 +1775,7 @@ export class ImportStatementService {
 }
 ```
 
-- [ ] **Step 6: Atualizar `import.service.ts` (CSV com ordinal, commit com `postedDate`/`skipped`/validação de contas, remover OFX antigo)**
+- [x] **Step 6: Atualizar `import.service.ts` (CSV com ordinal, commit com `postedDate`/`skipped`/validação de contas, remover OFX antigo)**
 
 Em `apps/api/src/import/import.service.ts`:
 
@@ -1907,7 +1907,7 @@ import { csvMappingSchema, csvRowToTransaction, ordinalFingerprints } from "@app
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 ```
 
-- [ ] **Step 7: Controller, módulo e limite de corpo**
+- [x] **Step 7: Controller, módulo e limite de corpo**
 
 Substituir `apps/api/src/import/import.controller.ts` por:
 
@@ -2001,7 +2001,7 @@ Em `apps/api/src/main.ts`, trocar a criação do app para subir o limite de corp
   );
 ```
 
-- [ ] **Step 8: Rodar os testes e o typecheck**
+- [x] **Step 8: Rodar os testes e o typecheck**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/import-statements.e2e.test.ts test/e2e/import.e2e.test.ts
@@ -2010,7 +2010,7 @@ pnpm --filter @app/api typecheck
 
 Esperado: todos passam (os 19 novos e os 4 antigos de `import.e2e.test.ts`, que continuam válidos) e typecheck verde. Se `import.e2e.test.ts` (TM2/TM3) quebrar por causa do novo formato de fingerprint no CSV, os testes devem ser ajustados só onde comparam a string do fingerprint; o comportamento (idempotência e `dupCount` após commit) deve permanecer.
 
-- [ ] **Step 9: Suíte completa da API**
+- [x] **Step 9: Suíte completa da API**
 
 ```bash
 pnpm --filter @app/api test
@@ -2018,7 +2018,7 @@ pnpm --filter @app/api test
 
 Esperado: todos os arquivos passam.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add apps/api pnpm-lock.yaml
@@ -2046,7 +2046,7 @@ EOF
   - `POST /import/:batchId/undo` → `{ removed: number }`; 404 se o lote não é do workspace; 409 se o lote não foi confirmado ou já foi desfeito. Apaga as transações do lote e grava `undoneAt`.
   - `GET /import/batches` → `Array<{ id; format; institution; accountName: string | null; rowCount; dupCount; inserted; balanceOk: boolean | null; createdAt; undoneAt: string | null }>`, só lotes confirmados, mais recentes primeiro, no máximo 50.
 
-- [ ] **Step 1: Escrever os testes (devem falhar)**
+- [x] **Step 1: Escrever os testes (devem falhar)**
 
 Acrescentar ao final de `apps/api/test/e2e/import-statements.e2e.test.ts`:
 
@@ -2178,7 +2178,7 @@ describe.each(Object.entries(FILES))("extrato C6 real (%s)", (label, path) => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/import-statements.e2e.test.ts -t "desfazer lote"
@@ -2192,7 +2192,7 @@ pnpm --filter @app/api exec vitest run test/e2e/import-real-statements.test.ts
 
 Esperado: 2 testes passam onde os PDFs existem (na sua máquina) ou 2 ignorados (`skipped`) onde não existem.
 
-- [ ] **Step 3: Implementar `undo` e `listBatches`**
+- [x] **Step 3: Implementar `undo` e `listBatches`**
 
 Em `apps/api/src/import/import-statement.service.ts`, acrescentar `ConflictException` ao import de `@nestjs/common`:
 
@@ -2274,7 +2274,7 @@ Em `apps/api/src/import/import.controller.ts`, acrescentar as rotas (as estátic
   }
 ```
 
-- [ ] **Step 4: Rodar os testes e o typecheck**
+- [x] **Step 4: Rodar os testes e o typecheck**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/import-statements.e2e.test.ts test/e2e/import-real-statements.test.ts
@@ -2284,7 +2284,7 @@ pnpm --filter @app/api test
 
 Esperado: tudo verde (6 testes novos de desfazer/histórico; o de PDFs reais passa ou é ignorado).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api
@@ -2309,7 +2309,7 @@ EOF
 - Consumes: contrato da API da Task 4 e 5; `INSTITUTION_LABEL`, `Institution` de `lib/entity.ts`; `store.updateAccount`, `store.loadAccounts`; `http` de `lib/http.ts`.
 - Produces (`lib/import-client.ts`): `DetectedFormat`, `DetectResponse`, `BalanceMismatch`, `BalanceCheck`, `PreviewRow`, `StatementPreview`, `BatchSummary`, `bytesToBase64(bytes: Uint8Array): string`, `fileToBase64(file: File): Promise<string>`, `balanceSummary(check: BalanceCheck | null): { tone: "neutral" | "ok" | "warn"; text: string }`, `detectFile(file: File): Promise<DetectResponse>`, `previewStatement(body): Promise<StatementPreview>`, `undoBatch(batchId): Promise<{ removed: number }>`, `listBatches(): Promise<BatchSummary[]>`.
 
-- [ ] **Step 1: Escrever os testes dos helpers (devem falhar)**
+- [x] **Step 1: Escrever os testes dos helpers (devem falhar)**
 
 Criar `apps/web/src/lib/__tests__/import-client.test.ts`:
 
@@ -2384,7 +2384,7 @@ describe("chamadas à API", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/web test
@@ -2392,7 +2392,7 @@ pnpm --filter @app/web test
 
 Esperado: FAIL (módulo `../import-client` inexistente).
 
-- [ ] **Step 3: Criar `lib/import-client.ts`**
+- [x] **Step 3: Criar `lib/import-client.ts`**
 
 ```ts
 import { http } from "./http";
@@ -2513,7 +2513,7 @@ export function listBatches() {
 }
 ```
 
-- [ ] **Step 4: Rodar os testes dos helpers**
+- [x] **Step 4: Rodar os testes dos helpers**
 
 ```bash
 pnpm --filter @app/web test
@@ -2522,7 +2522,7 @@ pnpm --filter @app/web typecheck
 
 Esperado: testes passam (33 anteriores + 7 novos) e typecheck verde.
 
-- [ ] **Step 5: Reescrever `ImportView.vue`**
+- [x] **Step 5: Reescrever `ImportView.vue`**
 
 Substituir o conteúdo inteiro de `apps/web/src/views/ImportView.vue` por:
 
@@ -3033,7 +3033,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 </style>
 ```
 
-- [ ] **Step 6: Typecheck e testes do web**
+- [x] **Step 6: Typecheck e testes do web**
 
 ```bash
 pnpm --filter @app/web typecheck
@@ -3042,7 +3042,7 @@ pnpm --filter @app/web test
 
 Esperado: vue-tsc verde e todos os testes passando. (A verificação visual é a Task 8.)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/web
@@ -3073,7 +3073,7 @@ EOF
 **Interfaces:**
 - Produces: `@app/shared` exporta `AI_QUEUE_NAME`, `INGEST_JOB_NAME`, `INGEST_JOB_KINDS`, `IngestJobKind`, `IngestJobData`; `parseCategoryTypeQuery(value?: string): "income" | "expense" | undefined`; `findMonorepoRoot(startDir: string): string` (em cada app).
 
-- [ ] **Step 1: Tipos da fila em um lugar só**
+- [x] **Step 1: Tipos da fila em um lugar só**
 
 Criar `packages/shared/src/queue.ts`:
 
@@ -3142,7 +3142,7 @@ grep -rn "IngestJobData" apps --include='*.ts' | grep -v node_modules | grep -v 
 
 Esperado: nenhuma definição local restante (só imports). Ajustar qualquer import que aponte para a definição removida.
 
-- [ ] **Step 2: `tsx` declarado no worker, `destroy()` em `finally`**
+- [x] **Step 2: `tsx` declarado no worker, `destroy()` em `finally`**
 
 ```bash
 pnpm --filter @app/worker add -D tsx@^4
@@ -3219,7 +3219,7 @@ pnpm --filter @app/worker test
 
 Esperado: todos passam (17 anteriores + 1 novo).
 
-- [ ] **Step 3: Teste do upsert de lembretes (idempotência por chave)**
+- [x] **Step 3: Teste do upsert de lembretes (idempotência por chave)**
 
 Criar `apps/worker/test/reminders-processor.test.ts`:
 
@@ -3298,7 +3298,7 @@ pnpm --filter @app/worker exec vitest run test/reminders-processor.test.ts
 
 Esperado: 2 testes passam (o comportamento já existe; o teste o trava).
 
-- [ ] **Step 4: Raiz do monorepo a partir de `src/` ou `dist/`**
+- [x] **Step 4: Raiz do monorepo a partir de `src/` ou `dist/`**
 
 Criar `apps/api/src/find-root.ts` (e uma cópia idêntica em `apps/worker/src/find-root.ts`):
 
@@ -3365,7 +3365,7 @@ pnpm --filter @app/worker exec vitest run test/find-root.test.ts
 
 Esperado: 2 testes passam em cada app. (Se o diretório temporário do sistema estiver dentro de uma árvore que contenha um `pnpm-workspace.yaml`, o segundo teste falharia: nesse caso ajustar o teste para criar o diretório sob `/`-nível próprio e reportar.)
 
-- [ ] **Step 5: Validação de `?type=` nas categorias, `main.ts` e testes da Fase 10**
+- [x] **Step 5: Validação de `?type=` nas categorias, `main.ts` e testes da Fase 10**
 
 Criar `apps/api/src/common/category-type-query.ts`:
 
@@ -3457,7 +3457,7 @@ pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts
 
 Esperado: passam (o teste de `?type=foo` falhava antes da correção com 500; confirme rodando-o antes de editar o controller, se quiser o vermelho explícito).
 
-- [ ] **Step 6: Suítes completas e typecheck**
+- [x] **Step 6: Suítes completas e typecheck**
 
 ```bash
 pnpm turbo typecheck --force
@@ -3466,7 +3466,7 @@ pnpm turbo test --force
 
 Esperado: exit 0 em ambos.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add -A
@@ -3488,7 +3488,7 @@ EOF
 
 **Interfaces:** nenhuma nova.
 
-- [ ] **Step 1: Typecheck, testes e drift, sem cache**
+- [x] **Step 1: Typecheck, testes e drift, sem cache**
 
 ```bash
 docker compose up -d
@@ -3500,7 +3500,7 @@ pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema
 
 Esperado: exit 0, nenhum teste falhando e a contagem final `1`. Anotar os totais por pacote (shared, api, worker, web) para o README e se o teste dos PDFs reais rodou ou foi ignorado.
 
-- [ ] **Step 2: Fluxo pela API com os extratos reais (nada é gravado)**
+- [x] **Step 2: Fluxo pela API com os extratos reais (nada é gravado)**
 
 Sobe os apps e faz `detect` e `preview` com os PDFs reais de `~/Downloads`. Não há `commit`, então nenhum lançamento real entra no banco; o script não imprime descrições, só contagens.
 
@@ -3529,7 +3529,7 @@ rm -f "$TMPDIR"/detect-*.json "$TMPDIR"/prev-*.json
 
 Esperado (com os extratos fornecidos): para PF e PJ, `detect` com `format: pdf_statement`, `institution: c6`, `kind: statement`; `preview` com `balance_ok: True` e `mismatches: 0` (PF: 41 linhas e 14 pontos; PJ: 338 linhas e 92 pontos). Se os arquivos não existirem, o passo imprime "arquivo ausente" e segue.
 
-- [ ] **Step 3: Fluxo completo na interface com um OFX sintético**
+- [x] **Step 3: Fluxo completo na interface com um OFX sintético**
 
 Com `pnpm dev` ainda rodando, abrir `http://localhost:5173`, entrar com a conta `f11_<ts>@test.com` (senha no comando acima) e abrir **Importar**. Criar antes uma conta (aba Contas) `Inter PJ` com entidade PJ, instituição Inter e número `555-1`.
 
@@ -3555,7 +3555,7 @@ Conferir, registrando o resultado de cada item:
 
 Se algum item falhar, corrigir na task correspondente antes de seguir.
 
-- [ ] **Step 4: Encerrar os servidores**
+- [x] **Step 4: Encerrar os servidores**
 
 ```bash
 pkill -f 'turbo run dev'; pkill -f 'pnpm dev'; pkill -f 'tsx watch'; pkill -f 'nest start'; pkill -f vite
@@ -3565,7 +3565,7 @@ lsof -nP -iTCP:3100 -iTCP:5173 -sTCP:LISTEN | head -3
 
 Esperado: sem saída (portas livres). Os dados do usuário `f11_*` ficam no banco de desenvolvimento e são apagados pela próxima execução dos testes e2e.
 
-- [ ] **Step 5: README**
+- [x] **Step 5: README**
 
 Em `README.md`:
 
@@ -3577,7 +3577,7 @@ Em `README.md`:
 - **Importação de extratos** — o arquivo é reconhecido sozinho (banco, tipo e conta): OFX de qualquer banco e extrato em PDF do C6 Bank (PF e PJ), com preview, marcação de duplicatas, conferência dos saldos declarados no extrato, histórico de importações e desfazer. CSV por mapeamento manual; PDF de outros bancos via IA
 ```
 
-- [ ] **Step 6: Marcar o plano e commitar a documentação**
+- [x] **Step 6: Marcar o plano e commitar a documentação**
 
 ```bash
 sed -i '' 's/^- \[ \] \*\*Step/- [x] **Step/' docs/superpowers/plans/2026-09-30-fase-11-importacao.md
@@ -3594,7 +3594,7 @@ git status --short
 
 Esperado: o `grep -c` imprime `0` e o `git status --short` fica vazio.
 
-- [ ] **Step 7: Integrar em `main` (pedir autorização antes do push)**
+- [x] **Step 7: Integrar em `main` (pedir autorização antes do push)**
 
 Com autorização do usuário:
 
