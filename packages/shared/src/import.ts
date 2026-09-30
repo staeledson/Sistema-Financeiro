@@ -59,3 +59,16 @@ export function csvRowToTransaction(
     fingerprint: importFingerprint(accountId, dateISO, isExpense ? -amountCents : amountCents, description),
   };
 }
+
+/**
+ * Fingerprint estável para linhas de chave idêntica no mesmo arquivo (ex.: dois Pix iguais no mesmo dia):
+ * cada chave recebe o sufixo `|n`, onde n é quantas chaves iguais apareceram antes dela.
+ */
+export function ordinalFingerprints(keys: string[]): string[] {
+  const seen = new Map<string, number>();
+  return keys.map((k) => {
+    const n = seen.get(k) ?? 0;
+    seen.set(k, n + 1);
+    return `${k}|${n}`;
+  });
+}
