@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { CurrentUserGuard, type AuthenticatedUser } from "../auth/current-user.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
+import { parseEntityQuery } from "../common/entity-query";
 import { TransactionsService } from "./transactions.service";
 
 @Controller("transactions")
@@ -38,7 +39,8 @@ export class TransactionsController {
     @Query("accountId") accountId?: string,
     @Query("categoryId") categoryId?: string,
     @Query("q") q?: string,
+    @Query("entity") entity?: string,
   ) {
-    return this.service.list(user.workspaceId, { from, to, accountId, categoryId, q });
+    return this.service.list(user.workspaceId, { from, to, accountId, categoryId, q, entity: parseEntityQuery(entity) });
   }
 }

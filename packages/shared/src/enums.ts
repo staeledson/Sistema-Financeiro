@@ -12,3 +12,12 @@ export type CategoryType = (typeof CATEGORY_TYPES)[number];
 
 export const TRANSACTION_TYPES = ["income", "expense", "transfer"] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+
+export const ACCOUNT_ENTITIES = ["pf", "pj"] as const;
+export type AccountEntity = (typeof ACCOUNT_ENTITIES)[number];
+
+export const INSTITUTIONS = ["bb", "inter", "mercado_pago", "c6", "other"] as const;
+export type Institution = (typeof INSTITUTIONS)[number];
+
+export const CATEGORY_ENTITIES = ["pf", "pj", "both"] as const;
+export type CategoryEntity = (typeof CATEGORY_ENTITIES)[number];

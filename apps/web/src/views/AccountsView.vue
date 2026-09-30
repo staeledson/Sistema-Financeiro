@@ -1,20 +1,35 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useFinanceStore } from "../stores/finance";
-import type { AccountType } from "../lib/api";
+import type { BankAccount } from "../lib/api";
+import {
+  ACCOUNT_TYPE_LABEL, ENTITY_SHORT, INSTITUTION_LABEL, accountsForEntity,
+  type EntityFilter,
+} from "../lib/entity";
+import {
+  emptyAccountForm, formFromAccount, buildCreateAccountPayload, buildUpdateAccountPayload,
+} from "../lib/account-form";
+import AccountFields from "../components/AccountFields.vue";
 
 const store = useFinanceStore();
-const nome = ref("");
-const tipo = ref<AccountType>("checking");
-const saldoInicial = ref(0);
+const filtro = ref<EntityFilter>("all");
+const novo = ref(emptyAccountForm());
+const editId = ref<string | null>(null);
+const edicao = ref(emptyAccountForm());
 const erro = ref("");
-const tipos: { value: AccountType; label: string }[] = [
-  { value: "checking", label: "Conta corrente" },
-  { value: "savings", label: "Poupança" },
-  { value: "credit_card", label: "Cartão de crédito" },
-  { value: "cash", label: "Dinheiro" },
-  { value: "investment", label: "Investimento" },
+
+const filtros: { value: EntityFilter; label: string }[] = [
+  { value: "all", label: "Todas" },
+  { value: "pf", label: "PF" },
+  { value: "pj", label: "PJ" },
 ];
+
+const visiveis = computed(() => accountsForEntity(store.accounts, filtro.value));
+
+function saldoDe(acc: BankAccount): number {
+  return store.balances?.accounts.find((b) => b.accountId === acc.id)?.balanceCents ?? acc.openingBalanceCents;
+}
+const saldoVisivel = computed(() => visiveis.value.reduce((s, a) => s + saldoDe(a), 0));
 
 onMounted(async () => {
   await Promise.all([store.loadAccounts(), store.loadBalances()]);
@@ -22,12 +37,33 @@ onMounted(async () => {
 
 async function criar() {
   erro.value = "";
-  if (!nome.value.trim()) { erro.value = "Nome obrigatório"; return; }
+  if (!novo.value.name.trim()) { erro.value = "Nome obrigatório"; return; }
   try {
-    await store.createAccount({ type: tipo.value, name: nome.value, openingBalanceCents: Math.round(saldoInicial.value * 100) });
+    await store.createAccount(buildCreateAccountPayload(novo.value));
     await store.loadBalances();
-    nome.value = "";
-    saldoInicial.value = 0;
+    novo.value = emptyAccountForm();
+  } catch (e) {
+    erro.value = (e as Error).message;
+  }
+}
+
+function iniciarEdicao(acc: BankAccount) {
+  erro.value = "";
+  editId.value = acc.id;
+  edicao.value = formFromAccount(acc);
+}
+
+function cancelarEdicao() {
+  editId.value = null;
+}
+
+async function salvarEdicao() {
+  if (!editId.value) return;
+  erro.value = "";
+  if (!edicao.value.name.trim()) { erro.value = "Nome obrigatório"; return; }
+  try {
+    await store.updateAccount(editId.value, buildUpdateAccountPayload(edicao.value));
+    editId.value = null;
   } catch (e) {
     erro.value = (e as Error).message;
   }
@@ -41,60 +77,97 @@ async function arquivar(id: string) {
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+
+function detalhe(acc: BankAccount): string {
+  const partes = [ENTITY_SHORT[acc.entity], INSTITUTION_LABEL[acc.institution], ACCOUNT_TYPE_LABEL[acc.type]];
+  if (acc.externalId) partes.push(`final ${acc.externalId}`);
+  return partes.join(" · ");
+}
+
+function detalheCartao(acc: BankAccount): string | null {
+  if (acc.type !== "credit_card") return null;
+  const partes: string[] = [];
+  if (acc.closingDay) partes.push(`fecha dia ${acc.closingDay}`);
+  if (acc.dueDay) partes.push(`vence dia ${acc.dueDay}`);
+  if (acc.creditLimitCents != null) partes.push(`limite ${formatBRL(acc.creditLimitCents)}`);
+  return partes.length ? partes.join(" · ") : null;
+}
 </script>
 
 <template>
   <section class="accounts">
     <h2>Contas</h2>
 
+    <div class="entity-filter" role="group" aria-label="Filtrar por entidade">
+      <button
+        v-for="f in filtros"
+        :key="f.value"
+        type="button"
+        :class="{ active: filtro === f.value }"
+        @click="filtro = f.value"
+      >{{ f.label }}</button>
+    </div>
+
     <div class="consolidated" v-if="store.balances">
-      Saldo consolidado: <strong>{{ formatBRL(store.balances.consolidatedCents) }}</strong>
+      Saldo {{ filtro === 'all' ? 'consolidado' : filtro.toUpperCase() }}: <strong>{{ formatBRL(saldoVisivel) }}</strong>
     </div>
 
     <ul class="account-list">
-      <li v-for="acc in store.accounts" :key="acc.id" class="account-item">
-        <div class="account-info">
-          <span class="account-name">{{ acc.name }}</span>
-          <span class="account-type">{{ tipos.find(t => t.value === acc.type)?.label }}</span>
-        </div>
-        <div class="account-actions">
-          <span class="balance">
-            {{ formatBRL(store.balances?.accounts.find(b => b.accountId === acc.id)?.balanceCents ?? acc.openingBalanceCents) }}
-          </span>
-          <button class="btn-danger" @click="arquivar(acc.id)">Arquivar</button>
-        </div>
+      <li v-for="acc in visiveis" :key="acc.id" class="account-item">
+        <template v-if="editId === acc.id">
+          <form class="edit-form" @submit.prevent="salvarEdicao">
+            <AccountFields v-model="edicao" lock-type />
+            <div class="edit-actions">
+              <button type="submit">Salvar</button>
+              <button type="button" class="btn-secondary" @click="cancelarEdicao">Cancelar</button>
+            </div>
+          </form>
+        </template>
+        <template v-else>
+          <div class="account-info">
+            <span class="account-name">{{ acc.name }}</span>
+            <span class="account-type">{{ detalhe(acc) }}</span>
+            <span v-if="detalheCartao(acc)" class="account-type">{{ detalheCartao(acc) }}</span>
+          </div>
+          <div class="account-actions">
+            <span class="balance">{{ formatBRL(saldoDe(acc)) }}</span>
+            <button type="button" class="btn-secondary" @click="iniciarEdicao(acc)">Editar</button>
+            <button type="button" class="btn-danger" @click="arquivar(acc.id)">Arquivar</button>
+          </div>
+        </template>
       </li>
-      <li v-if="store.accounts.length === 0" class="empty">Nenhuma conta ativa.</li>
+      <li v-if="visiveis.length === 0" class="empty">Nenhuma conta ativa.</li>
     </ul>
 
     <form class="create-form" @submit.prevent="criar">
       <h3>Nova conta</h3>
-      <select v-model="tipo">
-        <option v-for="t in tipos" :key="t.value" :value="t.value">{{ t.label }}</option>
-      </select>
-      <input v-model="nome" placeholder="Nome" />
-      <input v-model.number="saldoInicial" type="number" step="0.01" placeholder="Saldo inicial (R$)" />
+      <AccountFields v-model="novo" show-opening-balance />
       <button type="submit">Criar</button>
-      <p v-if="erro" role="alert">{{ erro }}</p>
     </form>
+    <p v-if="erro" role="alert">{{ erro }}</p>
   </section>
 </template>
 
 <style scoped>
 .accounts { padding: calc(var(--space) * 3); max-width: 640px; margin: 0 auto; }
 h2, h3 { margin-bottom: calc(var(--space) * 2); }
+.entity-filter { display: flex; gap: var(--space); margin-bottom: calc(var(--space) * 2); }
+.entity-filter button { background: var(--color-surface); color: var(--color-text); padding: var(--space) calc(var(--space) * 2); }
+.entity-filter button.active { background: var(--color-primary); color: #fff; }
 .consolidated { margin-bottom: calc(var(--space) * 3); font-size: 1.1rem; }
 .account-list { list-style: none; display: flex; flex-direction: column; gap: var(--space); margin-bottom: calc(var(--space) * 4); }
-.account-item { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--space) * 2); background: var(--color-surface); border-radius: var(--radius); }
+.account-item { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--space) * 2); background: var(--color-surface); border-radius: var(--radius); gap: calc(var(--space) * 2); }
 .account-info { display: flex; flex-direction: column; gap: 4px; }
 .account-name { font-weight: 600; }
 .account-type { font-size: 0.8rem; opacity: 0.6; }
-.account-actions { display: flex; align-items: center; gap: calc(var(--space) * 2); }
+.account-actions { display: flex; align-items: center; gap: calc(var(--space) * 2); flex-wrap: wrap; justify-content: flex-end; }
 .balance { font-weight: 600; }
 .empty { opacity: 0.5; font-style: italic; padding: var(--space); }
-.create-form { display: flex; flex-direction: column; gap: calc(var(--space) * 2); background: var(--color-surface); padding: calc(var(--space) * 3); border-radius: var(--radius); }
-input, select { padding: calc(var(--space) * 1.5); border: 1px solid #333; border-radius: calc(var(--radius) / 2); background: var(--color-bg); color: var(--color-text); font-size: 1rem; }
+.create-form, .edit-form { display: flex; flex-direction: column; gap: calc(var(--space) * 2); width: 100%; }
+.create-form { background: var(--color-surface); padding: calc(var(--space) * 3); border-radius: var(--radius); }
+.edit-actions { display: flex; gap: var(--space); }
 button { padding: calc(var(--space) * 1.5); border: none; border-radius: calc(var(--radius) / 2); background: var(--color-primary); color: #fff; cursor: pointer; font-size: 1rem; }
+.btn-secondary { background: #333; padding: calc(var(--space) * 0.75) calc(var(--space) * 1.5); font-size: 0.85rem; }
 .btn-danger { background: #c0392b; padding: calc(var(--space) * 0.75) calc(var(--space) * 1.5); font-size: 0.85rem; }
-p[role="alert"] { color: #e74c3c; font-size: 0.9rem; }
+p[role="alert"] { color: #e74c3c; font-size: 0.9rem; margin-top: calc(var(--space) * 2); }
 </style>

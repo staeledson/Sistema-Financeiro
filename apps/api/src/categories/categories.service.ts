@@ -1,21 +1,32 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import type { CategoryInput } from "@app/shared";
+import type { AccountEntity, CategoryInput } from "@app/shared";
 import { prisma } from "../database";
+
+const CATEGORY_SELECT = {
+  id: true, type: true, name: true, parentId: true, icon: true, color: true, isSystem: true, entity: true,
+} as const;
 
 @Injectable()
 export class CategoriesService {
-  async list(workspaceId: string, type?: string) {
+  async list(workspaceId: string, type?: string, entity?: AccountEntity) {
     return prisma.category.findMany({
-      where: { workspaceId, ...(type ? { type: type as "income" | "expense" } : {}) },
-      select: { id: true, type: true, name: true, parentId: true, icon: true, color: true, isSystem: true },
+      where: {
+        workspaceId,
+        ...(type ? { type: type as "income" | "expense" } : {}),
+        ...(entity ? { entity: { in: [entity, "both"] as Array<AccountEntity | "both"> } } : {}),
+      },
+      select: CATEGORY_SELECT,
       orderBy: [{ isSystem: "desc" }, { name: "asc" }],
     });
   }
 
   async create(workspaceId: string, dto: CategoryInput) {
     return prisma.category.create({
-      data: { workspaceId, type: dto.type, name: dto.name, parentId: dto.parentId ?? null, icon: dto.icon ?? null, color: dto.color ?? null },
-      select: { id: true, type: true, name: true, parentId: true, icon: true, color: true, isSystem: true },
+      data: {
+        workspaceId, type: dto.type, name: dto.name, parentId: dto.parentId ?? null,
+        icon: dto.icon ?? null, color: dto.color ?? null, entity: dto.entity,
+      },
+      select: CATEGORY_SELECT,
     });
   }
 
@@ -24,8 +35,13 @@ export class CategoriesService {
     if (!existing) throw new NotFoundException();
     return prisma.category.update({
       where: { id },
-      data: { ...(dto.name ? { name: dto.name } : {}), ...(dto.icon !== undefined ? { icon: dto.icon } : {}), ...(dto.color !== undefined ? { color: dto.color } : {}) },
-      select: { id: true, type: true, name: true, parentId: true, icon: true, color: true, isSystem: true },
+      data: {
+        ...(dto.name ? { name: dto.name } : {}),
+        ...(dto.icon !== undefined ? { icon: dto.icon } : {}),
+        ...(dto.color !== undefined ? { color: dto.color } : {}),
+        ...(dto.entity ? { entity: dto.entity } : {}),
+      },
+      select: CATEGORY_SELECT,
     });
   }
 

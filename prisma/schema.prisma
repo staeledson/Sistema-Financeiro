@@ -161,6 +161,7 @@ model Workspace {
   chatConversations  ChatConversation[]
   pushSubscriptions  PushSubscription[]
   scheduledBills     ScheduledBill[]
+  settings         WorkspaceSettings?
 
   @@map("workspaces")
 }
@@ -201,15 +202,40 @@ enum TransactionType {
   transfer
 }
 
+enum AccountEntity {
+  pf
+  pj
+}
+
+enum Institution {
+  bb
+  inter
+  mercado_pago
+  c6
+  other
+}
+
+enum CategoryEntity {
+  pf
+  pj
+  both
+}
+
 model BankAccount {
-  id                  String      @id @default(cuid())
+  id                  String        @id @default(cuid())
   workspaceId         String
-  workspace           Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace           Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   type                AccountType
   name                String
-  openingBalanceCents BigInt      @default(0)
-  archived            Boolean     @default(false)
-  createdAt           DateTime    @default(now())
+  openingBalanceCents BigInt        @default(0)
+  archived            Boolean       @default(false)
+  entity              AccountEntity @default(pf)
+  institution         Institution   @default(other)
+  externalId          String?
+  closingDay          Int?
+  dueDay              Int?
+  creditLimitCents    BigInt?
+  createdAt           DateTime      @default(now())
 
   transactions       Transaction[]      @relation("TransactionAccount")
   sourceTransactions Transaction[]      @relation("TransactionSource")
@@ -218,6 +244,7 @@ model BankAccount {
   importBatches      ImportBatch[]
 
   @@index([workspaceId])
+  @@index([workspaceId, entity])
   @@map("bank_accounts")
 }
 
@@ -234,6 +261,7 @@ model Category {
   color       String?
   bucket      CategoryBucket?
   isSystem    Boolean      @default(false)
+  entity      CategoryEntity @default(both)
 
   transactions    Transaction[]
   drafts          TransactionDraft[]
@@ -609,4 +637,16 @@ model ScheduledBill {
 
   @@index([workspaceId])
   @@map("scheduled_bills")
+}
+
+model WorkspaceSettings {
+  workspaceId             String    @id
+  workspace               Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  aiConfidenceThreshold   Float     @default(0.8)
+  aiBatchSize             Int       @default(40)
+  transferMatchWindowDays Int       @default(2)
+  ownerNames              String[]  @default([])
+  updatedAt               DateTime  @updatedAt
+
+  @@map("workspace_settings")
 }

@@ -42,17 +42,18 @@ describe("Fase 1 — Núcleo Financeiro", () => {
     expect(list.json()).toHaveLength(0);
   });
 
-  it("T3: novo usuário recebe 5 receitas e 15 despesas como categorias", async () => {
+  it("T3: novo usuário recebe categorias pessoais (both) e categorias PJ (pj)", async () => {
     const ts = Date.now();
     const u = await auth.api.signUpEmail({ body: { email: `t3_${ts}@test.com`, password: "senha123!", name: "T3" } });
     const h = { authorization: `Bearer ${u!.token}` };
 
     const list = await app.inject({ method: "GET", url: "/categories", headers: h });
-    const cats = list.json() as Array<{ type: string; isSystem: boolean }>;
-    const income = cats.filter((c) => c.type === "income");
-    const expense = cats.filter((c) => c.type === "expense");
-    expect(income).toHaveLength(5);
-    expect(expense).toHaveLength(15);
+    const cats = list.json() as Array<{ type: string; isSystem: boolean; entity: string }>;
+    const count = (entity: string, type: string) => cats.filter((c) => c.entity === entity && c.type === type).length;
+    expect(count("both", "income")).toBe(5);
+    expect(count("both", "expense")).toBe(15);
+    expect(count("pj", "income")).toBe(1);
+    expect(count("pj", "expense")).toBe(6);
     expect(cats.every((c) => c.isSystem)).toBe(true);
   });
 
