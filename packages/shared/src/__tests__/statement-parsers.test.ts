@@ -40,7 +40,23 @@ describe("c6StatementParser.parse", () => {
   it("lê período, conta e os pontos de saldo (Saldo do dia + saldo do cabeçalho)", () => {
     expect(parsed.period).toEqual(C6_SAMPLE.period);
     expect(parsed.accountRef).toBe(C6_SAMPLE.conta);
-    expect([...parsed.balances].sort((a, b) => a.dateISO.localeCompare(b.dateISO))).toEqual(C6_SAMPLE.balances);
+    expect([...parsed.balances].sort((a, b) => a.dateISO.localeCompare(b.dateISO))).toEqual(
+      // o saldo do cabeçalho (exportação) é o saldo corrente
+      C6_SAMPLE.balances.map((b) => (b.dateISO === "2025-11-05" ? { ...b, current: true } : b)),
+    );
+  });
+
+  it("saldo do cabeçalho é corrente: inclui lançamento com data contábil após a exportação", () => {
+    const sep = " \t";
+    const lines = c6SampleText()
+      .replace("Saldo do dia • 5 de novembro de 2025 • R$ 500,00", "Saldo do dia • 5 de novembro de 2025 • R$ 495,00")
+      .split("\n");
+    const at = lines.findIndex((l) => l.includes("Pix enviado para Farmácia"));
+    lines.splice(at + 1, 0, ["05/11", "06/11", "Saída PIX", "Pix enviado para G", "-R$ 5,00"].join(sep));
+    const p = c6StatementParser.parse(lines.join("\n"), { accountId: "acc1" });
+    expect(p.rows).toHaveLength(C6_SAMPLE.rowCount + 1);
+    expect(p.balances.find((b) => b.dateISO === "2025-11-05")).toEqual({ dateISO: "2025-11-05", balanceCents: 49500, current: true });
+    expect(verifyBalances(p.rows, p.balances)?.ok).toBe(true);
   });
 
   it("duas linhas idênticas no mesmo dia têm fingerprints diferentes", () => {

@@ -65,7 +65,7 @@ export const c6StatementParser: StatementParser = {
       if (exported) {
         const dateISO = parsePtLongDate(exported[1], exported[2], exported[3]);
         const balanceCents = parseBrlCents(exported[4]);
-        if (dateISO && balanceCents !== null) balances.push({ dateISO, balanceCents });
+        if (dateISO && balanceCents !== null) balances.push({ dateISO, balanceCents, current: true });
         continue;
       }
 

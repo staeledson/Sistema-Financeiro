@@ -141,6 +141,18 @@ describe("verifyBalances", () => {
     expect(check?.ok).toBe(true);
   });
 
+  it("ponto de saldo corrente soma as linhas sem limite superior de data (contábil futura)", () => {
+    // lançada em 05/10 (antes/no dia da exportação), contábil em 08/10: já está no saldo corrente
+    const rows = [row("expense", 100, "2025-10-03"), row("expense", 50, "2025-10-05", "2025-10-08")];
+    const anchor = { dateISO: "2025-10-02", balanceCents: 1000 };
+    const current = { dateISO: "2025-10-05", balanceCents: 850 };
+    expect(verifyBalances(rows, [anchor, { ...current, current: true }], NOW)?.ok).toBe(true);
+    // sem a marca, a linha contábil de 08/10 fica fora de (02/10, 05/10] e há divergência
+    const sem = verifyBalances(rows, [anchor, current], NOW);
+    expect(sem?.ok).toBe(false);
+    expect(sem?.mismatches).toEqual([{ dateISO: "2025-10-05", expectedCents: 850, computedCents: 900, diffCents: -50 }]);
+  });
+
   it("registra cada divergência com esperado, calculado e diferença (esperado − calculado)", () => {
     const rows = [row("expense", 100, "2025-10-03")];
     const check = verifyBalances(rows, [

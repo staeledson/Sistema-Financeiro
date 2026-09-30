@@ -22,6 +22,9 @@ const signed = (r: Pick<ParsedRow, "type" | "amountCents">) => (r.type === "inco
  * Confere o extrato contra os saldos que ele mesmo declara. Para cada par de pontos consecutivos,
  * saldo calculado = saldo anterior + soma das linhas com data contábil (ou de lançamento, se não houver)
  * em (data anterior, data atual]. O primeiro ponto é a âncora e não é verificado.
+ * Exceção: um ponto `current` (saldo corrente, momento da exportação) já inclui lançamentos com data
+ * contábil futura; para ele soma-se toda linha com data > data anterior, SEM limite superior.
+ * O ponto corrente deve ser o mais recente.
  * Devolve null quando o arquivo traz menos de dois pontos.
  */
 export function verifyBalances(
@@ -38,7 +41,7 @@ export function verifyBalances(
     let computed = prev.balanceCents;
     for (const r of rows) {
       const d = r.postedDate ?? r.date;
-      if (d > prev.dateISO && d <= cur.dateISO) computed += signed(r);
+      if (d > prev.dateISO && (cur.current === true || d <= cur.dateISO)) computed += signed(r);
     }
     if (computed !== cur.balanceCents) {
       mismatches.push({

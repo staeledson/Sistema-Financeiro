@@ -28,6 +28,11 @@ export interface ParsedRow {
 export interface BalancePoint {
   dateISO: string;
   balanceCents: number;
+  /**
+   * Saldo corrente (momento da exportação): inclui lançamentos já feitos com data contábil futura;
+   * a conferência soma as linhas sem limite superior de data.
+   */
+  current?: boolean;
 }
 
 export interface ParsedStatement {
