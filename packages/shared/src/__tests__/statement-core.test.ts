@@ -28,6 +28,7 @@ describe("parseBrlCents", () => {
     expect(parseBrlCents("-R$ 500,00")).toBe(-50000);
     expect(parseBrlCents("- R$ 5,00")).toBe(-500);
     expect(parseBrlCents("R$ 0,00")).toBe(0);
+    expect(parseBrlCents("-R$ 0,00")).toBe(0);
     expect(parseBrlCents("R$ 12.345.678,90")).toBe(1234567890);
   });
 
@@ -57,6 +58,12 @@ describe("datas", () => {
     expect(inferYearISO(2, 1, "2025-12-01", "2025-12-31")).toBe("2026-01-02");
   });
 
+  it("inferYearISO recusa datas a mais de 45 dias do bloco", () => {
+    expect(inferYearISO(29, 2, "2025-02-01", "2025-02-28")).toBeNull();
+    expect(inferYearISO(15, 6, "2025-10-01", "2025-10-31")).toBeNull();
+    expect(inferYearISO(10, 1, "2025-12-15", "2026-01-15")).toBe("2026-01-10");
+  });
+
   it("inferYearISO devolve null para dia inexistente", () => {
     expect(inferYearISO(31, 2, "2025-02-01", "2025-02-28")).toBeNull();
   });
@@ -81,6 +88,16 @@ describe("splitCells", () => {
     expect(splitCells("19/09      19/09      Entrada PIX     Pix recebido de A      R$ 500,00")).toEqual([
       "19/09", "19/09", "Entrada PIX", "Pix recebido de A", "R$ 500,00",
     ]);
+  });
+});
+
+describe("splitCells (células vazias)", () => {
+  it("preserva células vazias entre tabulações", () => {
+    expect(splitCells("19/09\t\tPix\tR$ 5,00")).toEqual(["19/09", "", "Pix", "R$ 5,00"]);
+  });
+
+  it("preserva células vazias nas pontas", () => {
+    expect(splitCells("\t19/09\tPix\t")).toEqual(["", "19/09", "Pix", ""]);
   });
 });
 

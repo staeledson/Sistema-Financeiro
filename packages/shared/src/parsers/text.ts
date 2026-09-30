@@ -7,12 +7,16 @@ export function monthFromName(name: string): number | null {
   return MONTHS_PT[name.trim().toLowerCase()] ?? null;
 }
 
-/** "R$ 1.234,56" → 123456; "-R$ 500,00" → -50000; o que não for valor → null. */
+/**
+ * Estrito: só aceita "R$ 1.234,56" e "-R$ 1.234,56" (sinal de menos antes do R$, espaço opcional).
+ * Qualquer outro formato (sinal depois, parênteses, "D"/"C", sem R$, sem centavos) devolve null;
+ * quem escreve um parser deve normalizar esses sinais antes de chamar. "-R$ 0,00" devolve 0 (nunca -0).
+ */
 export function parseBrlCents(raw: string): number | null {
   const m = raw.trim().match(/^(-?)\s*R\$\s*(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})$/);
   if (!m) return null;
   const cents = Number(m[2].replace(/\./g, "") + m[3]);
-  return m[1] ? -cents : cents;
+  return m[1] && cents !== 0 ? -cents : cents;
 }
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -27,6 +31,7 @@ export function toISODate(y: number, m: number, d: number): string | null {
 /**
  * Extratos trazem só dd/mm. O ano é o que deixa a data mais perto do meio do período do bloco
  * (cobre lançamento de 30/12 listado no bloco de janeiro e contábil de 02/01 listado no de dezembro).
+ * Só aceita datas a até 45 dias fora do bloco; além disso devolve null (data mal lida não vira data plausível).
  */
 export function inferYearISO(day: number, month: number, fromISO: string, toISO: string): string | null {
   const from = Date.parse(`${fromISO}T00:00:00Z`);
@@ -34,11 +39,14 @@ export function inferYearISO(day: number, month: number, fromISO: string, toISO:
   const mid = (from + to) / 2;
   const fromY = new Date(from).getUTCFullYear();
   const toY = new Date(to).getUTCFullYear();
+  const margin = 45 * 24 * 60 * 60 * 1000;
   let best: { iso: string; dist: number } | null = null;
   for (let y = fromY - 1; y <= toY + 1; y++) {
     const iso = toISODate(y, month, day);
     if (!iso) continue;
-    const dist = Math.abs(Date.parse(`${iso}T00:00:00Z`) - mid);
+    const t = Date.parse(`${iso}T00:00:00Z`);
+    if (t < from - margin || t > to + margin) continue;
+    const dist = Math.abs(t - mid);
     if (!best || dist < best.dist) best = { iso, dist };
   }
   return best?.iso ?? null;
@@ -50,8 +58,11 @@ export function parsePtLongDate(day: string, monthName: string, year: string): s
   return month ? toISODate(Number(year), month, Number(day)) : null;
 }
 
-/** Colunas de uma linha de extrato: por tabulação (pdf-parse) ou, sem tabulação, por 2+ espaços (pdftotext -layout). */
+/** Colunas de uma linha de extrato: por tabulação (pdf-parse; células vazias preservadas) ou, sem tabulação, por 2+ espaços (pdftotext -layout). */
 export function splitCells(line: string): string[] {
-  const t = line.trim();
-  return t.includes("\t") ? t.split(/\s*\t\s*/) : t.split(/\s{2,}/);
+  if (line.includes("\t")) {
+    // Só espaços ao redor da tabulação: tabulações seguidas e nas pontas viram células vazias.
+    return line.replace(/^[ \r\n]+|[ \r\n]+$/g, "").split(/ *\t */);
+  }
+  return line.trim().split(/\s{2,}/);
 }
