@@ -647,8 +647,9 @@ export function c6SampleText(opts: { layout?: boolean; corruptBalance?: boolean 
     row("Saldo do dia 29/10/25", saldo29),
     // pertence ao saldo de 29/10 (contábil 28/10), mas o extrato a lista depois dele
     row("28/10", "28/10", "Outros gastos", "Tarifa de manutenção", "-R$ 9,50"),
-    // lançada em 30/10, contábil em 01/11 (já no mês seguinte), listada no bloco de outubro
-    row("30/10", "01/11", "Pagamento", "PGTO FAT CARTAO C6", "-R$ 300,00"),
+    // lançada em 29/10, contábil em 01/11 (já no mês seguinte), listada no bloco de outubro: como o saldo de 29/10
+    // não a inclui, somar pela data de lançamento faria esse saldo divergir (o teste de conferência depende disso)
+    row("29/10", "01/11", "Pagamento", "PGTO FAT CARTAO C6", "-R$ 300,00"),
     `Novembro 2025 ( 01/11/2025 - 30/11/2025 )${sep}Entradas: R$ 50,00 • Saídas: R$ 10,00`,
     "Data",
     "lançamento",
@@ -705,7 +706,7 @@ describe("c6StatementParser.parse", () => {
 
   it("infere o ano pelo bloco mensal, inclusive para a data contábil do mês seguinte", () => {
     const fatura = parsed.rows.find((r) => r.description === "PGTO FAT CARTAO C6");
-    expect(fatura).toMatchObject({ date: "2025-10-30", postedDate: "2025-11-01", type: "expense", amountCents: 30000 });
+    expect(fatura).toMatchObject({ date: "2025-10-29", postedDate: "2025-11-01", type: "expense", amountCents: 30000 });
   });
 
   it("lê período, conta e os pontos de saldo (Saldo do dia + saldo do cabeçalho)", () => {
@@ -1440,7 +1441,7 @@ describe("Fase 11 — POST /import/preview e commit (extrato C6)", () => {
     const padarias = await prisma.transaction.count({ where: { workspaceId: u.workspaceId, description: "Pix enviado para Padaria" } });
     expect(padarias).toBe(2);
     const fatura = await prisma.transaction.findFirstOrThrow({ where: { workspaceId: u.workspaceId, description: "PGTO FAT CARTAO C6" } });
-    expect(fatura.date.toISOString().slice(0, 10)).toBe("2025-10-30");
+    expect(fatura.date.toISOString().slice(0, 10)).toBe("2025-10-29");
     expect(fatura.postedDate?.toISOString().slice(0, 10)).toBe("2025-11-01");
     expect((await prisma.importBatch.findUniqueOrThrow({ where: { id: body.batchId } })).status).toBe("committed");
   });
