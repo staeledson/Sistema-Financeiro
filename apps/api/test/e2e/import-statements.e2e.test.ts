@@ -365,3 +365,161 @@ describe("Fase 11 — CSV com fingerprint por ordinal e compatibilidade com o le
     expect(dups).toEqual([true, false, false]);
   });
 });
+
+describe("Fase 11 — desfazer lote e histórico", () => {
+  async function importC6(u: User, accountId: string) {
+    const body = await previewC6(u, accountId);
+    const commit = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, accountId));
+    expect(commit.json().inserted).toBe(9);
+    return body.batchId as string;
+  }
+
+  it("undo apaga as transações do lote, marca undoneAt e libera a reimportação", async () => {
+    const u = await newUser("undo1");
+    const accountId = await newAccount(u);
+    const batchId = await importC6(u, accountId);
+
+    const res = await post(u, `/import/${batchId}/undo`, {});
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ removed: 9 });
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(0);
+    expect((await prisma.importBatch.findUniqueOrThrow({ where: { id: batchId } })).undoneAt).not.toBeNull();
+
+    const again = await previewC6(u, accountId);
+    expect(again.dupCount).toBe(0);
+  });
+
+  it("undo só mexe nas transações do próprio lote", async () => {
+    const u = await newUser("undo2");
+    const accountId = await newAccount(u);
+    await prisma.transaction.create({
+      data: { workspaceId: u.workspaceId, type: "expense", amountCents: 100n, date: new Date("2026-01-01"), accountId, source: "manual", createdById: u.userId },
+    });
+    const batchId = await importC6(u, accountId);
+    await post(u, `/import/${batchId}/undo`, {});
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(1);
+  });
+
+  it("undo duas vezes retorna 409; lote só em preview retorna 409; lote de outro workspace retorna 404", async () => {
+    const a = await newUser("undo3a");
+    const b = await newUser("undo3b");
+    const accountId = await newAccount(a);
+    const batchId = await importC6(a, accountId);
+    expect((await post(a, `/import/${batchId}/undo`, {})).statusCode).toBe(200);
+    expect((await post(a, `/import/${batchId}/undo`, {})).statusCode).toBe(409);
+
+    const previewOnly = await previewC6(a, accountId);
+    expect((await post(a, `/import/${previewOnly.batchId}/undo`, {})).statusCode).toBe(409);
+
+    const other = await importC6(a, accountId);
+    expect((await post(b, `/import/${other}/undo`, {})).statusCode).toBe(404);
+  });
+
+  it("desfazer o lote do extrato sobreposto remove só as linhas que ele inseriu", async () => {
+    const u = await newUser("undo4");
+    const accountId = await newAccount(u);
+    const a = await previewC6(u, accountId, OVERLAP_A);
+    await post(u, `/import/${a.batchId}/commit`, commitPayload(a.rows, accountId));
+    const b = await previewC6(u, accountId, OVERLAP_B);
+    await post(u, `/import/${b.batchId}/commit`, commitPayload(b.rows, accountId));
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(5);
+
+    const res = await post(u, `/import/${b.batchId}/undo`, {});
+    expect(res.json()).toEqual({ removed: 1 });
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(4);
+  });
+
+  it("GET /import/batches lista só lotes confirmados, com contagem real, saldo e estado de desfeito", async () => {
+    const u = await newUser("hist1");
+    const accountId = await newAccount(u, { name: "C6 Empresa" });
+    await previewC6(u, accountId); // só preview: não aparece
+    const batchId = await importC6(u, accountId);
+
+    let list = (await app.inject({ method: "GET", url: "/import/batches", headers: u.h })).json();
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({
+      id: batchId, format: "pdf_statement", institution: "c6", accountName: "C6 Empresa",
+      rowCount: 9, inserted: 9, balanceOk: true, undoneAt: null,
+    });
+
+    await post(u, `/import/${batchId}/undo`, {});
+    list = (await app.inject({ method: "GET", url: "/import/batches", headers: u.h })).json();
+    expect(list[0]).toMatchObject({ id: batchId, inserted: 0 });
+    expect(list[0].undoneAt).not.toBeNull();
+  });
+
+  it("GET /import/batches é isolado por workspace", async () => {
+    const a = await newUser("hist2a");
+    const b = await newUser("hist2b");
+    await importC6(a, await newAccount(a));
+    const list = (await app.inject({ method: "GET", url: "/import/batches", headers: b.h })).json();
+    expect(list).toEqual([]);
+  });
+});
+
+describe("Fase 11 — endurecimento do commit", () => {
+  const validRow = (accountId: string, over: Record<string, unknown> = {}) => ({
+    type: "expense", amountCents: 1000, date: "2026-06-05", postedDate: null,
+    accountId, description: "x", categoryId: null, fingerprint: `hard:${accountId}:${Math.random()}`, ...over,
+  });
+
+  async function emptyBatch(u: User, accountId: string) {
+    const pre = await post(u, "/import/preview", { accountId, text: c6SampleText(), format: "pdf_statement" });
+    return pre.json().batchId as string;
+  }
+
+  it("rejeita amountCents negativo com 400", async () => {
+    const u = await newUser("hard1");
+    const accountId = await newAccount(u);
+    const batchId = await emptyBatch(u, accountId);
+    const res = await post(u, `/import/${batchId}/commit`, { rows: [validRow(accountId, { amountCents: -5 })] });
+    expect(res.statusCode).toBe(400);
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(0);
+  });
+
+  it("rejeita data fora do formato ISO com 400", async () => {
+    const u = await newUser("hard2");
+    const accountId = await newAccount(u);
+    const batchId = await emptyBatch(u, accountId);
+    const res = await post(u, `/import/${batchId}/commit`, { rows: [validRow(accountId, { date: "31/12/2025" })] });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("rejeita corpo sem rows com 400", async () => {
+    const u = await newUser("hard3");
+    const accountId = await newAccount(u);
+    const batchId = await emptyBatch(u, accountId);
+    expect((await post(u, `/import/${batchId}/commit`, {})).statusCode).toBe(400);
+  });
+
+  it("aceita corpo válido que também carrega dup nas linhas", async () => {
+    const u = await newUser("hard4");
+    const accountId = await newAccount(u);
+    const batchId = await emptyBatch(u, accountId);
+    const res = await post(u, `/import/${batchId}/commit`, { rows: [validRow(accountId, { dup: false })] });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ inserted: 1, skipped: 0 });
+  });
+
+  it("linha sinalizada como duplicata pela chave legada do CSV não ganha uma segunda cópia", async () => {
+    const u = await newUser("hard5");
+    const accountId = await newAccount(u);
+    await prisma.transaction.create({
+      data: {
+        workspaceId: u.workspaceId, type: "expense", amountCents: 3500n, date: new Date("2026-06-05"), accountId,
+        source: "import", createdById: u.userId, importFingerprint: `${accountId}|2026-06-05|-3500|ifood`,
+      },
+    });
+    const mapping = {
+      dateColumn: "Data", amountColumn: "Valor", descriptionColumn: "Descricao",
+      dateFormat: "DD/MM/YYYY", decimalSeparator: ".", expenseIsNegative: true,
+    };
+    const csv = "Data,Valor,Descricao\n05/06/2026,-35.00,iFood\n05/06/2026,-35.00,iFood\n10/06/2026,1000.00,Salário";
+    const pre = await post(u, "/import/csv/preview", { accountId, mapping, csv });
+    expect(pre.json().rows.map((r: { dup: boolean }) => r.dup)).toEqual([true, false, false]);
+
+    const res = await post(u, `/import/${pre.json().batchId}/commit`, commitPayload(pre.json().rows, accountId));
+    expect(res.json()).toEqual({ inserted: 2, skipped: 1 });
+    expect(await prisma.transaction.count({ where: { workspaceId: u.workspaceId } })).toBe(3);
+  });
+});

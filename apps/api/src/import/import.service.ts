@@ -103,7 +103,18 @@ export class ImportService {
       createdById: userId,
     }));
 
-    const { count: inserted } = await prisma.transaction.createMany({ data: payload, skipDuplicates: true });
+    // o CSV marca como duplicata a 1ª ocorrência gravada só com a chave legada (sem ordinal): não gravar outra cópia
+    const legacyBases = [...new Set(payload.filter((p) => p.importFingerprint.endsWith("|0")).map((p) => p.importFingerprint.slice(0, -2)))];
+    const legacyExisting = legacyBases.length
+      ? await prisma.transaction.findMany({
+          where: { workspaceId, importFingerprint: { in: legacyBases } },
+          select: { importFingerprint: true },
+        })
+      : [];
+    const legacySeen = new Set(legacyExisting.map((e) => e.importFingerprint));
+    const toInsert = payload.filter((p) => !(p.importFingerprint.endsWith("|0") && legacySeen.has(p.importFingerprint.slice(0, -2))));
+
+    const { count: inserted } = await prisma.transaction.createMany({ data: toInsert, skipDuplicates: true });
 
     await prisma.importBatch.update({
       where: { id: batchId },

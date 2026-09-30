@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 import {
   detectStatement,
   StatementParseError,
@@ -136,5 +142,54 @@ export class ImportStatementService {
       dupCount,
       balanceCheck,
     };
+  }
+
+  /** Apaga as transações do lote e registra `undoneAt`. O lote precisa estar confirmado e ainda não desfeito. */
+  async undo(workspaceId: string, batchId: string) {
+    const batch = await prisma.importBatch.findFirst({
+      where: { id: batchId, workspaceId },
+      select: { status: true, undoneAt: true },
+    });
+    if (!batch) throw new NotFoundException("lote não encontrado");
+    if (batch.status !== "committed") throw new ConflictException("o lote ainda não foi confirmado");
+    if (batch.undoneAt) throw new ConflictException("o lote já foi desfeito");
+
+    const [removed] = await prisma.$transaction([
+      prisma.transaction.deleteMany({ where: { workspaceId, importBatchId: batchId } }),
+      prisma.importBatch.update({ where: { id: batchId }, data: { undoneAt: new Date() } }),
+    ]);
+    return { removed: removed.count };
+  }
+
+  async listBatches(workspaceId: string) {
+    const batches = await prisma.importBatch.findMany({
+      where: { workspaceId, status: "committed" },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        format: true,
+        institution: true,
+        rowCount: true,
+        dupCount: true,
+        balanceCheck: true,
+        createdAt: true,
+        undoneAt: true,
+        account: { select: { name: true } },
+        _count: { select: { transactions: true } },
+      },
+    });
+    return batches.map((b) => ({
+      id: b.id,
+      format: b.format,
+      institution: b.institution,
+      accountName: b.account?.name ?? null,
+      rowCount: b.rowCount,
+      dupCount: b.dupCount,
+      inserted: b._count.transactions,
+      balanceOk: b.balanceCheck ? (b.balanceCheck as { ok: boolean }).ok : null,
+      createdAt: b.createdAt,
+      undoneAt: b.undoneAt,
+    }));
   }
 }

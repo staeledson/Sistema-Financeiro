@@ -12,6 +12,22 @@ const previewBody = z.object({
   format: z.enum(["ofx", "pdf_statement"]),
 });
 
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const commitBody = z.object({
+  rows: z.array(
+    z.object({
+      type: z.enum(["income", "expense"]),
+      amountCents: z.number().int().min(0),
+      date: isoDate,
+      postedDate: isoDate.nullish(),
+      accountId: z.string().min(1),
+      description: z.string().nullish(),
+      categoryId: z.string().nullish(),
+      fingerprint: z.string().min(1),
+    }),
+  ),
+});
+
 @Controller("import")
 @UseGuards(CurrentUserGuard)
 export class ImportController {
@@ -43,12 +59,25 @@ export class ImportController {
 
   @Post(":batchId/commit")
   @HttpCode(200)
-  commit(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param("batchId") batchId: string,
-    @Body() body: { rows: Array<{ type: string; amountCents: number; date: string; postedDate?: string | null; accountId: string; description: string | null; fingerprint: string; categoryId?: string | null }> },
-  ) {
-    return this.service.commit(user.workspaceId, user.id, batchId, body.rows as Parameters<ImportService["commit"]>[3]);
+  commit(@CurrentUser() user: AuthenticatedUser, @Param("batchId") batchId: string, @Body() body: unknown) {
+    const { rows } = commitBody.parse(body);
+    return this.service.commit(
+      user.workspaceId,
+      user.id,
+      batchId,
+      rows.map((r) => ({ ...r, description: r.description ?? null })),
+    );
+  }
+
+  @Post(":batchId/undo")
+  @HttpCode(200)
+  undo(@CurrentUser() user: AuthenticatedUser, @Param("batchId") batchId: string) {
+    return this.statements.undo(user.workspaceId, batchId);
+  }
+
+  @Get("batches")
+  listBatches(@CurrentUser() user: AuthenticatedUser) {
+    return this.statements.listBatches(user.workspaceId);
   }
 
   @Post("pdf")
