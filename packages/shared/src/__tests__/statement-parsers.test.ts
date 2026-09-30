@@ -34,7 +34,7 @@ describe("c6StatementParser.parse", () => {
 
   it("infere o ano pelo bloco mensal, inclusive para a data contábil do mês seguinte", () => {
     const fatura = parsed.rows.find((r) => r.description === "PGTO FAT CARTAO C6");
-    expect(fatura).toMatchObject({ date: "2025-10-30", postedDate: "2025-11-01", type: "expense", amountCents: 30000 });
+    expect(fatura).toMatchObject({ date: "2025-10-29", postedDate: "2025-11-01", type: "expense", amountCents: 30000 });
   });
 
   it("lê período, conta e os pontos de saldo (Saldo do dia + saldo do cabeçalho)", () => {
@@ -84,12 +84,34 @@ describe("c6StatementParser.parse", () => {
     expect(verifyBalances(layout.rows, layout.balances)?.ok).toBe(true);
   });
 
-  it("uma linha que termina em tabulação ainda é lida (células vazias finais são descartadas)", () => {
+  it("linha com tabulação final ainda é lida (normalize apara a linha)", () => {
     const text = c6SampleText().replace("Cliente A \tR$ 1.000,00", "Cliente A \tR$ 1.000,00 \t");
     expect(text).toContain("Cliente A \tR$ 1.000,00 \t\n");
     const tolerant = c6StatementParser.parse(text, { accountId: "acc1" });
     expect(tolerant.rows).toHaveLength(C6_SAMPLE.rowCount);
     expect(tolerant.rows[0]).toMatchObject({ type: "income", amountCents: 100000 });
+  });
+
+  it("a conferência depende da data contábil: somando pela data de lançamento o saldo de 29/10 não fecha", () => {
+    const byLaunch = parsed.rows.map((r) => ({ ...r, postedDate: null }));
+    const wrong = verifyBalances(byLaunch, parsed.balances);
+    expect(wrong?.ok).toBe(false);
+    expect(wrong?.mismatches.map((m) => m.dateISO)).toContain("2025-10-29");
+    expect(verifyBalances(parsed.rows, parsed.balances)?.ok).toBe(true);
+  });
+
+  it("lança StatementParseError quando uma linha de lançamento perde uma coluna", () => {
+    const text = c6SampleText().replace("Entrada PIX \tPix recebido de Cliente A \t", "Entrada PIX \t");
+    expect(text).not.toBe(c6SampleText());
+    expect(() => c6StatementParser.parse(text, { accountId: "acc1" })).toThrow(StatementParseError);
+    expect(() => c6StatementParser.parse(text, { accountId: "acc1" })).toThrow(/4 colunas em vez de 5/);
+  });
+
+  it("o texto de exemplo (tabulação e layout) continua lendo as 9 linhas", () => {
+    for (const layout of [false, true]) {
+      const p = c6StatementParser.parse(c6SampleText({ layout }), { accountId: "acc1" });
+      expect(p.rows).toHaveLength(9);
+    }
   });
 
   it("lança StatementParseError para linha fora de um bloco mensal", () => {

@@ -88,11 +88,14 @@ export const c6StatementParser: StatementParser = {
       }
 
       const cells = splitCells(line);
-      // Uma linha que termina em tabulação gera células vazias no fim; descarta antes de contar colunas.
-      while (cells.length && cells[cells.length - 1] === "") cells.pop();
-      const launched = cells.length === 5 ? DAY_MONTH.exec(cells[0]) : null;
-      const posted = cells.length === 5 ? DAY_MONTH.exec(cells[1]) : null;
+      const launched = cells.length >= 2 ? DAY_MONTH.exec(cells[0]) : null;
+      const posted = cells.length >= 2 ? DAY_MONTH.exec(cells[1]) : null;
       if (!launched || !posted) continue;
+      if (cells.length !== 5) {
+        throw new StatementParseError(
+          `linha de lançamento com ${cells.length} colunas em vez de 5: "${line.slice(0, 80)}"`,
+        );
+      }
 
       if (!block) throw new StatementParseError("lançamento encontrado antes do cabeçalho do mês");
       const cents = parseBrlCents(cells[4]);

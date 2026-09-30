@@ -44,8 +44,8 @@ export function c6SampleText(opts: { layout?: boolean; corruptBalance?: boolean 
     row("Saldo do dia 29/10/25", saldo29),
     // pertence ao saldo de 29/10 (contábil 28/10), mas o extrato a lista depois dele
     row("28/10", "28/10", "Outros gastos", "Tarifa de manutenção", "-R$ 9,50"),
-    // lançada em 30/10, contábil em 01/11 (já no mês seguinte), listada no bloco de outubro
-    row("30/10", "01/11", "Pagamento", "PGTO FAT CARTAO C6", "-R$ 300,00"),
+    // lançada em 29/10, contábil em 01/11 (já no mês seguinte, após o saldo de 29/10), listada no bloco de outubro
+    row("29/10", "01/11", "Pagamento", "PGTO FAT CARTAO C6", "-R$ 300,00"),
     `Novembro 2025 ( 01/11/2025 - 30/11/2025 )${sep}Entradas: R$ 50,00 • Saídas: R$ 10,00`,
     "Data",
     "lançamento",
