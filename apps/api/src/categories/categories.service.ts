@@ -8,11 +8,11 @@ const CATEGORY_SELECT = {
 
 @Injectable()
 export class CategoriesService {
-  async list(workspaceId: string, type?: string, entity?: AccountEntity) {
+  async list(workspaceId: string, type?: "income" | "expense", entity?: AccountEntity) {
     return prisma.category.findMany({
       where: {
         workspaceId,
-        ...(type ? { type: type as "income" | "expense" } : {}),
+        ...(type ? { type } : {}),
         ...(entity ? { entity: { in: [entity, "both"] as Array<AccountEntity | "both"> } } : {}),
       },
       select: CATEGORY_SELECT,

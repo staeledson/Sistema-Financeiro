@@ -10,9 +10,14 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter({ bodyLimit: 20 * 1024 * 1024 }),
   );
+  app.enableShutdownHooks();
   registerAuthHandler(app.getHttpAdapter().getInstance());
   const port = Number(process.env["PORT"] ?? 3100);
   await app.listen(port, "0.0.0.0");
   console.log(`API ouvindo em http://localhost:${port}`);
 }
-bootstrap();
+
+bootstrap().catch((err) => {
+  console.error("Falha ao iniciar a API", err);
+  process.exit(1);
+});
