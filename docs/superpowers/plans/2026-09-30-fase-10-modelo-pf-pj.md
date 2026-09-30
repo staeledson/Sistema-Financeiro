@@ -87,7 +87,7 @@
   - `ZodError` (reexportado de `zod`, para o filtro da API usar a mesma instância dos schemas)
 - Produces (Prisma): enums `AccountEntity`, `Institution`, `CategoryEntity`; campos em `BankAccount` e `Category`; model `WorkspaceSettings` (tabela `workspace_settings`).
 
-- [ ] **Step 1: Criar a branch**
+- [x] **Step 1: Criar a branch**
 
 ```bash
 git checkout main
@@ -97,7 +97,7 @@ git checkout -b fase-10-modelo-pf-pj
 
 Esperado: `Switched to a new branch 'fase-10-modelo-pf-pj'`.
 
-- [ ] **Step 2: Escrever os testes unitários dos schemas (devem falhar)**
+- [x] **Step 2: Escrever os testes unitários dos schemas (devem falhar)**
 
 Criar `packages/shared/src/__tests__/account-entity.test.ts`:
 
@@ -222,7 +222,7 @@ describe("workspaceSettingsSchema", () => {
 });
 ```
 
-- [ ] **Step 3: Rodar e confirmar a falha**
+- [x] **Step 3: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/shared test
@@ -230,7 +230,7 @@ pnpm --filter @app/shared test
 
 Esperado: FAIL no novo arquivo (`accountUpdateSchema`/`cardFieldsPresent`/`workspaceSettingsSchema` não exportados, ou `TypeError ... is not a function`). Os testes antigos continuam passando.
 
-- [ ] **Step 4: Implementar enums e schemas compartilhados**
+- [x] **Step 4: Implementar enums e schemas compartilhados**
 
 Em `packages/shared/src/enums.ts`, acrescentar ao final:
 
@@ -354,7 +354,7 @@ export * from "./settings";
 export { ZodError } from "zod";
 ```
 
-- [ ] **Step 5: Rodar os testes do shared e confirmar que passam**
+- [x] **Step 5: Rodar os testes do shared e confirmar que passam**
 
 ```bash
 pnpm --filter @app/shared test
@@ -362,7 +362,7 @@ pnpm --filter @app/shared test
 
 Esperado: todos os arquivos passam (antes eram 32 testes; agora 32 + 16 novos).
 
-- [ ] **Step 6: Escrever o teste de schema do banco (deve falhar)**
+- [x] **Step 6: Escrever o teste de schema do banco (deve falhar)**
 
 Em `apps/api/test/database/schema.test.ts`, acrescentar dentro do `describe("schema base", …)`, depois do último `it`:
 
@@ -384,7 +384,7 @@ Em `apps/api/test/database/schema.test.ts`, acrescentar dentro do `describe("sch
   });
 ```
 
-- [ ] **Step 7: Rodar e confirmar a falha**
+- [x] **Step 7: Rodar e confirmar a falha**
 
 ```bash
 docker compose up -d
@@ -393,7 +393,7 @@ pnpm --filter @app/api exec vitest run test/database/schema.test.ts
 
 Esperado: FAIL nos dois testes novos (colunas inexistentes; `prisma.workspaceSettings` indefinido).
 
-- [ ] **Step 8: Editar o `prisma/schema.prisma`**
+- [x] **Step 8: Editar o `prisma/schema.prisma`**
 
 1. Logo antes do `model BankAccount`, junto dos demais enums, acrescentar:
 
@@ -478,7 +478,7 @@ model WorkspaceSettings {
 }
 ```
 
-- [ ] **Step 9: Gerar o SQL da migration a partir do diff**
+- [x] **Step 9: Gerar o SQL da migration a partir do diff**
 
 O `HEAD` ainda tem o schema antigo (nada foi commitado). O diff entre ele e o schema editado é exatamente o DDL da fase.
 
@@ -494,7 +494,7 @@ grep -cE 'CREATE TYPE|ALTER TABLE|CREATE TABLE|CREATE INDEX' prisma/migrations/2
 
 Esperado: o arquivo contém três `CREATE TYPE` (AccountEntity, Institution, CategoryEntity), `ALTER TABLE "bank_accounts"` e `"categories"`, `CREATE TABLE "workspace_settings"`, `CREATE INDEX` de `bank_accounts` e uma `FOREIGN KEY` de `workspace_settings`. O `grep -c` imprime um número maior que 6. Abrir o arquivo e conferir que não há `DROP`.
 
-- [ ] **Step 10: Acrescentar ao SQL o passo de dados (categorias PJ para workspaces existentes)**
+- [x] **Step 10: Acrescentar ao SQL o passo de dados (categorias PJ para workspaces existentes)**
 
 ```bash
 cat >> prisma/migrations/20260930120000_fase10_modelo_pf_pj/migration.sql <<'SQL'
@@ -522,7 +522,7 @@ SQL
 tail -5 prisma/migrations/20260930120000_fase10_modelo_pf_pj/migration.sql
 ```
 
-- [ ] **Step 11: Criar dados "antigos" e aplicar a migration**
+- [x] **Step 11: Criar dados "antigos" e aplicar a migration**
 
 Garantir um workspace criado antes da migration (para provar o passo de dados). As linhas abaixo usam ids fixos `pre10` e o `on conflict` torna o passo repetível:
 
@@ -541,7 +541,7 @@ pnpm exec prisma generate
 
 Esperado: `Applying migration '20260930120000_fase10_modelo_pf_pj'` e `All migrations have been successfully applied`; `generate` gera os dois clients.
 
-- [ ] **Step 12: Verificar o passo de dados e o padrão das contas antigas**
+- [x] **Step 12: Verificar o passo de dados e o padrão das contas antigas**
 
 ```bash
 docker exec financas-postgres psql -U app -d financas -c "
@@ -567,7 +567,7 @@ Limpar os dados de teste (o `ON DELETE CASCADE` remove workspace, conta e catego
 docker exec financas-postgres psql -U app -d financas -c "delete from \"user\" where id='u_pre10';"
 ```
 
-- [ ] **Step 13: Rodar testes e typecheck**
+- [x] **Step 13: Rodar testes e typecheck**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/database/schema.test.ts
@@ -576,7 +576,7 @@ pnpm turbo typecheck
 
 Esperado: 4 testes passam em `schema.test.ts`; typecheck verde nos 4 pacotes. (Se o typecheck do web ou da API falhar por tipos dos enums gerados, rodar `pnpm exec prisma generate` de novo.)
 
-- [ ] **Step 14: Commit**
+- [x] **Step 14: Commit**
 
 ```bash
 git add prisma packages/shared apps/api/test/database/schema.test.ts
@@ -608,7 +608,7 @@ EOF
   - `GET /accounts?entity=pf|pj` filtra; `POST /accounts` e `PATCH /accounts/:id` aceitam `entity`, `institution`, `externalId`, `closingDay`, `dueDay`, `creditLimitCents`. Toda resposta de conta traz: `id, type, name, openingBalanceCents, archived, entity, institution, externalId, closingDay, dueDay, creditLimitCents`.
   - Helper de teste `newUser(tag)` em `modelo-pf-pj.e2e.test.ts` retornando `{ userId: string; workspaceId: string; h: { authorization: string; "content-type": string } }`; usado pelas Tasks 3, 4 e 5.
 
-- [ ] **Step 1: Escrever os testes e2e de contas (devem falhar)**
+- [x] **Step 1: Escrever os testes e2e de contas (devem falhar)**
 
 Criar `apps/api/test/e2e/modelo-pf-pj.e2e.test.ts`:
 
@@ -756,7 +756,7 @@ describe("Fase 10 — contas PF/PJ", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts
@@ -764,7 +764,7 @@ pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts
 
 Esperado: FAIL em quase todos (respostas sem `entity`; validações retornando 500; `PATCH /accounts/:id` 404 de rota).
 
-- [ ] **Step 3: Criar o filtro global e o parser de `?entity=`**
+- [x] **Step 3: Criar o filtro global e o parser de `?entity=`**
 
 Criar `apps/api/src/common/zod-exception.filter.ts`:
 
@@ -810,7 +810,7 @@ e, dentro do decorator `@Module({ … })`, depois da lista `imports: [ … ],`, 
   providers: [{ provide: APP_FILTER, useClass: ZodExceptionFilter }],
 ```
 
-- [ ] **Step 4: Reescrever o service e o controller de contas**
+- [x] **Step 4: Reescrever o service e o controller de contas**
 
 Substituir `apps/api/src/accounts/accounts.service.ts` por:
 
@@ -917,7 +917,7 @@ export class AccountsController {
 }
 ```
 
-- [ ] **Step 5: Rodar os testes da fase e a suíte de finanças**
+- [x] **Step 5: Rodar os testes da fase e a suíte de finanças**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts test/e2e/finance.e2e.test.ts
@@ -925,7 +925,7 @@ pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts test/e2
 
 Esperado: os 11 testes novos passam e os 8 de `finance.e2e.test.ts` continuam passando (o teste T3 de contagem de categorias só muda na Task 3).
 
-- [ ] **Step 6: Typecheck**
+- [x] **Step 6: Typecheck**
 
 ```bash
 pnpm --filter @app/api typecheck
@@ -933,7 +933,7 @@ pnpm --filter @app/api typecheck
 
 Esperado: sem erros. (Se reclamar de `data: dto` por causa de `undefined` em campos obrigatórios do Prisma, o tipo de `AccountUpdateInput` já os torna opcionais; se ainda falhar, expandir explicitamente: `data: { name: dto.name, entity: dto.entity, institution: dto.institution, externalId: dto.externalId, closingDay: dto.closingDay, dueDay: dto.dueDay, creditLimitCents: dto.creditLimitCents }`.)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/api
@@ -964,7 +964,7 @@ EOF
   - `GET /categories?type=&entity=pf|pj` devolve as categorias com `entity` igual ao pedido **ou** `both`. Toda resposta de categoria inclui `entity`.
   - `POST /categories` aceita `entity` (padrão `both`); `PATCH /categories/:id` permite alterar `entity`.
 
-- [ ] **Step 1: Atualizar o teste T3 existente e escrever os novos (devem falhar)**
+- [x] **Step 1: Atualizar o teste T3 existente e escrever os novos (devem falhar)**
 
 Em `apps/api/test/e2e/finance.e2e.test.ts`, substituir o teste `"T3: novo usuário recebe 5 receitas e 15 despesas como categorias"` inteiro por:
 
@@ -1067,7 +1067,7 @@ describe("Fase 10 — categorias por entidade", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts test/e2e/finance.e2e.test.ts
@@ -1075,7 +1075,7 @@ pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts test/e2
 
 Esperado: FAIL nos testes de categorias e no T3 (respostas sem `entity`, sem categorias PJ).
 
-- [ ] **Step 3: Fonte única das categorias de fábrica**
+- [x] **Step 3: Fonte única das categorias de fábrica**
 
 Substituir `apps/api/src/categories/seed-categories.ts` por:
 
@@ -1142,7 +1142,7 @@ e substituir todo o bloco `categories: { createMany: { data: [ … ] } },` (as 2
               categories: { createMany: { data: defaultCategoryRows() } },
 ```
 
-- [ ] **Step 4: Service e controller de categorias**
+- [x] **Step 4: Service e controller de categorias**
 
 Substituir `apps/api/src/categories/categories.service.ts` por:
 
@@ -1222,7 +1222,7 @@ e substituir o método `list`:
   }
 ```
 
-- [ ] **Step 5: Rodar os testes**
+- [x] **Step 5: Rodar os testes**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts test/e2e/finance.e2e.test.ts
@@ -1230,7 +1230,7 @@ pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts test/e2
 
 Esperado: todos passam.
 
-- [ ] **Step 6: Suíte completa da API e typecheck**
+- [x] **Step 6: Suíte completa da API e typecheck**
 
 ```bash
 pnpm --filter @app/api test
@@ -1239,7 +1239,7 @@ pnpm --filter @app/api typecheck
 
 Esperado: todos os arquivos passam (nenhum outro teste depende da contagem de categorias; se algum falhar por causa das 7 categorias novas, ajustar a asserção do teste, não a fábrica) e typecheck verde.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/api
@@ -1264,7 +1264,7 @@ EOF
 - Consumes (Task 2): `parseEntityQuery`, `newUser`.
 - Produces: `GET /transactions?entity=pf|pj` devolve as transações em que **alguma** das contas envolvidas (`account`, `sourceAccount` ou `destAccount`) tem a entidade pedida. Uma transferência PF→PJ aparece nos dois filtros. Combina com `accountId`, `categoryId`, `from`, `to` e `q` por AND.
 
-- [ ] **Step 1: Escrever o teste e2e (deve falhar)**
+- [x] **Step 1: Escrever o teste e2e (deve falhar)**
 
 Acrescentar ao final de `apps/api/test/e2e/modelo-pf-pj.e2e.test.ts`:
 
@@ -1315,7 +1315,7 @@ describe("Fase 10 — transações filtradas por entidade", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts -t "transações filtradas"
@@ -1323,7 +1323,7 @@ pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts -t "tra
 
 Esperado: FAIL (o filtro `entity` é ignorado: `entity=pf` devolve as 3 transações; `entity=xx` retorna 200).
 
-- [ ] **Step 3: Implementar o filtro**
+- [x] **Step 3: Implementar o filtro**
 
 Em `apps/api/src/transactions/transactions.controller.ts`, acrescentar o import
 
@@ -1392,7 +1392,7 @@ e substituir o método `list` inteiro por:
   }
 ```
 
-- [ ] **Step 4: Rodar os testes e o typecheck**
+- [x] **Step 4: Rodar os testes e o typecheck**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts test/e2e/finance.e2e.test.ts
@@ -1401,7 +1401,7 @@ pnpm --filter @app/api typecheck
 
 Esperado: todos passam (os 4 testes novos e os de finanças, incluindo o filtro por `accountId` já existente) e typecheck verde.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api
@@ -1430,7 +1430,7 @@ EOF
   - `PATCH /workspaces/current/settings` com qualquer subconjunto desses campos; só `owner` e `admin` (senão 403); valores inválidos → 400.
   - `WorkspaceSettingsService.get(workspaceId)` e `.update(workspaceId, role, dto)`; a fase 12 consome `get`.
 
-- [ ] **Step 1: Escrever o teste e2e (deve falhar)**
+- [x] **Step 1: Escrever o teste e2e (deve falhar)**
 
 Acrescentar ao final de `apps/api/test/e2e/modelo-pf-pj.e2e.test.ts`:
 
@@ -1491,7 +1491,7 @@ describe("Fase 10 — configurações do workspace", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts -t "configurações do workspace"
@@ -1499,7 +1499,7 @@ pnpm --filter @app/api exec vitest run test/e2e/modelo-pf-pj.e2e.test.ts -t "con
 
 Esperado: FAIL (404 nas rotas).
 
-- [ ] **Step 3: Implementar service, controller e módulo**
+- [x] **Step 3: Implementar service, controller e módulo**
 
 Criar `apps/api/src/workspaces/workspace-settings.service.ts`:
 
@@ -1584,7 +1584,7 @@ import { WorkspaceSettingsService } from "./workspace-settings.service";
 export class WorkspacesModule {}
 ```
 
-- [ ] **Step 4: Rodar a suíte completa da API e o typecheck**
+- [x] **Step 4: Rodar a suíte completa da API e o typecheck**
 
 ```bash
 pnpm --filter @app/api test
@@ -1593,7 +1593,7 @@ pnpm --filter @app/api typecheck
 
 Esperado: todos os arquivos passam (74 testes anteriores, menos o T3 reescrito que continua 1, mais os novos da fase) e typecheck verde.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api
@@ -1626,7 +1626,7 @@ EOF
   - `lib/api.ts`: `BankAccount` ganha `entity`, `institution`, `externalId`, `closingDay`, `dueDay`, `creditLimitCents`; `Category` ganha `entity`; exports `NewAccount`, `UpdateAccount`; `api.accounts.list(entity?)`, `api.accounts.update(id, body)`, `api.categories.list(type?, entity?)`, `api.transactions.list({ …, entity? })`.
   - store: `updateAccount(id: string, body: UpdateAccount): Promise<BankAccount>`.
 
-- [ ] **Step 1: Escrever os testes dos helpers (devem falhar)**
+- [x] **Step 1: Escrever os testes dos helpers (devem falhar)**
 
 Criar `apps/web/src/lib/__tests__/entity.test.ts`:
 
@@ -1785,7 +1785,7 @@ describe("api — entidade PF/PJ", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/web test
@@ -1793,7 +1793,7 @@ pnpm --filter @app/web test
 
 Esperado: FAIL nos três arquivos novos (módulos `../entity` e `../account-form` inexistentes; `api.accounts.update` indefinido).
 
-- [ ] **Step 3: Criar `lib/entity.ts`**
+- [x] **Step 3: Criar `lib/entity.ts`**
 
 ```ts
 import type { AccountType } from "./api";
@@ -1839,7 +1839,7 @@ export function categoriesForEntity<T extends { entity: CategoryEntity }>(
 }
 ```
 
-- [ ] **Step 4: Criar `lib/account-form.ts`**
+- [x] **Step 4: Criar `lib/account-form.ts`**
 
 ```ts
 import type { AccountType, BankAccount, NewAccount, UpdateAccount } from "./api";
@@ -1926,7 +1926,7 @@ export function buildUpdateAccountPayload(f: AccountFormState): UpdateAccount {
 }
 ```
 
-- [ ] **Step 5: Atualizar `lib/api.ts`**
+- [x] **Step 5: Atualizar `lib/api.ts`**
 
 No topo, depois do import de `http`, acrescentar:
 
@@ -2006,7 +2006,7 @@ No objeto `api`, substituir os blocos `accounts`, `categories` e o método `list
 
 (o método `create` de `transactions` logo abaixo permanece como está; o objeto `balances` e `dashboard` também.)
 
-- [ ] **Step 6: Atualizar a store**
+- [x] **Step 6: Atualizar a store**
 
 Em `apps/web/src/stores/finance.ts`, substituir o import de `lib/api`:
 
@@ -2036,7 +2036,7 @@ e acrescentar `updateAccount` ao objeto retornado:
     loadAccounts, createAccount, updateAccount, archiveAccount,
 ```
 
-- [ ] **Step 7: Rodar testes e typecheck do web**
+- [x] **Step 7: Rodar testes e typecheck do web**
 
 ```bash
 pnpm --filter @app/web test
@@ -2045,7 +2045,7 @@ pnpm --filter @app/web typecheck
 
 Esperado: testes passam (18 anteriores + os novos). O typecheck pode apontar `AccountsView.vue` (usa `createAccount` com objeto já compatível, então deve passar; `Category`/`BankAccount` agora têm campos obrigatórios novos — se algum mock/fixture no web construir esses tipos, acrescentar os campos).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add apps/web
@@ -2072,7 +2072,7 @@ EOF
 
 Não há teste de componente nesta task (o projeto não usa `@vue/test-utils`); a lógica testável está nos helpers da Task 6. A verificação é por typecheck e pelo teste manual no navegador da Task 8.
 
-- [ ] **Step 1: Criar o componente de campos de conta**
+- [x] **Step 1: Criar o componente de campos de conta**
 
 Criar `apps/web/src/components/AccountFields.vue`:
 
@@ -2119,7 +2119,7 @@ input, select { padding: calc(var(--space) * 1.5); border: 1px solid #333; borde
 </style>
 ```
 
-- [ ] **Step 2: Reescrever `AccountsView.vue`**
+- [x] **Step 2: Reescrever `AccountsView.vue`**
 
 Substituir o conteúdo inteiro de `apps/web/src/views/AccountsView.vue` por:
 
@@ -2299,7 +2299,7 @@ p[role="alert"] { color: #e74c3c; font-size: 0.9rem; margin-top: calc(var(--spac
 </style>
 ```
 
-- [ ] **Step 3: Atualizar `TransactionsView.vue` — script**
+- [x] **Step 3: Atualizar `TransactionsView.vue` — script**
 
 Em `apps/web/src/views/TransactionsView.vue`:
 
@@ -2360,7 +2360,7 @@ async function onEntityChange() {
 
 (depois da linha `q: filterQ.value || undefined,`).
 
-- [ ] **Step 4: Atualizar `TransactionsView.vue` — template**
+- [x] **Step 4: Atualizar `TransactionsView.vue` — template**
 
 1. Substituir o bloco de filtros (da linha `<div class="filters">` até o `<select v-model="filterAccountId">…</select>` inclusive) por:
 
@@ -2397,7 +2397,7 @@ async function onEntityChange() {
 .tx-entity { font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--color-primary); color: #fff; }
 ```
 
-- [ ] **Step 5: Typecheck e testes do web**
+- [x] **Step 5: Typecheck e testes do web**
 
 ```bash
 pnpm --filter @app/web typecheck
@@ -2406,7 +2406,7 @@ pnpm --filter @app/web test
 
 Esperado: typecheck verde (vue-tsc) e testes passando.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/web
@@ -2428,7 +2428,7 @@ EOF
 
 **Interfaces:** nenhuma nova.
 
-- [ ] **Step 1: Typecheck e testes de todo o monorepo, sem cache**
+- [x] **Step 1: Typecheck e testes de todo o monorepo, sem cache**
 
 ```bash
 docker compose up -d
@@ -2439,7 +2439,7 @@ pnpm turbo test --force
 
 Esperado: exit 0 em ambos; nenhum teste ignorado ou falhando. Anotar as contagens finais por pacote (shared, api, worker, web) para o README.
 
-- [ ] **Step 2: Sem drift entre migrations, schema e banco**
+- [x] **Step 2: Sem drift entre migrations, schema e banco**
 
 ```bash
 pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script | tail -2
@@ -2447,7 +2447,7 @@ pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema
 
 Esperado: `-- This is an empty migration.`
 
-- [ ] **Step 3: Subir os apps e exercitar o fluxo PF/PJ pela API**
+- [x] **Step 3: Subir os apps e exercitar o fluxo PF/PJ pela API**
 
 ```bash
 pnpm dev > "$TMPDIR/dev.log" 2>&1 &
@@ -2471,7 +2471,7 @@ echo "--- 400 esperado:"; curl -s -o /dev/null -w "%{http_code}\n" -X POST http:
 
 Esperado: as duas contas voltam com `entity`/`institution`/dados de cartão; `entity=pj` lista só o cartão; as categorias PJ de despesa são `["Fornecedores","Folha e terceiros","Impostos e tributos","Pró-labore","Serviços contratados","Tarifas bancárias"]` (ordem alfabética do Python); settings traz `0.8/40/2/[]`; o último `curl` imprime `400`.
 
-- [ ] **Step 4: Verificar as telas no navegador**
+- [x] **Step 4: Verificar as telas no navegador**
 
 Com o `pnpm dev` ainda rodando, abrir `http://localhost:5173` (navegador embutido ou o do usuário), entrar com a conta `f10_<ts>@test.com` criada no Step 3 (a senha é a do comando) e conferir:
 
@@ -2482,7 +2482,7 @@ Com o `pnpm dev` ainda rodando, abrir `http://localhost:5173` (navegador embutid
 
 Registrar o resultado de cada item. Se algum falhar, corrigir na task correspondente antes de seguir.
 
-- [ ] **Step 5: Encerrar os servidores e limpar os dados de teste**
+- [x] **Step 5: Encerrar os servidores e limpar os dados de teste**
 
 ```bash
 pkill -f 'turbo run dev'; pkill -f 'pnpm dev'; pkill -f 'tsx watch'; pkill -f 'nest start'; pkill -f vite
@@ -2492,7 +2492,7 @@ lsof -nP -iTCP:3100 -iTCP:5173 -sTCP:LISTEN | head -3
 
 Esperado: sem saída (portas livres). Os dados do usuário `f10_*` ficam no banco de desenvolvimento e são apagados pela próxima execução dos testes e2e (`cleanDb`).
 
-- [ ] **Step 6: Atualizar o README**
+- [x] **Step 6: Atualizar o README**
 
 Em `README.md`:
 
@@ -2504,7 +2504,7 @@ Em `README.md`:
 - **Contas PF e PJ no mesmo workspace** — cada conta tem entidade (PF/PJ), instituição e, nos cartões, fechamento, vencimento e limite; categorias têm escopo PF/PJ/ambos e há filtro PF/PJ em contas e transações
 ```
 
-- [ ] **Step 7: Marcar o plano e commitar a documentação**
+- [x] **Step 7: Marcar o plano e commitar a documentação**
 
 ```bash
 sed -i '' 's/^- \[ \] \*\*Step/- [x] **Step/' docs/superpowers/plans/2026-09-30-fase-10-modelo-pf-pj.md
@@ -2521,7 +2521,7 @@ git status --short
 
 Esperado: o `grep -c` imprime `0` e o `git status --short` fica vazio.
 
-- [ ] **Step 8: Integrar em `main` (pedir autorização antes do push)**
+- [x] **Step 8: Integrar em `main` (pedir autorização antes do push)**
 
 Enviar a branch e abrir PR exige autorização do usuário. Com ela:
 

@@ -121,7 +121,7 @@ sistema-financeiro/
 │   │   │   ├── push/       notificações push (VAPID)
 │   │   │   ├── transactions/
 │   │   │   └── workspaces/ multi-tenant
-│   │   └── test/e2e/       74 testes de integração
+│   │   └── test/e2e/       103 testes de integração
 │   │
 │   ├── worker/             BullMQ job processors
 │   │   └── src/
@@ -142,8 +142,8 @@ sistema-financeiro/
 │   └── shared/             Zod schemas + enums (isomórfico)
 │
 └── prisma/
-    ├── schema.prisma       27 modelos
-    └── migrations/         9 migrations
+    ├── schema.prisma       28 modelos
+    └── migrations/         10 migrations
 ```
 
 ---
@@ -191,10 +191,10 @@ VAPID_PRIVATE_KEY=
 pnpm test
 
 # por app
-pnpm --filter @app/shared test   # 32 testes unitários
-pnpm --filter @app/api    test   # 74 testes e2e
+pnpm --filter @app/shared test   # 48 testes unitários
+pnpm --filter @app/api    test   # 103 testes e2e
 pnpm --filter @app/worker test   # 17 testes unitários
-pnpm --filter @app/web    test   # 18 testes unitários
+pnpm --filter @app/web    test   # 33 testes unitários
 ```
 
 O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `turbo typecheck` e as quatro suítes de teste a cada push.
@@ -214,12 +214,13 @@ O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `tu
 - **Push notifications** — lembretes de contas a vencer (VAPID)
 - **Exportação** — CSV, XLSX (ExcelJS) e backup JSON completo
 - **Share Target** — compartilhe um extrato ou comprovante direto do celular para lançar
+- **Contas PF e PJ no mesmo workspace** — cada conta tem entidade (PF/PJ), instituição e, nos cartões, fechamento, vencimento e limite; categorias têm escopo PF/PJ/ambos e há filtro PF/PJ em contas e transações
 
 ---
 
 ## Modelos Prisma
 
-`User` · `Session` · `Account` · `Verification` · `Workspace` · `WorkspaceMember` · `Invitation` · `BankAccount` · `Category` · `Tag` · `Transaction` · `TransactionTag` · `TransactionSplit` · `ImportBatch` · `ImportMapping` · `AiJob` · `TransactionDraft` · `CategoryRule` · `Insight` · `Budget` · `Goal` · `GoalContribution` · `BusinessProfile` · `ChatConversation` · `ChatMessage` · `PushSubscription` · `ScheduledBill`
+`User` · `Session` · `Account` · `Verification` · `Workspace` · `WorkspaceMember` · `Invitation` · `BankAccount` · `Category` · `Tag` · `Transaction` · `TransactionTag` · `TransactionSplit` · `ImportBatch` · `ImportMapping` · `AiJob` · `TransactionDraft` · `CategoryRule` · `Insight` · `Budget` · `Goal` · `GoalContribution` · `BusinessProfile` · `ChatConversation` · `ChatMessage` · `PushSubscription` · `ScheduledBill` · `WorkspaceSettings`
 
 ---
 
