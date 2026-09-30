@@ -221,12 +221,18 @@ describe("Fase 10 — categorias por entidade", () => {
 describe("Fase 10 — transações filtradas por entidade", () => {
   async function seedPfPj(tag: string) {
     const u = await newUser(tag);
-    const mk = async (name: string, entity: "pf" | "pj") =>
-      (await app.inject({ method: "POST", url: "/accounts", headers: u.h, payload: { type: "checking", name, entity } })).json().id as string;
+    const mk = async (name: string, entity: "pf" | "pj") => {
+      const res = await app.inject({ method: "POST", url: "/accounts", headers: u.h, payload: { type: "checking", name, entity } });
+      expect(res.statusCode).toBe(201);
+      return res.json().id as string;
+    };
     const pf = await mk("Conta PF", "pf");
     const pj = await mk("Conta PJ", "pj");
-    const tx = async (payload: Record<string, unknown>) =>
-      app.inject({ method: "POST", url: "/transactions", headers: u.h, payload: { date: "2026-06-10", amountCents: 1000, ...payload } });
+    const tx = async (payload: Record<string, unknown>) => {
+      const res = await app.inject({ method: "POST", url: "/transactions", headers: u.h, payload: { date: "2026-06-10", amountCents: 1000, ...payload } });
+      expect(res.statusCode).toBe(201);
+      return res;
+    };
     await tx({ type: "expense", accountId: pf, description: "mercado" });
     await tx({ type: "income", accountId: pj, description: "nota fiscal" });
     await tx({ type: "transfer", sourceAccountId: pf, destAccountId: pj, description: "aporte" });
@@ -252,8 +258,10 @@ describe("Fase 10 — transações filtradas por entidade", () => {
 
   it("entity combina com busca textual", async () => {
     const { u } = await seedPfPj("tx3");
-    const res = await app.inject({ method: "GET", url: "/transactions?entity=pf&q=mercado", headers: u.h });
-    expect(descs(res)).toEqual(["mercado"]);
+    const pf = await app.inject({ method: "GET", url: "/transactions?entity=pf&q=mercado", headers: u.h });
+    expect(descs(pf)).toEqual(["mercado"]);
+    const pj = await app.inject({ method: "GET", url: "/transactions?entity=pj&q=mercado", headers: u.h });
+    expect(descs(pj)).toEqual([]);
   });
 
   it("entity inválida retorna 400", async () => {
@@ -315,5 +323,15 @@ describe("Fase 10 — configurações do workspace", () => {
     await app.inject({ method: "PATCH", url: "/workspaces/current/settings", headers: a.h, payload: { aiBatchSize: 77 } });
     const res = await app.inject({ method: "GET", url: "/workspaces/current/settings", headers: b.h });
     expect(res.json().aiBatchSize).toBe(40);
+  });
+});
+
+describe("Fase 11 — validação de ?type= nas categorias", () => {
+  it("?type= inválido retorna 400; income e expense continuam funcionando", async () => {
+    const u = await newUser("ctype1");
+    expect((await app.inject({ method: "GET", url: "/categories?type=foo", headers: u.h })).statusCode).toBe(400);
+    const income = await app.inject({ method: "GET", url: "/categories?type=income", headers: u.h });
+    expect(income.statusCode).toBe(200);
+    expect((income.json() as Array<{ type: string }>).every((c) => c.type === "income")).toBe(true);
   });
 });

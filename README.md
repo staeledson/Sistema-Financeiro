@@ -121,7 +121,7 @@ sistema-financeiro/
 │   │   │   ├── push/       notificações push (VAPID)
 │   │   │   ├── transactions/
 │   │   │   └── workspaces/ multi-tenant
-│   │   └── test/e2e/       108 testes de integração
+│   │   └── test/e2e/       149 testes de integração
 │   │
 │   ├── worker/             BullMQ job processors
 │   │   └── src/
@@ -143,7 +143,7 @@ sistema-financeiro/
 │
 └── prisma/
     ├── schema.prisma       28 modelos
-    └── migrations/         10 migrations
+    └── migrations/         11 migrations
 ```
 
 ---
@@ -191,10 +191,10 @@ VAPID_PRIVATE_KEY=
 pnpm test
 
 # por app
-pnpm --filter @app/shared test   # 48 testes unitários
-pnpm --filter @app/api    test   # 108 testes e2e
-pnpm --filter @app/worker test   # 17 testes unitários
-pnpm --filter @app/web    test   # 33 testes unitários
+pnpm --filter @app/shared test   # 103 testes unitários
+pnpm --filter @app/api    test   # 149 testes e2e
+pnpm --filter @app/worker test   # 22 testes unitários
+pnpm --filter @app/web    test   # 45 testes unitários
 ```
 
 O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `turbo typecheck` e as quatro suítes de teste a cada push.
@@ -206,7 +206,7 @@ O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `tu
 - **Multi-workspace** — pessoal, família e PJ com isolamento completo por `workspaceId`
 - **Ingestão por IA** — lançamento via texto, áudio (Groq Whisper) ou imagem (OCR)
 - **Chat financeiro** — pergunte sobre saldos, gastos e fluxo de caixa em linguagem natural (function calling com guardrails de segurança)
-- **Importação de extratos** — OFX (bancos brasileiros) e PDF
+- **Importação de extratos** — o arquivo é reconhecido sozinho (banco, tipo e conta): OFX de qualquer banco e extrato em PDF do C6 Bank (PF e PJ), com preview, marcação de duplicatas (períodos que se sobrepõem não duplicam), conferência dos saldos declarados no extrato, histórico de importações e desfazer. CSV por mapeamento manual; PDF de outros bancos via IA
 - **Regras de categorização** — automação baseada em padrões de descrição
 - **Orçamentos e metas** — acompanhamento com progresso
 - **Splits** — divisão de despesas entre participantes de um workspace

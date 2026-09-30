@@ -292,6 +292,7 @@ model Transaction {
   type            TransactionType
   amountCents     BigInt
   date            DateTime        @db.Date
+  postedDate      DateTime?       @db.Date
   accountId       String?
   account         BankAccount?    @relation("TransactionAccount", fields: [accountId], references: [id])
   sourceAccountId String?
@@ -328,6 +329,10 @@ model ImportBatch {
   format      ImportFormat
   status      ImportStatus  @default(preview)
   fileRef     String?
+  institution        Institution?
+  detectedAccountRef String?
+  balanceCheck       Json?
+  undoneAt           DateTime?
   rowCount    Int           @default(0)
   dupCount    Int           @default(0)
   createdById String
@@ -378,6 +383,7 @@ enum ImportFormat {
   csv
   ofx
   pdf
+  pdf_statement
 }
 
 enum ImportStatus {

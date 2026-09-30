@@ -1,7 +1,7 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import Papa from "papaparse";
 import { Queue } from "bullmq";
-import { csvMappingSchema, csvRowToTransaction, parseOfx, importFingerprint } from "@app/shared";
+import { csvMappingSchema, csvRowToTransaction, ordinalFingerprints } from "@app/shared";
 import { prisma } from "../database";
 import { StorageService } from "../storage/storage.service";
 import { AI_QUEUE } from "../queue/queue.tokens";
@@ -27,14 +27,24 @@ export class ImportService {
     const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
     const txs = parsed.data.map((r) => csvRowToTransaction(r, mapping, accountId));
 
-    const fps = txs.map((t) => t.fingerprint);
+    // `fingerprint` de csvRowToTransaction é a chave base (formato legado); o ordinal separa linhas idênticas.
+    const legacyKeys = txs.map((t) => t.fingerprint);
+    const fingerprints = ordinalFingerprints(legacyKeys);
     const existing = await prisma.transaction.findMany({
-      where: { workspaceId, importFingerprint: { in: fps } },
+      where: { workspaceId, importFingerprint: { in: [...fingerprints, ...legacyKeys] } },
       select: { importFingerprint: true },
     });
     const seen = new Set(existing.map((e) => e.importFingerprint));
 
-    const rows = txs.map((t) => ({ ...t, dup: seen.has(t.fingerprint) }));
+    const rows = txs.map((t, i) => {
+      const isFirstOfKey = fingerprints[i].endsWith("|0");
+      return {
+        ...t,
+        fingerprint: fingerprints[i],
+        // importações antigas gravaram só a chave base (e descartaram as repetidas): ela vale para a 1ª ocorrência
+        dup: seen.has(fingerprints[i]) || (isFirstOfKey && seen.has(legacyKeys[i])),
+      };
+    });
     const dupCount = rows.filter((r) => r.dup).length;
 
     const batch = await prisma.importBatch.create({
@@ -53,48 +63,6 @@ export class ImportService {
     return { batchId: batch.id, rows, rowCount: rows.length, dupCount };
   }
 
-  async ofxPreview(workspaceId: string, userId: string, accountId: string, ofxText: string) {
-    const ofxTxns = parseOfx(ofxText);
-    const rows = ofxTxns.map((t) => {
-      const isExpense = t.amountCents < 0;
-      const abs = Math.abs(t.amountCents);
-      const fp = `ofx:${accountId}:${t.fitid}`;
-      return {
-        type: isExpense ? ("expense" as const) : ("income" as const),
-        amountCents: abs,
-        date: t.dateISO,
-        accountId,
-        description: t.memo,
-        fingerprint: fp,
-      };
-    });
-
-    const fps = rows.map((r) => r.fingerprint);
-    const existing = await prisma.transaction.findMany({
-      where: { workspaceId, importFingerprint: { in: fps } },
-      select: { importFingerprint: true },
-    });
-    const seen = new Set(existing.map((e) => e.importFingerprint));
-
-    const flagged = rows.map((r) => ({ ...r, dup: seen.has(r.fingerprint) }));
-    const dupCount = flagged.filter((r) => r.dup).length;
-
-    const batch = await prisma.importBatch.create({
-      data: {
-        workspaceId,
-        accountId,
-        format: "ofx",
-        status: "preview",
-        rowCount: flagged.length,
-        dupCount,
-        createdById: userId,
-      },
-      select: { id: true },
-    });
-
-    return { batchId: batch.id, rows: flagged, rowCount: flagged.length, dupCount };
-  }
-
   async commit(
     workspaceId: string,
     userId: string,
@@ -103,6 +71,7 @@ export class ImportService {
       type: "income" | "expense";
       amountCents: number;
       date: string;
+      postedDate?: string | null;
       accountId: string;
       description: string | null;
       categoryId?: string | null;
@@ -111,15 +80,22 @@ export class ImportService {
   ) {
     const batch = await prisma.importBatch.findFirst({
       where: { id: batchId, workspaceId },
-      select: { id: true },
+      select: { id: true, undoneAt: true },
     });
     if (!batch) throw new NotFoundException("lote não encontrado");
+    // lote desfeito não volta a ser gravado: as linhas ficariam órfãs (undoneAt fica marcado e novo undo dá 409)
+    if (batch.undoneAt) throw new ConflictException("o lote foi desfeito; gere um novo preview");
+
+    const accountIds = [...new Set(rows.map((r) => r.accountId))];
+    const owned = await prisma.bankAccount.count({ where: { id: { in: accountIds }, workspaceId } });
+    if (owned !== accountIds.length) throw new BadRequestException("conta inexistente no workspace");
 
     const payload = rows.map((r) => ({
       workspaceId,
       type: r.type,
       amountCents: BigInt(r.amountCents),
       date: new Date(r.date),
+      postedDate: r.postedDate ? new Date(r.postedDate) : null,
       accountId: r.accountId,
       categoryId: r.categoryId ?? null,
       description: r.description,
@@ -129,11 +105,18 @@ export class ImportService {
       createdById: userId,
     }));
 
-    await prisma.transaction.createMany({ data: payload, skipDuplicates: true });
+    // o CSV marca como duplicata a 1ª ocorrência gravada só com a chave legada (sem ordinal): não gravar outra cópia
+    const legacyBases = [...new Set(payload.filter((p) => p.importFingerprint.endsWith("|0")).map((p) => p.importFingerprint.slice(0, -2)))];
+    const legacyExisting = legacyBases.length
+      ? await prisma.transaction.findMany({
+          where: { workspaceId, importFingerprint: { in: legacyBases } },
+          select: { importFingerprint: true },
+        })
+      : [];
+    const legacySeen = new Set(legacyExisting.map((e) => e.importFingerprint));
+    const toInsert = payload.filter((p) => !(p.importFingerprint.endsWith("|0") && legacySeen.has(p.importFingerprint.slice(0, -2))));
 
-    const inserted = await prisma.transaction.count({
-      where: { importBatchId: batchId },
-    });
+    const { count: inserted } = await prisma.transaction.createMany({ data: toInsert, skipDuplicates: true });
 
     await prisma.importBatch.update({
       where: { id: batchId },
@@ -149,7 +132,7 @@ export class ImportService {
       }
     }
 
-    return { inserted };
+    return { inserted, skipped: rows.length - inserted };
   }
 
   async enqueuePdf(workspaceId: string, userId: string, storagePath: string) {

@@ -21,8 +21,12 @@ export async function processPdfInvoice(
 
   const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: bytes });
-  const { text } = await parser.getText();
-  await parser.destroy();
+  let text: string;
+  try {
+    ({ text } = await parser.getText());
+  } finally {
+    await parser.destroy();
+  }
 
   const { lines, costTokens } = await deps.ai.parseInvoiceText(text);
 

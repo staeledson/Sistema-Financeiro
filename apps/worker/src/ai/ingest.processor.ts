@@ -10,16 +10,9 @@ import { processPdfInvoice } from "../import/pdf.processor";
 import { processCategorize } from "./categorize.processor";
 import { computeInsights } from "../insights/compute.processor";
 import { computeCashflowForecast } from "../insights/cashflow.processor";
+import type { IngestJobData } from "@app/shared";
 
-export interface IngestJobData {
-  jobId: string;
-  workspaceId: string;
-  userId: string;
-  kind: "parse_text" | "parse_image" | "parse_audio" | "parse_invoice" | "categorize" | "compute_insights";
-  text?: string;
-  storagePath?: string;
-  batchId?: string;
-}
+export type { IngestJobData };
 
 export function registerIngestWorker(
   connection: Redis,
