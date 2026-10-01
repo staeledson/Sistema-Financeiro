@@ -30,6 +30,7 @@ async function seed(tag: string) {
   const u = await auth.api.signUpEmail({ body: { email, password: "senha123!", name: tag } });
   const ws = await prisma.workspace.findFirstOrThrow({ where: { createdById: u!.user.id } });
   const acc = await prisma.bankAccount.create({ data: { workspaceId: ws.id, type: "checking", name: "Conta", openingBalanceCents: 0n } });
+  const acc2 = await prisma.bankAccount.create({ data: { workspaceId: ws.id, type: "checking", name: "Conta 2", openingBalanceCents: 0n } });
   const cat = await prisma.category.create({ data: { workspaceId: ws.id, type: "expense", name: "Mercado agr" } });
   const make = (data: Record<string, unknown>) =>
     prisma.transaction.create({
@@ -41,10 +42,12 @@ async function seed(tag: string) {
   await make({ type: "expense", amountCents: 500n, categoryId: cat.id, transferPairId: "p1" });  // par: fora
   await make({ type: "income", amountCents: 700n, transferPairId: "p1" });                       // par: fora
   await make({ type: "expense", amountCents: 300n, categoryId: cat.id, ignored: true });         // ignorado: fora
-  return { ws, u: u!, acc, cat, h: { authorization: `Bearer ${u!.token}` } };
+  // transferência entre duas contas do usuário: não é receita nem despesa e não altera o saldo consolidado
+  await make({ type: "transfer", amountCents: 400n, accountId: null, sourceAccountId: acc.id, destAccountId: acc2.id });
+  return { ws, u: u!, acc, acc2, cat, h: { authorization: `Bearer ${u!.token}` } };
 }
 
-describe("receita e despesa ignoram pareados e ignorados", () => {
+describe("receita e despesa ignoram pareados, ignorados e transferências", () => {
   it("dashboard: fluxo do mês, quebra por categoria e série", async () => {
     const { h } = await seed("agr1");
     const res = await app.inject({ method: "GET", url: `/dashboard?month=${MONTH}`, headers: h });
@@ -81,7 +84,7 @@ describe("receita e despesa ignoram pareados e ignorados", () => {
   it("o saldo por conta continua contando todos os movimentos", async () => {
     const { h } = await seed("agr4");
     const res = await app.inject({ method: "GET", url: "/balances", headers: h });
-    // 2000 + 700 (receitas) − 1000 − 500 − 300 (despesas) = 900
+    // 2000 + 700 (receitas) − 1000 − 500 − 300 (despesas) = 900; a transferência de 400 entre as duas contas soma zero no consolidado
     expect(res.json().consolidatedCents).toBe(900);
   });
 });
