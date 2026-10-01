@@ -18,11 +18,11 @@ const AjustesPlaceholder = defineComponent({
 
 /**
  * Rotas do app. `meta.bare` renderiza a tela fora da casca (sem barra lateral).
- * `/` e `/painel` apontam para a DashboardView atual até as Tasks 10 (PainelView) e 11 (InicioView).
+ * `/` aponta para a DashboardView atual até a Task 11 (InicioView).
  */
 export const routes: RouteRecordRaw[] = [
   { path: "/", name: "inicio", component: () => import("./views/DashboardView.vue") },
-  { path: "/painel", name: "painel", component: () => import("./views/DashboardView.vue") },
+  { path: "/painel", name: "painel", component: () => import("./views/PainelView.vue") },
   { path: "/contas", name: "contas", component: () => import("./views/AccountsView.vue") },
   { path: "/transacoes", name: "transacoes", component: () => import("./views/TransactionsView.vue") },
   { path: "/importar", name: "importar", component: () => import("./views/ImportView.vue") },

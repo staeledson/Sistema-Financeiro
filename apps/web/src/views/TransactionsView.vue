@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
+import { useRoute } from "vue-router";
 import { useFinanceStore } from "../stores/finance";
 import type { Transaction, TransactionType } from "../lib/api";
 import EntityBadge from "../components/ui/EntityBadge.vue";
@@ -8,6 +9,7 @@ import Money from "../components/ui/Money.vue";
 import { ENTITY_SHORT, accountsForEntity, categoriesForEntity, type EntityFilter } from "../lib/entity";
 
 const store = useFinanceStore();
+const route = useRoute();
 
 // filters
 const filterFrom = ref("");
@@ -15,6 +17,25 @@ const filterTo = ref("");
 const filterAccountId = ref("");
 const filterQ = ref("");
 const filterEntity = ref<EntityFilter>("all");
+const filterCategoryId = ref("");
+const filterCategoryName = computed(() => store.categories.find((c) => c.id === filterCategoryId.value)?.name ?? "");
+
+function queryValue(v: unknown): string {
+  const x = Array.isArray(v) ? v[0] : v;
+  return typeof x === "string" ? x : "";
+}
+
+/** Alimenta os filtros com `from/to/categoryId/accountId/entity/q` da URL (links do Painel); campos ausentes limpam o filtro. */
+function applyRouteQuery() {
+  const q = route.query;
+  filterFrom.value = queryValue(q.from);
+  filterTo.value = queryValue(q.to);
+  filterCategoryId.value = queryValue(q.categoryId);
+  filterAccountId.value = queryValue(q.accountId);
+  filterQ.value = queryValue(q.q);
+  const entity = queryValue(q.entity);
+  filterEntity.value = entity === "pf" || entity === "pj" ? entity : "all";
+}
 
 // new transaction form
 const txType = ref<TransactionType>("expense");
@@ -52,12 +73,29 @@ async function onEntityChange() {
 }
 
 onMounted(async () => {
-  await Promise.all([store.loadAccounts(), store.loadCategories(), store.loadTransactions()]);
+  applyRouteQuery();
+  await Promise.all([store.loadAccounts(), store.loadCategories(), filtrar()]);
   if (store.accounts.length > 0) txAccountId.value = store.accounts[0].id;
 });
 
+// Navegar de um link do Painel para esta mesma tela (sem remontar) reaplica os filtros.
+watch(
+  () => route.query,
+  async () => {
+    if (route.path !== "/transacoes") return;
+    applyRouteQuery();
+    await filtrar();
+  },
+);
+
+async function limparCategoria() {
+  filterCategoryId.value = "";
+  await filtrar();
+}
+
 async function filtrar() {
   await store.loadTransactions({
+    categoryId: filterCategoryId.value || undefined,
     from: filterFrom.value || undefined,
     to: filterTo.value || undefined,
     accountId: filterAccountId.value || undefined,
@@ -162,6 +200,10 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
       <input v-model="filterQ" placeholder="Buscar descrição" />
       <button type="button" @click="filtrar">Filtrar</button>
     </div>
+    <p v-if="filterCategoryId" class="category-chip">
+      Categoria: <strong>{{ filterCategoryName || "selecionada" }}</strong>
+      <button type="button" aria-label="Remover filtro de categoria" @click="limparCategoria">Limpar</button>
+    </p>
 
     <!-- List -->
     <ul class="tx-list">
@@ -200,5 +242,6 @@ button { white-space: nowrap; }
 .tx-amount.negative { color: var(--c-expense); }
 .income .tx-amount { color: var(--c-income); }
 .empty { list-style: none; }
+.category-chip { display: flex; align-items: center; gap: var(--space); margin-bottom: calc(var(--space) * 2); font-size: 0.9rem; color: var(--text-muted); }
 p[role="alert"] { font-size: 0.9rem; }
 </style>

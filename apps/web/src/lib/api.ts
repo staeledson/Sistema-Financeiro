@@ -79,6 +79,180 @@ export interface Dashboard {
   cashflowSeries: { month: string; incomeCents: number; expenseCents: number }[];
 }
 
+// --- Dashboards (Fase 13) ---------------------------------------------------
+
+export type DashboardEntity = "all" | "pf" | "pj";
+
+export interface DashboardPeriod {
+  kind: "month" | "quarter" | "year" | "range";
+  from: string;
+  to: string;
+  label: string;
+}
+
+export interface SpendingCategory {
+  /** `"__none"` para despesas sem categoria. */
+  categoryId: string;
+  name: string;
+  totalCents: number;
+  previousCents: number;
+  pct: number;
+  count: number;
+}
+
+export interface SpendingSeries {
+  key: string;
+  categoryId: string | null;
+  name: string;
+  totalsCents: number[];
+}
+
+export interface BudgetUsage {
+  categoryId: string;
+  name: string;
+  limitCents: number;
+  spentCents: number;
+  pct: number;
+}
+
+export interface Counterparty {
+  name: string;
+  totalCents: number;
+  count: number;
+}
+
+export interface RecurringGroup {
+  key: string;
+  label: string;
+  frequency: "monthly" | "weekly";
+  avgCents: number;
+  intervalDays: number;
+  occurrences: number;
+  monthlyEstimateCents: number;
+  lastDate: string;
+}
+
+export interface SpendingByMonth {
+  months: string[];
+  series: SpendingSeries[];
+}
+
+export interface SpendingDashboard {
+  period: DashboardPeriod;
+  previousPeriod: DashboardPeriod;
+  totalCents: number;
+  previousTotalCents: number;
+  insight: string | null;
+  byCategory: SpendingCategory[];
+  byMonth: SpendingByMonth;
+  vsBudget: BudgetUsage[];
+  topCounterparties: Counterparty[];
+  recurring: RecurringGroup[];
+}
+
+export type InvoiceStatus = "paid" | "partial" | "open" | "overdue";
+
+export interface CardCycleDay {
+  day: number;
+  /** `null` nos dias do ciclo que ainda não chegaram. */
+  currentCents: number | null;
+  avgPreviousCents: number;
+}
+
+export interface CardInstallmentMonth {
+  /** Mês de vencimento da fatura (YYYY-MM). */
+  month: string;
+  amountCents: number;
+  count: number;
+}
+
+export interface CardInvoicePayment {
+  closing: string;
+  due: string;
+  invoiceCents: number;
+  paidCents: number;
+  status: InvoiceStatus;
+}
+
+export interface CardDashboard {
+  accountId: string;
+  name: string;
+  entity: AccountEntity;
+  configured: boolean;
+  closingDay: number | null;
+  dueDay: number | null;
+  creditLimitCents: number | null;
+  usedCents: number;
+  limitUsedPct: number | null;
+  openInvoiceCents: number | null;
+  closingDate: string | null;
+  dueDate: string | null;
+  cycleDaily: CardCycleDay[];
+  installmentsAhead: CardInstallmentMonth[];
+  invoicePayments: CardInvoicePayment[];
+}
+
+export interface CardsDashboard {
+  cards: CardDashboard[];
+}
+
+export interface CashflowAccountBalance {
+  accountId: string;
+  name: string;
+  type: AccountType;
+  entity: AccountEntity;
+  balanceCents: number;
+}
+
+export interface ConsolidatedBalance {
+  pfCents: number;
+  pjCents: number;
+  totalCents: number;
+}
+
+export interface CashflowMonth {
+  month: string;
+  incomeCents: number;
+  expenseCents: number;
+  transfersNetCents: number;
+  balanceCents: number;
+}
+
+export interface ForecastMonth {
+  month: string;
+  incomeCents: number;
+  variableCents: number;
+  recurringCents: number;
+  billsCents: number;
+  installmentsCents: number;
+  expenseCents: number;
+  balanceCents: number;
+}
+
+export interface CashflowDashboard {
+  balances: { accounts: CashflowAccountBalance[]; consolidated: ConsolidatedBalance };
+  monthly: CashflowMonth[];
+  forecast: ForecastMonth[];
+}
+
+export interface SummaryDashboard {
+  balances: ConsolidatedBalance;
+  pendingCount: number;
+  nextInvoice: { accountId: string; name: string; dueDate: string; openInvoiceCents: number } | null;
+  spending: {
+    totalCents: number;
+    insight: string | null;
+    byCategory: SpendingCategory[];
+    byMonth: SpendingByMonth;
+    vsBudget: BudgetUsage[];
+  };
+}
+
+function dashboardPath(name: string, params?: URLSearchParams): string {
+  const qs = params?.toString();
+  return `/dashboard/${name}${qs ? `?${qs}` : ""}`;
+}
+
 export const api = {
   accounts: {
     list: (entity?: AccountEntity) => req<BankAccount[]>("GET", `/accounts${entity ? `?entity=${entity}` : ""}`),
@@ -123,5 +297,9 @@ export const api = {
   },
   dashboard: {
     get: (month: string) => req<Dashboard>("GET", `/dashboard?month=${month}`),
+    spending: (params: URLSearchParams) => req<SpendingDashboard>("GET", dashboardPath("spending", params)),
+    cards: (params: URLSearchParams) => req<CardsDashboard>("GET", dashboardPath("cards", params)),
+    cashflow: (params: URLSearchParams) => req<CashflowDashboard>("GET", dashboardPath("cashflow", params)),
+    summary: (params?: URLSearchParams) => req<SummaryDashboard>("GET", dashboardPath("summary", params)),
   },
 };
