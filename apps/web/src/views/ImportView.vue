@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { RouterLink } from "vue-router";
 import { http } from "../lib/http";
 import { useFinanceStore } from "../stores/finance";
 import { formatBRL } from "../lib/money";
@@ -8,13 +9,18 @@ import { ENTITY_LABEL, INSTITUTION_LABEL, type AccountEntity } from "../lib/enti
 import { buildCreateAccountPayload, emptyAccountForm } from "../lib/account-form";
 import {
   balanceSummary, detectFile, previewStatement, undoBatch, listBatches, decodeText, readFileBytes, formatDate,
-  nextCardRef, rowTags,
+  nextCardRef, rowTags, commitImport,
   type BatchSummary, type DetectResponse, type PreviewRow, type StatementPreview,
 } from "../lib/import-client";
+import {
+  assignGroup, balanceState, compatibleAccounts, detectAll, groupUnmatched, newRowCount, previewPending,
+  runCommit, shouldRemember, sortChronologically, summarize,
+  type BatchEntry, type UnmatchedGroup, type UnsupportedFile,
+} from "../lib/import-batch";
 
 const finance = useFinanceStore();
 
-type Step = "upload" | "confirm" | "csv" | "ai" | "preview" | "done";
+type Step = "upload" | "confirm" | "csv" | "ai" | "preview" | "done" | "lote";
 type SelectableRow = PreviewRow & { selected: boolean; tags: ReturnType<typeof rowTags> };
 
 const step = ref<Step>("upload");
@@ -43,6 +49,13 @@ const currentCardRef = ref<string | null>(null);
 const invoiceInserted = ref(0);
 const invoiceSkipped = ref(0);
 const newCard = ref({ name: "", entity: "pf" as AccountEntity, closingDay: null as number | null, dueDay: null as number | null, limitReais: null as number | null });
+
+// Lote: vários arquivos de uma vez (extratos e faturas já suportados pelo preview)
+const batchEntries = ref<BatchEntry[]>([]);
+const batchUnsupported = ref<UnsupportedFile[]>([]);
+const batchRemember = ref<Record<string, boolean>>({});
+const batchFailure = ref<{ key: string; message: string } | null>(null);
+const batchNotRun = ref<string[]>([]);
 
 // CSV (mapeamento manual)
 const csvText = ref("");
@@ -102,6 +115,47 @@ const showSuggestion = computed(() => previewRows.value.some((r) => !!r.category
 const previewColumns = computed(
   () => `28px 100px 80px 110px ${showBankCategory.value ? "minmax(90px, 1fr) " : ""}${showSuggestion.value ? "minmax(90px, 1fr) " : ""}minmax(120px, 2fr)`,
 );
+
+const batchOrdered = computed(() => sortChronologically(batchEntries.value.filter((e) => e.preview || e.previewError)));
+const batchGroups = computed(() => groupUnmatched(batchEntries.value));
+const batchPending = computed(() => batchEntries.value.filter((e) => e.selected && e.preview && e.accountId && !e.result));
+const batchSummary = computed(() => summarize(batchEntries.value));
+const batchHasMismatch = computed(() => batchEntries.value.some((e) => e.preview && balanceState(e.preview) === "mismatch"));
+const batchComplete = computed(() => batchSummary.value.files > 0 && batchPending.value.length === 0 && !batchFailure.value);
+
+function plural(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+function entryLabel(e: BatchEntry): string {
+  return e.card && e.ref ? `${e.fileName} · cartão final ${e.ref}` : e.fileName;
+}
+
+function accountName(id: string | null): string {
+  return (id && finance.accounts.find((a) => a.id === id)?.name) || "—";
+}
+
+function resultText(r: { inserted: number; skipped: number }): string {
+  const dup = r.skipped ? ` (${plural(r.skipped, "já existia", "já existiam")})` : "";
+  return `${plural(r.inserted, "importado", "importados")}${dup}`;
+}
+
+function groupTitle(g: UnmatchedGroup): string {
+  if (g.card) return g.ref ? `Cartão final ${g.ref}` : "Cartão do arquivo";
+  return g.ref ? `Conta ${g.ref}` : "Conta do arquivo";
+}
+
+function batchPeriod(e: BatchEntry): string {
+  const p = e.preview?.period;
+  return p ? `${formatDate(p.from)} a ${formatDate(p.to)}` : "—";
+}
+
+function batchResultCell(e: BatchEntry): string {
+  if (e.result) return resultText(e.result);
+  if (batchFailure.value?.key === e.key) return `falhou: ${batchFailure.value.message}`;
+  if (batchNotRun.value.includes(e.key)) return "não processado";
+  return "—";
+}
 
 function categoryName(id: string | null | undefined): string {
   return (id && finance.categories.find((c) => c.id === id)?.name) || "—";
@@ -210,17 +264,96 @@ async function loadBatches() {
   }
 }
 
+function handleFiles(list: ArrayLike<File> | null | undefined) {
+  const files = Array.from(list ?? []);
+  if (files.length === 1) void handleFile(files[0]);
+  else if (files.length > 1) void startBatch(files);
+}
+
 function onPick(e: Event) {
   const input = e.target as HTMLInputElement;
-  const f = input.files?.[0];
+  const files = Array.from(input.files ?? []);
   input.value = "";
-  if (f) void handleFile(f);
+  handleFiles(files);
 }
 
 function onDrop(e: DragEvent) {
   dragging.value = false;
-  const f = e.dataTransfer?.files?.[0];
-  if (f) void handleFile(f);
+  handleFiles(e.dataTransfer?.files);
+}
+
+async function startBatch(files: File[]) {
+  if (busy.value) return;
+  erro.value = "";
+  batchEntries.value = [];
+  batchUnsupported.value = [];
+  batchRemember.value = {};
+  batchFailure.value = null;
+  batchNotRun.value = [];
+  step.value = "lote";
+  busy.value = true;
+  try {
+    status.value = "Lendo os arquivos...";
+    const r = await detectAll(files, detectFile, finance.accounts, (i, n) => { status.value = `Lendo arquivo ${i} de ${n}...`; });
+    batchUnsupported.value = r.unsupported;
+    batchEntries.value = r.entries;
+    batchEntries.value = await previewPending(r.entries, previewStatement, (e, i, n) => { status.value = `Analisando ${i} de ${n}: ${entryLabel(e)}...`; });
+  } catch (e) {
+    erro.value = (e as Error).message;
+  } finally {
+    status.value = "";
+    busy.value = false;
+  }
+}
+
+async function chooseGroupAccount(g: UnmatchedGroup, accountId: string) {
+  if (!accountId || busy.value) return;
+  erro.value = "";
+  busy.value = true;
+  try {
+    if (batchRemember.value[g.key] !== false && shouldRemember(g.ref, accountId, finance.accounts)) {
+      try {
+        await finance.updateAccount(accountId, { externalId: g.ref });
+      } catch {
+        /* lembrar a conta é opcional e não bloqueia a análise */
+      }
+    }
+    batchEntries.value = assignGroup(batchEntries.value, g.key, accountId);
+    batchEntries.value = await previewPending(batchEntries.value, previewStatement, (e, i, n) => { status.value = `Analisando ${i} de ${n}: ${entryLabel(e)}...`; });
+  } catch (e) {
+    erro.value = (e as Error).message;
+  } finally {
+    status.value = "";
+    busy.value = false;
+  }
+}
+
+async function importBatch() {
+  if (busy.value || !batchPending.value.length) return;
+  erro.value = "";
+  batchFailure.value = null;
+  batchNotRun.value = [];
+  busy.value = true;
+  try {
+    const run = await runCommit(batchEntries.value, commitImport, (e, i, n) => {
+      status.value = `Importando ${i} de ${n}: ${entryLabel(e)}...`;
+    });
+    const results = new Map(run.done.map((d) => [d.entry.key, { inserted: d.inserted, skipped: d.skipped }]));
+    batchEntries.value = batchEntries.value.map((e) => (results.has(e.key) ? { ...e, result: results.get(e.key) ?? null } : e));
+    if (run.failed) {
+      batchFailure.value = { key: run.failed.entry.key, message: run.failed.message };
+      batchNotRun.value = run.remaining.map((e) => e.key);
+      const n = run.remaining.length;
+      erro.value = `Falha ao importar "${entryLabel(run.failed.entry)}": ${run.failed.message}. `
+        + (n ? `${plural(n, "arquivo não foi processado", "arquivos não foram processados")}.` : "Nenhum outro arquivo ficou para trás.");
+    }
+    await loadBatches();
+  } catch (e) {
+    erro.value = (e as Error).message;
+  } finally {
+    status.value = "";
+    busy.value = false;
+  }
 }
 
 async function handleFile(f: File) {
@@ -489,6 +622,11 @@ function reset() {
   invoiceInserted.value = 0;
   invoiceSkipped.value = 0;
   rememberAccount.value = true;
+  batchEntries.value = [];
+  batchUnsupported.value = [];
+  batchRemember.value = {};
+  batchFailure.value = null;
+  batchNotRun.value = [];
   selectedMappingId.value = "";
   mappingName.value = "";
   mapping.value.dateFormat = "DD/MM/YYYY";
@@ -500,7 +638,7 @@ function reset() {
 </script>
 
 <template>
-  <section class="import">
+  <section class="import" :class="{ wide: step === 'lote' }">
     <h2>Importar extrato</h2>
 
     <p v-if="erro" role="alert" class="text-error">{{ erro }}</p>
@@ -517,7 +655,8 @@ function reset() {
       >
         <strong>Solte o arquivo aqui ou clique para escolher</strong>
         <span class="hint">OFX, PDF do extrato do C6, CSV ou a fatura do cartão C6 em CSV. O banco e a conta são reconhecidos pelo próprio arquivo.</span>
-        <input type="file" accept=".ofx,.qfx,.pdf,.csv,application/pdf,text/csv" @change="onPick" />
+        <span class="hint">Pode escolher vários arquivos de uma vez para importar em lote.</span>
+        <input type="file" multiple accept=".ofx,.qfx,.pdf,.csv,application/pdf,text/csv" @change="onPick" />
       </label>
     </div>
 
@@ -714,6 +853,119 @@ function reset() {
       </div>
     </div>
 
+    <!-- 3b: lote de vários arquivos -->
+    <div v-if="step === 'lote'" class="card" data-test="batch">
+      <h3>Importação em lote</h3>
+
+      <div v-if="batchUnsupported.length" class="batch-section">
+        <h4>Fora do lote</h4>
+        <ul class="batch-list">
+          <li v-for="u in batchUnsupported" :key="u.fileName">
+            <strong>{{ u.fileName }}</strong>: precisa ser importado individualmente. {{ u.reason }}
+          </li>
+        </ul>
+      </div>
+
+      <div v-if="batchGroups.length" class="batch-section">
+        <h4>Arquivos aguardando conta</h4>
+        <p class="hint">Escolha a conta de cada grupo. Os arquivos ficam fora da importação até isso.</p>
+        <div v-for="(g, i) in batchGroups" :key="g.key" class="batch-group">
+          <label class="field-label" :for="`lote-conta-${i}`">
+            {{ groupTitle(g) }} ({{ g.fileNames.join(", ") }})
+          </label>
+          <select :id="`lote-conta-${i}`" :disabled="busy" @change="chooseGroupAccount(g, ($event.target as HTMLSelectElement).value)">
+            <option value="">{{ g.card ? "— Selecione um cartão —" : "— Selecione uma conta —" }}</option>
+            <option v-for="a in compatibleAccounts(g.card, finance.accounts)" :key="a.id" :value="a.id">{{ a.name }}</option>
+          </select>
+          <p v-if="g.card && !compatibleAccounts(true, finance.accounts).length" class="hint">
+            Nenhum cartão cadastrado. Crie o cartão em Contas ou importe este arquivo individualmente.
+          </p>
+          <label v-if="g.ref && /^\d+$/.test(g.ref)" class="remember">
+            <input
+              type="checkbox"
+              aria-label="Lembrar esta conta para os próximos arquivos"
+              :checked="batchRemember[g.key] !== false"
+              :disabled="busy"
+              @change="batchRemember[g.key] = ($event.target as HTMLInputElement).checked"
+            />
+            Lembrar esta conta para os próximos arquivos
+          </label>
+        </div>
+      </div>
+
+      <div v-if="batchOrdered.length" class="batch-section">
+        <p v-if="batchHasMismatch" class="balance warn">
+          Há arquivos com divergência de saldo: eles podem estar incompletos e ficam desmarcados. Marque só se quiser importar assim mesmo.
+        </p>
+        <div class="table-wrap">
+          <table class="batch-table">
+            <caption class="sr-only">Arquivos analisados, em ordem cronológica</caption>
+            <thead>
+              <tr>
+                <th scope="col">Importar</th><th scope="col">Arquivo</th><th scope="col">Banco</th><th scope="col">Conta</th>
+                <th scope="col">Período</th><th scope="col">Lançamentos</th><th scope="col">Já importados</th>
+                <th scope="col">Saldo</th><th scope="col">Resultado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="e in batchOrdered" :key="e.key" :class="{ done: !!e.result }">
+                <td>
+                  <input
+                    v-if="e.preview"
+                    v-model="e.selected"
+                    type="checkbox"
+                    :aria-label="`Importar ${entryLabel(e)}`"
+                    :disabled="busy || !!e.result || newRowCount(e.preview) === 0"
+                  />
+                </td>
+                <td class="batch-file">{{ entryLabel(e) }}</td>
+                <template v-if="e.preview">
+                  <td>{{ (e.preview.institution ?? e.institution) ? INSTITUTION_LABEL[(e.preview.institution ?? e.institution)!] : "—" }}</td>
+                  <td>{{ accountName(e.accountId) }}</td>
+                  <td>{{ batchPeriod(e) }}</td>
+                  <td>
+                    {{ e.preview.rowCount }}
+                    <span v-if="newRowCount(e.preview) === 0" class="hint">nada novo</span>
+                  </td>
+                  <td>{{ e.preview.dupCount }}</td>
+                  <td>
+                    <span v-if="balanceState(e.preview) === 'ok'" class="balance ok">✔ confere</span>
+                    <span v-else-if="balanceState(e.preview) === 'mismatch'" class="balance warn">✘ divergência</span>
+                    <span v-else class="hint">—</span>
+                  </td>
+                </template>
+                <td v-else colspan="6" class="text-error">Não foi possível analisar: {{ e.previewError }}</td>
+                <td>{{ batchResultCell(e) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div v-if="batchSummary.files > 0" class="batch-section" data-test="batch-result">
+        <h4>Importado</h4>
+        <ul class="batch-list">
+          <li v-for="e in batchEntries.filter((x) => x.result)" :key="e.key">
+            {{ entryLabel(e) }}: {{ resultText(e.result!) }}
+          </li>
+        </ul>
+        <p><strong>Total: {{ resultText(batchSummary) }}</strong></p>
+        <p>
+          <RouterLink to="/categorizar">Para categorizar</RouterLink>
+          · Depois de importar, rode "Recategorizar pendentes" para aplicar regras e IA aos lançamentos novos.
+        </p>
+        <p class="hint">Para acertar o saldo, use Conciliar saldo em Contas.</p>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn-secondary" :disabled="busy" @click="reset">{{ batchComplete ? "Nova importação" : "Trocar arquivos" }}</button>
+        <button v-if="batchFailure" type="button" :disabled="busy" @click="importBatch">Tentar de novo os restantes</button>
+        <button v-else-if="!batchComplete" type="button" :disabled="busy || batchPending.length === 0" @click="importBatch">
+          Importar {{ plural(batchPending.length, "arquivo", "arquivos") }}
+        </button>
+      </div>
+    </div>
+
     <!-- 4: concluído -->
     <div v-if="step === 'done'" class="card">
       <h3>Concluído</h3>
@@ -757,6 +1009,7 @@ function reset() {
 </template>
 
 <style scoped>
+.import.wide { max-width: 1120px; }
 .import { padding: calc(var(--space) * 3); max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: calc(var(--space) * 3); }
 h2 { margin-bottom: 0; }
 .card { background: var(--surface); border: 1px solid var(--border); padding: calc(var(--space) * 3); border-radius: var(--radius); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
@@ -806,4 +1059,17 @@ select, input[type="text"], input[type="number"], input:not([type]) { width: 100
 .history-info { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 0.9rem; }
 .text-error { font-size: 0.9rem; }
 .status { font-size: 0.9rem; color: var(--text-muted); }
+h4 { margin: 0; font-size: 0.9rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.batch-section { display: flex; flex-direction: column; gap: var(--space); }
+.batch-section p { margin: 0; }
+.batch-group { display: flex; flex-direction: column; gap: var(--space); padding: calc(var(--space) * 2); border: 1px dashed var(--border); border-radius: calc(var(--radius) / 1.5); }
+.batch-list { margin: 0; padding-left: calc(var(--space) * 3); font-size: 0.9rem; display: flex; flex-direction: column; gap: 4px; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: calc(var(--radius) / 1.5); }
+.batch-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.batch-table th, .batch-table td { padding: calc(var(--space) * 1.2) calc(var(--space) * 1.5); text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+.batch-table th { font-weight: 600; color: var(--text-muted); background: var(--surface-2); white-space: nowrap; }
+.batch-table tbody tr:last-child td { border-bottom: none; }
+.batch-table tr.done { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.batch-file { word-break: break-word; }
 </style>
