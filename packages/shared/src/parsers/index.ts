@@ -1,5 +1,6 @@
 import { c6CardInvoiceParser } from "./c6-card-invoice";
 import { c6StatementParser } from "./c6-statement";
+import { mercadoPagoStatementParser } from "./mercado-pago-statement";
 import { ofxStatementParser } from "./ofx-statement";
 import type { DetectResult, StatementParser } from "./types";
 
@@ -8,9 +9,14 @@ export * from "./text";
 export * from "./balance";
 export * from "./csv-lite";
 export * from "./bank-category";
-export { c6StatementParser, ofxStatementParser, c6CardInvoiceParser };
+export { c6StatementParser, ofxStatementParser, c6CardInvoiceParser, mercadoPagoStatementParser };
 
-export const STATEMENT_PARSERS: StatementParser[] = [c6StatementParser, ofxStatementParser, c6CardInvoiceParser];
+export const STATEMENT_PARSERS: StatementParser[] = [
+  c6StatementParser,
+  ofxStatementParser,
+  c6CardInvoiceParser,
+  mercadoPagoStatementParser,
+];
 
 /** Parser de maior confiança para o texto; confiança abaixo de 0,5 conta como não reconhecido. */
 export function detectStatement(text: string): { parser: StatementParser; detected: DetectResult } | null {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { detectStatement, isCardPaymentText, readCsv, verifyBalances, type ParsedStatement } from "@app/shared";
@@ -98,4 +98,72 @@ describe("fatura de cartão C6 real (CSV)", () => {
     }
     expect(all.some((r) => /\(US\$ [\d.]+ @ [\d.]+\)$/.test(r.description ?? ""))).toBe(true); // compra em dólar
   });
+});
+
+/** PDFs soltos em ~/Downloads (nomes quaisquer, p.ex. UUID): só os que o sistema reconhece como Mercado Pago entram. */
+const DOWNLOADS = join(homedir(), "Downloads");
+const PDFS = existsSync(DOWNLOADS)
+  ? readdirSync(DOWNLOADS).filter((f) => f.toLowerCase().endsWith(".pdf")).map((f) => join(DOWNLOADS, f))
+  : [];
+
+describe("extratos Mercado Pago reais (PDF em ~/Downloads)", () => {
+  it.skipIf(PDFS.length === 0)(
+    "cada extrato reconhecido é lido, sem fingerprints repetidos, com totais e saldos fechando, sempre da mesma conta",
+    async (ctx) => {
+      let found = 0;
+      const accounts = new Set<string>();
+      const allFingerprints = new Set<string>();
+      let totalRows = 0;
+      for (const path of PDFS) {
+        let text: string;
+        try {
+          text = await extractPdfText(new Uint8Array(readFileSync(path)));
+        } catch {
+          continue; // PDF ilegível ou de outro assunto
+        }
+        const hit = detectStatement(text);
+        if (hit?.detected.institution !== "mercado_pago") continue;
+        found++;
+        // asserções booleanas: uma falha nunca imprime dado real do extrato
+        expect(hit.detected.kind === "statement" && hit.detected.format === "pdf_statement").toBe(true);
+        expect(/^\d{6,}$/.test(hit.detected.accountRef ?? "")).toBe(true);
+        accounts.add(hit.detected.accountRef!);
+
+        // o parser já confere os totais do cabeçalho e a continuidade do saldo (e lança se não fecham);
+        // a mensagem do erro não chega ao vitest
+        let result: ParsedStatement | null;
+        try {
+          result = hit.parser.parse(text, { accountId: "real-mp" });
+        } catch {
+          result = null;
+        }
+        expect(result !== null).toBe(true);
+        const parsed = result!;
+        expect(parsed.rows.length > 0).toBe(true);
+        expect(new Set(parsed.rows.map((r) => r.fingerprint)).size === parsed.rows.length).toBe(true);
+        // rodapé, cabeçalho e marcas de página nunca entram na descrição
+        expect(parsed.rows.every((r) => (r.description ?? "").length > 0 && (r.description ?? "").length < 200)).toBe(true);
+        expect(parsed.rows.every((r) => !/Data de gera|Saldo final|-- \d+ of \d+ --/.test(r.description ?? ""))).toBe(true);
+        expect(parsed.rows.every((r) => r.amountCents > 0 && r.postedDate === null)).toBe(true);
+        expect(parsed.accountRef === hit.detected.accountRef).toBe(true);
+        for (const r of parsed.rows) {
+          expect(parsed.period !== null && r.date >= parsed.period.from && r.date <= parsed.period.to).toBe(true);
+          allFingerprints.add(r.fingerprint);
+        }
+        totalRows += parsed.rows.length;
+
+        const check = verifyBalances(parsed.rows, parsed.balances);
+        expect(check !== null).toBe(true);
+        expect(check!.checkpoints > 1).toBe(true);
+        expect(check!.mismatches.length === 0).toBe(true);
+        expect(check!.ok).toBe(true);
+      }
+      // sem nenhum extrato do Mercado Pago na pasta não há o que conferir
+      if (found === 0) ctx.skip();
+      // todos os extratos são da mesma conta, e meses diferentes não repetem fingerprint
+      expect(accounts.size === 1).toBe(true);
+      expect(allFingerprints.size === totalRows).toBe(true);
+    },
+    300_000,
+  );
 });

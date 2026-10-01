@@ -6,6 +6,7 @@ import { AppModule } from "../../src/app.module";
 import { prisma, cleanDb } from "../helpers/db";
 import { auth } from "../../src/auth";
 import { C6_SAMPLE, c6SampleText } from "../../../../packages/shared/src/parsers/__fixtures__/c6-sample";
+import { MP_SAMPLE, mercadoPagoSampleText } from "../../../../packages/shared/src/parsers/__fixtures__/mercado-pago-sample";
 
 // PDFs de verdade não podem ser gerados no teste: o extrator é simulado e devolve o texto pedido.
 const pdfState = vi.hoisted(() => ({ text: "" }));
@@ -159,6 +160,33 @@ describe("Fase 11 — POST /import/detect", () => {
     expect(res.json().text).toContain("Saldo do dia");
   });
 
+  it("PDF do Mercado Pago: reconhece o extrato e casa a conta cadastrada com hífen (compara só os dígitos)", async () => {
+    const u = await newUser("det4mp");
+    const other = await newUser("det4mp2");
+    // mesma conta cadastrada em outro workspace, e conta arquivada no próprio: não contam
+    await newAccount(other, { institution: "mercado_pago", externalId: MP_SAMPLE.conta });
+    await newAccount(u, { institution: "mercado_pago", externalId: "outra-conta" });
+    const archived = await newAccount(u, { institution: "mercado_pago", externalId: MP_SAMPLE.conta, name: "Antiga" });
+    await prisma.bankAccount.update({ where: { id: archived }, data: { archived: true } });
+    const digits = MP_SAMPLE.conta;
+    const accountId = await newAccount(u, { institution: "mercado_pago", externalId: `${digits.slice(0, -1)}-${digits.slice(-1)}` });
+    pdfState.text = mercadoPagoSampleText();
+    const res = await post(u, "/import/detect", { fileName: "Extrato.pdf", contentBase64: PDF_BYTES });
+    expect(res.json()).toMatchObject({
+      format: "pdf_statement", institution: "mercado_pago", kind: "statement", accountRef: MP_SAMPLE.conta, matchedAccountId: accountId,
+    });
+  });
+
+  it("PDF do Mercado Pago: duas contas ativas com os mesmos dígitos é ambíguo e não sugere", async () => {
+    const u = await newUser("det4mp3");
+    const digits = MP_SAMPLE.conta;
+    await newAccount(u, { institution: "mercado_pago", externalId: digits, name: "A" });
+    await newAccount(u, { institution: "mercado_pago", externalId: `${digits.slice(0, -1)}-${digits.slice(-1)}`, name: "B" });
+    pdfState.text = mercadoPagoSampleText();
+    const res = await post(u, "/import/detect", { fileName: "Extrato.pdf", contentBase64: PDF_BYTES });
+    expect(res.json()).toMatchObject({ institution: "mercado_pago", matchedAccountId: null });
+  });
+
   it("PDF de banco desconhecido: format pdf (caminho de IA), sem texto devolvido", async () => {
     const u = await newUser("det5");
     pdfState.text = "Compra Netflix 15/06/2026 R$ 55,90";
@@ -215,6 +243,28 @@ describe("Fase 11 — POST /import/preview e commit (extrato C6)", () => {
     expect(fatura.date.toISOString().slice(0, 10)).toBe("2025-10-29");
     expect(fatura.postedDate?.toISOString().slice(0, 10)).toBe("2025-11-01");
     expect((await prisma.importBatch.findUniqueOrThrow({ where: { id: body.batchId } })).status).toBe("committed");
+  });
+
+  it("extrato do Mercado Pago: preview confere os saldos, commit grava tudo e reimportar marca duplicatas", async () => {
+    const u = await newUser("prevmp");
+    const accountId = await newAccount(u, { institution: "mercado_pago", externalId: MP_SAMPLE.conta });
+    const text = mercadoPagoSampleText();
+    const res = await post(u, "/import/preview", { accountId, text, format: "pdf_statement" });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body).toMatchObject({ institution: "mercado_pago", accountRef: MP_SAMPLE.conta, rowCount: MP_SAMPLE.rowCount, dupCount: 0 });
+    expect(body.period).toEqual(MP_SAMPLE.period);
+    expect(body.balanceCheck).toMatchObject({ ok: true, mismatches: [] });
+    const commit = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, accountId));
+    expect(commit.json()).toEqual({ inserted: MP_SAMPLE.rowCount, skipped: 0 });
+
+    const again = (await post(u, "/import/preview", { accountId, text, format: "pdf_statement" })).json();
+    expect(again.dupCount).toBe(MP_SAMPLE.rowCount);
+
+    // totais do cabeçalho que não fecham: 422 sem conteúdo do extrato
+    const bad = await post(u, "/import/preview", { accountId, text: mercadoPagoSampleText({ incomesDelta: 1 }), format: "pdf_statement" });
+    expect(bad.statusCode).toBe(422);
+    expect(bad.json().message).toBe("total de entradas não confere com o cabeçalho");
   });
 
   it("reimportar o mesmo arquivo marca tudo como duplicata e não insere nada", async () => {
