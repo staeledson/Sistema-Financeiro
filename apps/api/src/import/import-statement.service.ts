@@ -105,14 +105,22 @@ export class ImportStatementService {
     return { format: "unknown", ...NOT_DETECTED };
   }
 
-  /** Conta ativa cujo externalId é o número lido no arquivo; ambíguo (mais de uma) não sugere nada. */
+  /**
+   * Conta ativa cujo externalId é o número lido no arquivo, comparados pelos dígitos (o usuário cadastra
+   * "1664591878-9" e o PDF traz "16645918789"); ambíguo (mais de uma) não sugere nada.
+   */
   private async matchAccount(workspaceId: string, accountRef: string | null): Promise<string | null> {
     if (!accountRef) return null;
+    const wanted = accountRef.replace(/\D/g, "");
     const accounts = await prisma.bankAccount.findMany({
-      where: { workspaceId, archived: false, externalId: accountRef },
-      select: { id: true },
+      where: { workspaceId, archived: false, externalId: { not: null } },
+      select: { id: true, externalId: true },
     });
-    return accounts.length === 1 ? accounts[0].id : null;
+    // referência sem dígitos (raro) só casa por texto exato
+    const matches = accounts.filter(
+      (a) => a.externalId === accountRef || (wanted !== "" && a.externalId!.replace(/\D/g, "") === wanted),
+    );
+    return matches.length === 1 ? matches[0].id : null;
   }
 
   /** Por final de cartão, a única conta ativa de cartão de crédito com esse externalId; ambíguo ou inexistente vira null. */
