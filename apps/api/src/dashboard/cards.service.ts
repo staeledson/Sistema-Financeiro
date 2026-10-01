@@ -84,7 +84,7 @@ export class CardsService {
 
   /**
    * Parcelas AINDA NÃO LANÇADAS dos cartões do escopo (usado pela previsão): 12 meses a partir do mês seguinte a `asOf`,
-   * por mês de lançamento (mês de fechamento do ciclo da última parcela lançada + k). As já lançadas ficam de fora porque
+   * por mês da data da última parcela lançada + k (o saldo e o histórico contam o gasto do cartão na data do lançamento). As já lançadas ficam de fora porque
    * o saldo atual (ponto de partida da previsão) já as contém; diferente de `installmentsAhead` do cartão, que inclui as
    * lançadas por mês de vencimento. Sempre 12 entradas, zeros incluídos.
    */
@@ -215,7 +215,7 @@ export class CardsService {
     const months = Array.from({ length: AHEAD_MONTHS }, (_, i) => addMonths(asOf.slice(0, 7), i + 1));
     const out = new Array<number>(AHEAD_MONTHS).fill(0);
     for (const m of this.latestInstallments(rows, a.closingDay!, a.dueDay!).values()) {
-      const rowYm = cycleOf(m.date, a.closingDay!, a.dueDay!).ym;
+      const rowYm = m.date.slice(0, 7);
       for (let k = 1; k <= m.installmentTotal! - m.installmentCurrent!; k++) {
         const idx = months.indexOf(addMonths(rowYm, k));
         if (idx >= 0) out[idx] += m.cents;

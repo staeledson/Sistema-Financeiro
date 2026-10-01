@@ -495,8 +495,8 @@ describe("GET /dashboard/cards", () => {
     ]);
   });
 
-  it("remainingInstallmentsMonthly: só as parcelas ainda não lançadas, por mês de lançamento, 12 meses fixos", async () => {
-    const { u } = await seedCard("cd10"); // cartão A (fecha 10): 2/10 lançada em 15/06 (ciclo de jul); restam 3..10 em ago/26 a mar/27
+  it("remainingInstallmentsMonthly: só as parcelas ainda não lançadas, por mês da data da última + k, 12 meses fixos", async () => {
+    const { u } = await seedCard("cd10"); // cartão A (fecha 10): 2/10 lançada em 15/06 (depois do fechamento); restam 3..10 em jul/26 a fev/27
     const b = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "B", entity: "pj", closingDay: 25, dueDay: 5 } });
     await prisma.transaction.create({
       data: {
@@ -504,19 +504,19 @@ describe("GET /dashboard/cards", () => {
         date: dayOf("2026-06-15"), description: "LOJA W 02/04", installmentCurrent: 2, installmentTotal: 4,
       } as never,
     });
-    // cartão B (fecha 25): 2/4 lançada no ciclo de jun; restam 3 e 4 em jul e ago
+    // cartão B (fecha 25): 2/4 lançada em 15/06; restam 3 e 4 em jul e ago
     const service = app.get(CardsService, { strict: false });
     const all = await service.remainingInstallmentsMonthly(u.workspaceId, {}, "2026-06-20");
     expect(all).toHaveLength(12);
     expect(all[0].month).toBe("2026-07");
     expect(all[11].month).toBe("2027-06");
     expect(all.slice(0, 4)).toEqual([
-      { month: "2026-07", amountCents: 8000 },
+      { month: "2026-07", amountCents: 28000 }, // 3/10 do cartão A (comprado após o fechamento, mas na data de jul) + 3/4 do B
       { month: "2026-08", amountCents: 28000 },
       { month: "2026-09", amountCents: 20000 },
       { month: "2026-10", amountCents: 20000 },
     ]);
-    expect(all.slice(8, 12).map((e) => e.amountCents)).toEqual([20000, 0, 0, 0]); // 2027-03 é a última (parcela 10/10)
+    expect(all.slice(7, 12).map((e) => e.amountCents)).toEqual([20000, 0, 0, 0, 0]); // 2027-02 é a última (parcela 10/10)
     const pj = await service.remainingInstallmentsMonthly(u.workspaceId, { entity: "pj" }, "2026-06-20");
     expect(pj).toHaveLength(12);
     expect(pj.slice(0, 4).map((e) => e.amountCents)).toEqual([8000, 8000, 0, 0]);
@@ -675,10 +675,10 @@ describe("GET /dashboard/cashflow", () => {
       } as never,
     });
     const b = (await get(u, `/dashboard/cashflow?${AS_OF}`)).json();
-    // a 2/4 já foi lançada (está no saldo atual de -20000): só 3/4 e 4/4 faltam, lançadas em ago e set
-    expect(b.forecast.map((f: { installmentsCents: number }) => f.installmentsCents)).toEqual([0, 20000, 20000]);
-    expect(b.forecast.map((f: { expenseCents: number }) => f.expenseCents)).toEqual([0, 20000, 20000]);
-    expect(b.forecast.map((f: { balanceCents: number }) => f.balanceCents)).toEqual([-20000, -40000, -60000]);
+    // a 2/4 (15/06, depois do fechamento) já está no saldo atual de -20000: faltam 3/4 e 4/4, nas datas de jul e ago
+    expect(b.forecast.map((f: { installmentsCents: number }) => f.installmentsCents)).toEqual([20000, 20000, 0]);
+    expect(b.forecast.map((f: { expenseCents: number }) => f.expenseCents)).toEqual([20000, 20000, 0]);
+    expect(b.forecast.map((f: { balanceCents: number }) => f.balanceCents)).toEqual([-40000, -60000, -60000]);
     expect(b.monthly[11]).toMatchObject({ month: "2026-06", expenseCents: 20000, balanceCents: -20000 });
   });
 
