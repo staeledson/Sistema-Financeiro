@@ -94,6 +94,7 @@ export class TransactionsService {
         description: dto.description ?? null,
         counterparty: dto.counterparty ?? null,
         source: "manual",
+        categorySource: dto.categoryId ? "manual" : "none",
         createdById: userId,
       },
       select: {

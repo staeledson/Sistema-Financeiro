@@ -15,8 +15,9 @@ export function parseOfx(text: string): OfxTxn[] {
   return blocks.map((b) => {
     const dt = tag(b, "DTPOSTED") ?? "";
     const dateISO = `${dt.slice(0, 4)}-${dt.slice(4, 6)}-${dt.slice(6, 8)}`;
-    const amtRaw = (tag(b, "TRNAMT") ?? "0").replace(",", ".");
-    const amt = parseFloat(amtRaw);
+    // TRNAMT ausente vira NaN (e não 0): o parser de extrato rejeita a transação em vez de importar valor zero
+    const amtRaw = tag(b, "TRNAMT")?.replace(",", ".");
+    const amt = amtRaw ? parseFloat(amtRaw) : NaN;
     return {
       fitid: tag(b, "FITID") || null,
       dateISO,

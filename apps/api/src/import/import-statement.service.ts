@@ -168,6 +168,18 @@ export class ImportStatementService {
         if (batch.status !== "committed") throw new ConflictException("o lote ainda não foi confirmado");
         throw new ConflictException("o lote já foi desfeito");
       }
+      // contrapartes de fora do lote perdem o par: voltam para a fila de revisão
+      const pairs = await tx.transaction.findMany({
+        where: { workspaceId, importBatchId: batchId, transferPairId: { not: null } },
+        select: { transferPairId: true },
+      });
+      const pairIds = [...new Set(pairs.map((p) => p.transferPairId!))];
+      if (pairIds.length) {
+        await tx.transaction.updateMany({
+          where: { workspaceId, transferPairId: { in: pairIds }, OR: [{ importBatchId: null }, { importBatchId: { not: batchId } }] },
+          data: { transferPairId: null, reviewStatus: "pending", categorySource: "none" },
+        });
+      }
       const removed = await tx.transaction.deleteMany({ where: { workspaceId, importBatchId: batchId } });
       return { removed: removed.count };
     });
