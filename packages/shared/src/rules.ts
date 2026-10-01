@@ -65,10 +65,14 @@ const OPERATION_PREFIX = new RegExp(
     ")(?= |$) ?",
 );
 
-/** Palavras que descrevem só a operação: um padrão feito delas casaria com quase tudo. */
+/**
+ * Palavras que descrevem só a operação (ou ligam palavras): nunca identificam o fornecedor. Saem do começo do padrão
+ * e, se não sobrar nenhuma palavra de verdade, a regra não é criada.
+ */
 const GENERIC_WORDS = new Set([
-  "pix", "ted", "doc", "pagamento", "pagto", "pag", "compra", "transferencia", "debito", "credito", "boleto",
-  "saque", "deposito", "enviado", "enviada", "recebido", "recebida", "automatico", "cartao", "de", "do", "da", "para", "em", "no", "a",
+  "pix", "ted", "doc", "tef", "pagamento", "pagto", "pgto", "pag", "compra", "transferencia", "transf", "debito", "credito",
+  "deb", "aut", "automatico", "boleto", "saque", "deposito", "envio", "recebimento", "enviado", "enviada", "recebido",
+  "recebida", "cartao", "qr", "code", "via", "com", "pelo", "pela", "de", "do", "da", "para", "em", "no", "na", "a", "e",
 ]);
 
 const MIN_PATTERN_LENGTH = 4;
@@ -87,9 +91,12 @@ export function ruleFromCorrection(
     if (next === key) break;
     key = next;
   }
-  const words = key.split(" ").filter(Boolean).slice(0, 3);
+  // Palavras de operação que sobraram no começo ("pelo pix maria" → "maria") saem também.
+  let words = key.split(" ").filter(Boolean);
+  while (words.length && GENERIC_WORDS.has(words[0])) words = words.slice(1);
+  words = words.slice(0, 3);
   const pattern = words.join(" ");
   if (pattern.length < MIN_PATTERN_LENGTH) return null;
-  if (words.every((w) => GENERIC_WORDS.has(w))) return null;
+  if (!words.some((w) => w.length >= 3 && !GENERIC_WORDS.has(w))) return null;
   return { matchType: "contains", pattern, categoryId, priority: 120 };
 }

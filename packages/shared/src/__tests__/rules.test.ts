@@ -105,6 +105,25 @@ describe("ruleFromCorrection", () => {
     expect(rule("Pagamento de Condomínio Azul")!.pattern).toBe("condominio azul");
     expect(rule("Pix para Pix enviado Loja Y")!.pattern).toBe("loja y");
   });
+  it("sem nome de fornecedor depois dos termos de operação → null (nunca uma regra ampla)", () => {
+    expect(rule("Compra com Pix")).toBeNull();
+    expect(rule("TRANSF PIX")).toBeNull();
+    expect(rule("PGTO PIX")).toBeNull();
+    expect(rule("PIX QR CODE")).toBeNull();
+    expect(rule("Pagamento via Pix")).toBeNull();
+    expect(rule("Envio cartão")).toBeNull();
+  });
+  it("conectores e termos de operação no começo saem, o nome do fornecedor fica", () => {
+    expect(rule("Transferência enviada pelo Pix - MARIA X")!.pattern).toBe("maria x");
+    expect(rule("PIX QR CODE Padaria Central")!.pattern).toBe("padaria central");
+    expect(rule("PGTO PIX Loja Azul 12")!.pattern).toBe("loja azul");
+    expect(rule("Compra com cartão Farmácia Pague Menos")!.pattern).toBe("farmacia pague menos");
+  });
+  it("Pix enviado para Padaria do Bairro continua gerando regra baseada em padaria", () => {
+    const r = rule("Pix enviado para Padaria do Bairro")!;
+    expect(r.pattern).toBe("padaria do bairro");
+    expect(applyRules("Pix enviado para Farmácia X", [r])).toBeNull();
+  });
   it("só operação, vazio ou curto → null", () => {
     expect(rule("Pix enviado")).toBeNull();
     expect(rule("Pix recebido de")).toBeNull();
