@@ -524,3 +524,52 @@ describe("remoção de categoria", () => {
   });
 });
 
+
+describe("POST /category-rules: sem mass assignment", () => {
+  it("campos extras (workspaceId de outro tenant, hitCount) são recusados e nada é gravado", async () => {
+    const a = await newUser("mass-a");
+    const b = await newUser("mass-b");
+    const c = await category(a, "Massa", "expense");
+    const base = { matchType: "contains", pattern: "padaria", categoryId: c.id };
+
+    const res1 = await post(a, "/category-rules", { ...base, workspaceId: b.workspaceId });
+    const res2 = await post(a, "/category-rules", { ...base, hitCount: 99 });
+    expect(res1.statusCode).toBe(400);
+    expect(res2.statusCode).toBe(400);
+    expect(await prisma.categoryRule.count({ where: { workspaceId: b.workspaceId } })).toBe(0);
+    expect(await prisma.categoryRule.count({ where: { workspaceId: a.workspaceId } })).toBe(0);
+
+    const ok = await post(a, "/category-rules", base);
+    expect(ok.statusCode).toBe(201);
+    const row = await prisma.categoryRule.findUniqueOrThrow({ where: { id: ok.json().id } });
+    expect(row).toMatchObject({ workspaceId: a.workspaceId, hitCount: 0, priority: 100 });
+  });
+
+  it("recriar o mesmo padrão atualiza categoria/prioridade sem tocar no hitCount", async () => {
+    const u = await newUser("mass-c");
+    const c1 = await category(u, "Massa 1", "expense");
+    const c2 = await category(u, "Massa 2", "expense");
+    const first = await post(u, "/category-rules", { matchType: "contains", pattern: "uber", categoryId: c1.id });
+    await prisma.categoryRule.update({ where: { id: first.json().id }, data: { hitCount: 5 } });
+    const again = await post(u, "/category-rules", { matchType: "contains", pattern: "uber", categoryId: c2.id, priority: 50 });
+    expect(again.statusCode).toBe(201);
+    expect(await prisma.categoryRule.findUniqueOrThrow({ where: { id: first.json().id } })).toMatchObject({ categoryId: c2.id, priority: 50, hitCount: 5 });
+  });
+
+  it("categoryId de outro workspace ou inexistente é rejeitado (404) e matchType/pattern/priority inválidos dão 400", async () => {
+    const a = await newUser("mass-d");
+    const b = await newUser("mass-e");
+    const alheia = await category(b, "Alheia", "expense");
+    const minha = await category(a, "Minha", "expense");
+
+    const cross = await post(a, "/category-rules", { matchType: "contains", pattern: "x1", categoryId: alheia.id });
+    expect(cross.statusCode).toBe(404);
+    expect((await post(a, "/category-rules", { matchType: "contains", pattern: "x1", categoryId: "nao-existe" })).statusCode).toBe(404);
+    expect(await prisma.categoryRule.count({ where: { workspaceId: a.workspaceId } })).toBe(0);
+
+    expect((await post(a, "/category-rules", { matchType: "like", pattern: "x1", categoryId: minha.id })).statusCode).toBe(400);
+    expect((await post(a, "/category-rules", { matchType: "contains", pattern: "x1", categoryId: minha.id, priority: 1.5 })).statusCode).toBe(400);
+    expect((await post(a, "/category-rules", { matchType: "contains", categoryId: minha.id })).statusCode).toBe(400);
+    expect((await post(a, "/category-rules", { matchType: "contains", pattern: "x1" })).statusCode).toBe(400);
+  });
+});

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "../database";
 import { ruleFromCorrection } from "@app/shared";
 
@@ -14,7 +14,7 @@ export class CategoryRulesService {
     });
   }
 
-  create(workspaceId: string, data: { matchType: "contains" | "equals" | "regex"; pattern: string; categoryId: string; priority?: number }) {
+  async create(workspaceId: string, data: { matchType: "contains" | "equals" | "regex"; pattern: string; categoryId: string; priority?: number }) {
     if (!["contains", "equals", "regex"].includes(data.matchType)) {
       throw new BadRequestException("matchType deve ser contains, equals ou regex");
     }
@@ -32,10 +32,14 @@ export class CategoryRulesService {
         throw new BadRequestException("expressão regular inválida");
       }
     }
+    const category = await prisma.category.findFirst({ where: { id: data.categoryId, workspaceId }, select: { id: true } });
+    if (!category) throw new NotFoundException("categoria não encontrada");
+    const priority = data.priority ?? 100;
+    // Campos explícitos: nada do corpo é espalhado no banco, o workspace vem sempre do contexto autenticado e o hitCount não é do cliente.
     return prisma.categoryRule.upsert({
       where: { workspaceId_matchType_pattern: { workspaceId, matchType: data.matchType, pattern } },
-      create: { workspaceId, ...data, pattern, priority: data.priority ?? 100 },
-      update: { categoryId: data.categoryId, priority: data.priority ?? 100 },
+      create: { workspaceId, matchType: data.matchType, pattern, categoryId: category.id, priority },
+      update: { categoryId: category.id, priority },
       select: { id: true },
     });
   }
