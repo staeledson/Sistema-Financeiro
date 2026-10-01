@@ -14,7 +14,7 @@ Navegador ──► Vercel (front Vue, apps/web)
 - Na Railway ficam **dois serviços do mesmo repositório** (a API e o worker de filas), mais Postgres, Redis e um bucket de arquivos.
 - A API e o worker usam a mesma imagem Docker (`Dockerfile` da raiz); cada serviço aponta para o seu arquivo `railway.json`.
 
-Ordem do roteiro: (1) pré-requisitos, (2) Railway, (3) Vercel, (4) ligar os dois, (5) primeiro acesso, (6) segurança, (7) backup, (8) custos, rollback e problemas.
+Ordem do roteiro: (1) pré-requisitos, (2) Railway, (3) Vercel, (4) ligar os dois, (5) primeiro acesso, (6) segurança, (7) backup, (8) custos, rollback e problemas, (9) o que verificar no deploy real.
 
 ---
 
@@ -50,30 +50,78 @@ A sua conta Railway é um workspace pessoal ("Stael Edson's Projects", plano Hob
 
 O BullMQ (filas) exige que o Redis **nunca descarte chaves** por falta de memória (`maxmemory-policy = noeviction`). Para conferir:
 
-1. Abra o serviço `Redis`, aba **Variables**, e copie o valor de `REDIS_PUBLIC_URL` (a URL de acesso de fora da Railway; ela é um segredo, não cole em lugar nenhum).
-2. No terminal do seu Mac (precisa do `redis-cli`: `brew install redis`):
+1. Abra o serviço `Redis`, aba **Variables**, e copie o valor de `REDIS_PUBLIC_URL` (a URL de acesso de fora da Railway, com senha: é um segredo, não cole em lugar nenhum). Se o acesso público (proxy TCP) não estiver ligado, ligue-o em **Settings**, **Networking**, **TCP Proxy** só para este passo.
+2. No terminal do seu Mac (precisa do `redis-cli`: `brew install redis`). Para a URL não ficar no histórico do shell, cole-a com `read -s` (a digitação não aparece):
 
 ```
-redis-cli -u '<REDIS_PUBLIC_URL>' CONFIG GET maxmemory-policy
+printf 'Cole a REDIS_PUBLIC_URL e tecle Enter: '
+read -s REDIS_URL_PUBLICA
+echo
+redis-cli -u "$REDIS_URL_PUBLICA" CONFIG GET maxmemory-policy
 ```
 
 3. O esperado é a resposta `noeviction` (é o padrão do Redis quando não há limite de memória). Se vier outro valor, ajuste:
 
 ```
-redis-cli -u '<REDIS_PUBLIC_URL>' CONFIG SET maxmemory-policy noeviction
+redis-cli -u "$REDIS_URL_PUBLICA" CONFIG SET maxmemory-policy noeviction
+unset REDIS_URL_PUBLICA
 ```
 
-Esse ajuste vale até o Redis reiniciar: confira de novo de vez em quando (ou depois de qualquer reinício do serviço Redis).
+Esse ajuste vale até o Redis reiniciar: confira de novo depois de qualquer reinício do serviço Redis.
+
+4. **Depois da conferência, desligue o acesso público do Redis** (remova o TCP Proxy em **Settings**, **Networking**). A API e o worker usam a URL privada; um Redis aberto na internet, mesmo com senha, é superfície de ataque desnecessária.
 
 ### 2.4 Adicionar o bucket (arquivos)
 
-Comprovantes, imagens e PDFs enviados para a IA ficam num bucket compatível com S3.
+Comprovantes, imagens, áudios e PDFs enviados para a IA ficam num bucket compatível com S3.
 
 1. **+ Create**, **Bucket**. Anote o nome do serviço do bucket (ex.: `Bucket`).
-2. Abra o bucket e olhe a aba de credenciais/variáveis (**Credentials** ou **Variables**). Você vai precisar de: endpoint, chave de acesso, chave secreta e o **nome real do bucket** (na Railway o nome costuma ser gerado, e não é `financas`). Os nomes exatos das variáveis (por exemplo `ENDPOINT`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`, `BUCKET`) podem variar: use os que o painel mostrar.
-3. O sistema usa endereçamento por caminho (`forcePathStyle`) e região `us-east-1` fixa, o que funciona com S3 genérico. Se algum dia o upload falhar com erro de assinatura/região, veja "Solução de problemas".
+2. Abra o bucket e olhe a aba de credenciais/variáveis (**Credentials** ou **Variables**). Você vai precisar de: endpoint, chave de acesso, chave secreta, **região** e o **nome real do bucket** (na Railway o nome costuma ser gerado, e não é `financas`). Os nomes exatos das variáveis (por exemplo `ENDPOINT`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`, `BUCKET`, `REGION`) podem variar: use os que o painel mostrar.
+3. Endereçamento e região são configuráveis: `MINIO_REGION` (padrão `us-east-1`; use a região que o provedor mostrar, ex.: `auto`) e `MINIO_FORCE_PATH_STYLE` (padrão `true` = endereço por caminho; `false` = virtual-hosted, que alguns provedores exigem). Veja as tabelas de variáveis. Se o upload falhar com erro de assinatura/região ou de endereço, ajuste essas duas.
+4. **O bucket PRECISA ter CORS liberado para o front.** Em quatro fluxos o **navegador** envia o arquivo direto para o bucket por uma URL pré-assinada (um `PUT` com cabeçalho `Content-Type`), sem passar pela API nem pela Vercel:
+   - ingestão por **imagem** (`IngestView`);
+   - ingestão por **áudio** (`IngestView`);
+   - importação de **PDF com IA** (`ImportView`);
+   - lançamento por **compartilhamento** (`SharedEntryView`, foto enviada de outro app).
 
-Alternativa se o bucket da Railway não servir: Cloudflare R2 (S3-compatível); basta preencher as variáveis `MINIO_*` com os dados dele.
+   Sem CORS, o navegador bloqueia o `PUT` (erro de CORS no console) e esses quatro fluxos falham, mesmo com a API e o worker saudáveis. Só CSV e OFX seguem pela API (e pelo rewrite da Vercel); **PDFs nunca passam pela Vercel**.
+
+   Regra de CORS (troque a origem pela do seu front, sem barra no final):
+
+```json
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["https://<nome>.vercel.app"],
+      "AllowedMethods": ["PUT", "GET", "HEAD"],
+      "AllowedHeaders": ["Content-Type"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}
+```
+
+   Salve esse JSON num arquivo **fora do repositório** (ex.: `~/cors-financas.json`) e aplique com o AWS CLI (`brew install awscli`). As credenciais do bucket entram só na sessão do terminal, digitadas com `read -s` (não aparecem na tela nem no histórico) e apagadas no final:
+
+```
+printf 'AWS_ACCESS_KEY_ID: '
+read -s AWS_ACCESS_KEY_ID
+echo
+printf 'AWS_SECRET_ACCESS_KEY: '
+read -s AWS_SECRET_ACCESS_KEY
+echo
+export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION='<região do bucket, ex.: auto>'
+aws s3api put-bucket-cors --bucket '<nome real do bucket>' --endpoint-url '<endpoint do bucket>' --cors-configuration file://$HOME/cors-financas.json
+aws s3api get-bucket-cors --bucket '<nome real do bucket>' --endpoint-url '<endpoint do bucket>'
+unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
+```
+
+   O segundo comando (`get-bucket-cors`) mostra a regra gravada, para conferir. Se o provedor exigir endereço virtual-hosted, defina `MINIO_FORCE_PATH_STYLE=false` no app e use o endpoint que o provedor indicar.
+
+   Se o painel do bucket da Railway tiver uma tela de CORS, pode usá-la no lugar do comando. Se o bucket da Railway **não** permitir configurar CORS, use **Cloudflare R2**: crie o bucket, em **Settings**, **CORS Policy**, cole a regra acima (o painel aceita o mesmo JSON) e preencha as variáveis `MINIO_*` com os dados do R2 (endpoint `https://<id da conta>.r2.cloudflarestorage.com`, `MINIO_REGION=auto`).
+
+Alternativa ao bucket da Railway: Cloudflare R2 (S3-compatível), como descrito acima.
 
 ### 2.5 Criar o serviço "api"
 
@@ -82,8 +130,9 @@ Alternativa se o bucket da Railway não servir: Cloudflare R2 (S3-compatível); 
 3. Em **Settings**:
    - **Source**, **Branch**: `main`. **Root Directory**: deixe **vazio** (a raiz do repositório; o Dockerfile precisa enxergar o monorepo inteiro).
    - **Config-as-code** (campo "Railway Config File"): `/apps/api/railway.json`.
-   - **Networking**, **Generate Domain**: gera um endereço público como `api-production-xxxx.up.railway.app`. Anote-o (você usa no passo 4). Se pedir uma porta, use a que aparece nos logs ("API ouvindo em ...:PORTA"); a Railway define `PORT` sozinha.
-4. **Antes do primeiro deploy bem-sucedido**, cadastre as variáveis (tabela abaixo) na aba **Variables**. O primeiro deploy pode começar sozinho e falhar por falta de variável: tudo bem, depois de cadastrar clique em **Deploy** para aplicar as mudanças.
+   - **Networking**, **Generate Domain**: gere o domínio público **depois** do primeiro deploy bem-sucedido. Ele tem a forma `api-production-xxxx.up.railway.app`; anote-o (você usa na seção 4). A Railway injeta `PORT` sozinha e a API escuta nele; se o painel pedir a porta do serviço, escolha a que ele sugerir (detectada a partir do `PORT`). Não defina `PORT` à mão.
+   - Os arquivos `railway.json` já trazem `watchPatterns`: um push que só mexe em documentação ou no front (`apps/web`) **não** redeploya a API nem o worker.
+4. **Antes do primeiro deploy**, cadastre as variáveis (tabela abaixo) na aba **Variables**. O primeiro deploy pode começar sozinho e falhar por falta de variável: tudo bem, depois de cadastrar clique em **Deploy** para aplicar as mudanças.
 
 #### Variáveis do serviço `api`
 
@@ -95,7 +144,7 @@ Cadastre os **nomes** abaixo na aba Variables. Os valores entre `<...>` são mar
 | `REDIS_URL` | `${{Redis.REDIS_URL}}` | sim | Filas (URL privada). |
 | `BETTER_AUTH_SECRET` | `<gerar com: openssl rand -hex 32>` | sim | Assina as sessões. Trocar desloga todo mundo. |
 | `BETTER_AUTH_URL` | `<origem do front, ex.: https://seu-app.vercel.app>` | sim | Origem que o navegador vê (a da Vercel, **não** a da API), sem barra no final. |
-| `SIGNUP_ALLOWED_EMAILS` | `<seu-email@exemplo.com>` | sim | Lista (separada por vírgula) de quem pode criar conta. **Sem isso o cadastro fica aberto na internet.** |
+| `SIGNUP_ALLOWED_EMAILS` | `<seu-email@exemplo.com>` | sim | Lista (separada por vírgula) de quem pode criar conta. Em produção (`NODE_ENV=production`, que o Dockerfile já define) **vazia ou ausente = ninguém cria conta** (falha segura). O valor exato `*` abre o cadastro para qualquer email: **não use**. |
 | `TRUST_PROXY` | `true` | sim | Confia nos cabeçalhos do proxy da Railway/Vercel. |
 | `TRUSTED_ORIGINS` | `<https://outro-dominio.exemplo>` | não | Origens extras confiáveis (ex.: domínio próprio no futuro), separadas por vírgula. |
 | `APP_URL` | `<origem do front>` | recomendada | Base dos links de convite enviados por email. |
@@ -106,17 +155,19 @@ Cadastre os **nomes** abaixo na aba Variables. Os valores entre `<...>` são mar
 | `MINIO_ACCESS_KEY` | `${{Bucket.ACCESS_KEY_ID}}` (ou do painel) | para anexos | Chave de acesso do bucket. |
 | `MINIO_SECRET_KEY` | `${{Bucket.SECRET_ACCESS_KEY}}` (ou do painel) | para anexos | Chave secreta do bucket. |
 | `MINIO_BUCKET` | `${{Bucket.BUCKET}}` (ou o nome real do bucket) | para anexos | Nome do bucket. |
+| `MINIO_REGION` | `<região do provedor, ex.: auto>` | não | Região S3 (padrão `us-east-1`). |
+| `MINIO_FORCE_PATH_STYLE` | `true` ou `false` | não | `true` (padrão) = endereço por caminho; `false` = virtual-hosted. |
 | `VAPID_PUBLIC_KEY` | `<gerar com: npx web-push generate-vapid-keys>` | não | Notificações push (a API entrega a chave pública ao navegador). |
 | `MAIL_API_KEY` | `<chave do Resend>` | não | Envio de email de convites. Sem ela, o email só aparece nos logs. |
 
-Não defina `PORT` nem `NODE_ENV` (a Railway e o Dockerfile cuidam disso). As referências `${{Serviço.VARIAVEL}}` são resolvidas pela Railway: a `DATABASE_URL` e a `REDIS_URL` usam a rede **privada** (de graça e sem exposição). Se o bucket usar nomes de variável diferentes dos do exemplo, copie os valores direto do painel dele.
+Nos logs de boot da API aparece uma linha `Cadastro: allowlist (N emails)`, `aberto (*)` ou `fechado`: confira que é `allowlist`. Não defina `PORT` nem `NODE_ENV` (a Railway e o Dockerfile cuidam disso). As referências `${{Serviço.VARIAVEL}}` são resolvidas pela Railway: a `DATABASE_URL` e a `REDIS_URL` usam a rede **privada** (de graça e sem exposição). Se o bucket usar nomes de variável diferentes dos do exemplo, copie os valores direto do painel dele.
 
 #### O que esperar no primeiro deploy da API
 
 1. A Railway **constrói** a imagem a partir do `Dockerfile` (alguns minutos).
 2. Antes de subir a API, roda o **preDeploy**: `pnpm exec prisma migrate deploy`, que cria as tabelas no banco vazio. Nos logs aparecem as migrations sendo aplicadas.
 3. Depois a API sobe e a Railway chama `GET /health` (até 120 s). Quando responde `200`, o deploy fica verde ("Active").
-4. Teste no navegador: `https://<dominio-da-api>/health` deve mostrar `{"ok":true,"db":true}`.
+4. Teste no navegador: `https://<dominio-da-api>/health` deve mostrar `{"ok":true,"db":true,"redis":true}`. O campo `redis` é informativo: Redis fora do ar mostra `false`, mas **não** derruba o healthcheck (só o banco decide entre 200 e 503); se aparecer `false`, confira `REDIS_URL` (a senha vem na própria URL).
 
 **O primeiro build é o verdadeiro teste em x64.** A imagem foi testada localmente só em arm64 (Mac); a Railway constrói em x64. Se o build falhar, olhe os **Build Logs**:
 - Uma mensagem de erro do `node-gyp` / `msgpackr-extract` durante o `pnpm install` é **inofensiva** (é um acelerador opcional); se o build continua depois dela, ignore.
@@ -125,7 +176,7 @@ Não defina `PORT` nem `NODE_ENV` (a Railway e o Dockerfile cuidam disso). As re
 ### 2.6 Criar o serviço "worker"
 
 1. **+ Create**, **GitHub Repo**, o mesmo repositório. Renomeie para `worker`.
-2. **Settings**: Branch `main`, Root Directory **vazio**, Config-as-code `/apps/worker/railway.json`. **Não gere domínio público** (o worker não recebe requisições).
+2. **Settings**: Branch `main`, Root Directory **vazio**, Config-as-code `/apps/worker/railway.json`. **Não gere domínio público** (o worker não recebe requisições). O worker também roda `prisma migrate deploy` no preDeploy (como a API), para nunca subir código novo contra um banco sem as migrations; é seguro mesmo com os dois serviços fazendo deploy juntos, porque o Prisma usa um lock no banco.
 3. Variáveis do `worker` (mesmo critério: nomes aqui, valores no painel):
 
 | Variável | Valor | Obrigatória | Para quê |
@@ -141,6 +192,8 @@ Não defina `PORT` nem `NODE_ENV` (a Railway e o Dockerfile cuidam disso). As re
 | `MINIO_ACCESS_KEY` | igual ao da API | para anexos | Bucket. |
 | `MINIO_SECRET_KEY` | igual ao da API | para anexos | Bucket. |
 | `MINIO_BUCKET` | igual ao da API | para anexos | Bucket. |
+| `MINIO_REGION` | igual ao da API | não | Região S3 (padrão `us-east-1`). |
+| `MINIO_FORCE_PATH_STYLE` | igual ao da API | não | Endereçamento do bucket (padrão `true`). |
 | `VAPID_PUBLIC_KEY` | `<a mesma chave pública da API>` | não | Push (precisa do par completo). |
 | `VAPID_PRIVATE_KEY` | `<gerar com: npx web-push generate-vapid-keys>` | não | Push (o worker envia as notificações). |
 
@@ -156,7 +209,7 @@ Não defina `PORT` nem `NODE_ENV` (a Railway e o Dockerfile cuidam disso). As re
 4. Na tela de configuração:
    - **Framework Preset**: Vite (a Vercel detecta).
    - **Root Directory**: clique em **Edit** e escolha `apps/web`.
-   - **Build/Install Command**: deixe o padrão (o `apps/web/vercel.json` já define os comandos).
+   - **Build/Install Command**: deixe o padrão (o `apps/web/vercel.json` já define os comandos; o install é filtrado, `pnpm install --frozen-lockfile --filter @app/web...`, e instala só o front e o pacote compartilhado; testado a partir do lockfile da raiz).
    - **Environment Variables**: nenhuma é obrigatória.
 5. Clique em **Deploy**. O primeiro deploy sobe o front, mas o `/api` ainda aponta para um endereço de exemplo (`API_PUBLICA`): isso é esperado, e o passo 4 corrige.
 6. Se o build falhar por não achar os pacotes do monorepo, abra **Settings**, **General** e confirme que **Include source files outside of the Root Directory in the Build Step** está ligado.
@@ -169,7 +222,7 @@ Não defina `PORT` nem `NODE_ENV` (a Railway e o Dockerfile cuidam disso). As re
 1. No seu computador, na branch `main`, abra `apps/web/vercel.json` e troque **as duas ocorrências** de `API_PUBLICA` pelo endereço público da API **sem** `https://` e sem barra (ex.: `api-production-xxxx.up.railway.app`). Ficam assim:
    - `/api/auth/:path*` -> `https://<dominio-da-api>/api/auth/:path*`
    - `/api/:path*` -> `https://<dominio-da-api>/:path*`
-2. Faça o commit e o push para `main`. A Vercel faz um novo deploy sozinha.
+2. Faça o commit e o push para `main`. A Vercel faz um novo deploy sozinha. O push passa pelo CI: o teste de `vercel.json` aceita tanto o marcador `API_PUBLICA` quanto um `https://<host>` real (host com ponto, sem `localhost`, sem barra no final e **o mesmo** nas duas regras); se você errar o host, esse teste acusa antes do deploy.
 3. Na Railway, serviço `api`, **Variables**: ajuste `BETTER_AUTH_URL` (e `APP_URL`) para a origem do front, por exemplo `https://<nome>.vercel.app`, sem barra no final. Clique em **Deploy** para a API reiniciar com o valor novo.
 4. Rode o teste de fumaça no seu terminal, na raiz do repositório:
 
@@ -177,27 +230,33 @@ Não defina `PORT` nem `NODE_ENV` (a Railway e o Dockerfile cuidam disso). As re
 scripts/smoke-prod.sh https://<nome>.vercel.app
 ```
 
-Ele confere cinco coisas e termina com um resumo `✔`/`✘`: a página abre, `/api/health` responde `ok`, uma rota protegida devolve 401 sem token, um email fora da lista é recusado no cadastro e uma rota do app (`/painel`) cai no `index.html`. Se algum item falhar, o texto da linha diz o que olhar; veja também "Solução de problemas". Observação: o teste faz **uma tentativa de cadastro** com um email descartável (`@example.invalid`); com a lista de permissão ativa ela é recusada e nada é criado.
+Ele confere cinco coisas e termina com um resumo `✔`/`✘`/`?`: a página abre, `/api/health` responde `ok`, uma rota protegida devolve 401 sem token, um email fora da lista é recusado no cadastro e uma rota do app (`/painel`) cai no `index.html`. O cadastro só conta como recusado quando a resposta é **403 com a mensagem "Cadastro não permitido"**, que vem do servidor. Códigos de saída:
+- `0`: tudo certo.
+- `1`: alguma checagem falhou. Se for o cadastro respondendo 200, o cadastro está **aberto** (corrija `SIGNUP_ALLOWED_EMAILS` e apague o usuário `smoke-...@example.invalid` que o teste criou).
+- `2`: **inconclusivo** (nenhuma falha, mas o cadastro não pôde ser verificado, por exemplo 429 de limite de requisições, ou outro 4xx por origem errada/`BETTER_AUTH_URL` diferente). Inconclusivo **não** é aprovação: espere uns segundos e rode de novo, ou corrija a causa.
 
-Importante sobre o `Origin`: as rotas do Better Auth (`/api/auth/...`) recusam requisições sem uma origem confiável. No navegador, a origem é a do front, e por isso o `BETTER_AUTH_URL` precisa ser **exatamente** essa origem (mesmo `https`, mesmo domínio, sem barra). O script manda `Origin: <a URL do front que você passou>` pelo mesmo motivo.
+O teste faz **uma tentativa de cadastro** por execução, com um email aleatório descartável (`@example.invalid`); com a lista de permissão ativa ela é recusada e nada é criado.
+
+Sobre o `Origin`: o Better Auth confere a origem das requisições do navegador que carregam cookies/sessão, e por isso o `BETTER_AUTH_URL` precisa ser **exatamente** a origem do front (mesmo `https`, mesmo domínio, sem barra). Nesta versão, o cadastro e o login **sem cookies não passam por essa checagem de origem**, então um `Origin` errado não é, sozinho, prova de falha no smoke test; o script manda `Origin: <a URL do front que você passou>` para imitar o navegador, e um 4xx inesperado no cadastro aparece como inconclusivo, com a dica de conferir a origem.
 
 ---
 
 ## 5. Primeiro acesso
 
-1. Abra `https://<nome>.vercel.app` e **crie sua conta** com o email que você colocou em `SIGNUP_ALLOWED_EMAILS`.
+1. **Crie sua conta IMEDIATAMENTE** depois do primeiro deploy saudável, em `https://<nome>.vercel.app`, com o email que você colocou em `SIGNUP_ALLOWED_EMAILS`. Não há verificação de email: até você criar a conta, quem conhecer o endereço e souber o seu email poderia se cadastrar com ele primeiro. Use uma **senha forte e única** (gerenciador de senhas): o limite de tentativas de login é de apenas 3 a cada 10 segundos por IP, o que ajuda, mas não substitui uma boa senha.
 2. Confira que o cadastro é fechado: em uma aba anônima, tente criar outra conta com um email diferente. Deve ser recusado.
-3. Importe um extrato (OFX/CSV/PDF) para testar a importação (isso exercita API, worker, Redis e bucket).
+3. Importe um extrato CSV ou OFX (vai pela API, atravessando o rewrite da Vercel) e depois um **PDF** com IA (o PDF vai direto do navegador ao bucket).
 4. Teste a IA: lance uma despesa por texto e faça uma pergunta no chat. Se der erro, veja "Solução de problemas" (OpenRouter).
-5. Instale o PWA: no Chrome/Edge, ícone de instalação na barra de endereço; no iPhone, Compartilhar, **Adicionar à Tela de Início**.
-6. Faça o primeiro **backup** (seção 7) e teste a restauração em um banco descartável.
+5. **Teste os envios para o bucket e o CORS:** com o **Console do navegador aberto** (F12), envie uma **foto** e um **áudio** no lançamento por IA, importe um **PDF** e, se puder, use o compartilhamento de uma foto para o app. Os quatro fluxos fazem `PUT` direto no bucket. Qualquer erro de CORS no console ("blocked by CORS policy" / "No 'Access-Control-Allow-Origin'") significa que o CORS do bucket não está certo (seção 2.4, item 4).
+6. Instale o PWA: no Chrome/Edge, ícone de instalação na barra de endereço; no iPhone, Compartilhar, **Adicionar à Tela de Início**.
+7. Faça o primeiro **backup** (seção 7) e teste a restauração em um banco descartável.
 
 ---
 
 ## 6. Segurança
 
 - **Segredos só nos painéis.** `BETTER_AUTH_SECRET`, chaves do OpenRouter/Groq, do bucket, do VAPID e do Resend ficam nas Variables da Railway. Nada disso vai para o repositório (que é público) nem para este arquivo. Não cole URLs do banco (`DATABASE_PUBLIC_URL`) em chats, issues ou prints.
-- **`SIGNUP_ALLOWED_EMAILS` é obrigatória** em produção: sem ela, qualquer pessoa que ache o endereço cria conta.
+- **`SIGNUP_ALLOWED_EMAILS` é obrigatória** em produção. Sem ela, a API **recusa todos os cadastros** (falha segura, inclusive o seu). O valor exato `*` abre o cadastro para qualquer email e só deve ser usado de propósito. Crie a sua conta logo no primeiro deploy (não há verificação de email) e use senha forte e única.
 - **Rotação.** Se uma chave vazar, gere outra no provedor, troque a variável na Railway e faça **Deploy**. Trocar `BETTER_AUTH_SECRET` desloga todas as sessões (é esperado). Para convidar mais gente, acrescente o email à lista (separada por vírgula) e faça **Deploy**.
 - **O repositório é público.** Nunca faça commit de `.env`, dumps do banco (`*.dump`) ou prints com dados reais. O `.gitignore` já ignora `.env`, `*.dump` e `backups/`.
 - A API também fica acessível direto pelo domínio da Railway; as rotas protegidas continuam exigindo login, mas o caminho normal é sempre pela Vercel.
@@ -225,11 +284,16 @@ Complemento: o app também tem exportação (CSV, XLSX e backup em JSON) na pró
 mkdir -p ~/Backups/financas
 ```
 
-3. Gere o dump (formato customizado, comprimido). Troque `<DATABASE_PUBLIC_URL>` pela URL, mantendo as aspas simples:
+3. Gere o dump (formato customizado, comprimido). Cole a URL com `read -s` (a digitação não aparece e a URL não vai para o histórico do shell nem para a linha de comando digitada):
 
 ```
-pg_dump --format=custom --no-owner --no-privileges --file "$HOME/Backups/financas/financas-$(date +%Y-%m-%d).dump" '<DATABASE_PUBLIC_URL>'
+printf 'Cole a DATABASE_PUBLIC_URL e tecle Enter: '
+read -s PG_URL_PUBLICA
+echo
+pg_dump --format=custom --no-owner --no-privileges --file "$HOME/Backups/financas/financas-$(date +%Y-%m-%d).dump" "$PG_URL_PUBLICA"
 ```
+
+   Mantenha o terminal aberto para os próximos passos e rode `unset PG_URL_PUBLICA` quando terminar.
 
 4. Confira que o arquivo foi criado e lista as tabelas:
 
@@ -237,7 +301,7 @@ pg_dump --format=custom --no-owner --no-privileges --file "$HOME/Backups/financa
 pg_restore --list "$HOME/Backups/financas/financas-$(date +%Y-%m-%d).dump"
 ```
 
-A versão do `pg_dump` precisa ser **igual ou maior** que a do Postgres da Railway. Se aparecer `server version mismatch`, instale um cliente mais novo (`brew install postgresql@17`, por exemplo).
+A versão do `pg_dump` precisa ser **igual ou maior** que a do Postgres da Railway (veja a versão com `psql "$PG_URL_PUBLICA" -c 'select version()'`). Se aparecer `server version mismatch`, instale um cliente mais novo (`brew install postgresql@17`, por exemplo).
 
 Alternativa com o CLI da Railway: `railway connect Postgres` abre um `psql` na conta logada, mas o CLI precisa estar autenticado na conta **pessoal** e no projeto certo; o dump pela URL pública acima é mais simples e previsível.
 
@@ -251,10 +315,16 @@ Guarde a URL num arquivo que só você lê, **fora do repositório**:
 mkdir -p ~/.config/financas
 ```
 
-Crie o arquivo `~/.config/financas/pg_url` com a URL pública (uma linha) e restrinja a permissão:
+Crie o arquivo `~/.config/financas/pg_url` com a URL pública (uma linha), já com permissão restrita, colando a URL com `read -s` para ela não ficar no histórico:
 
 ```
-chmod 600 ~/.config/financas/pg_url
+umask 077
+printf 'Cole a DATABASE_PUBLIC_URL e tecle Enter: '
+read -s PG_URL_PUBLICA
+echo
+printf '%s\n' "$PG_URL_PUBLICA" > "$HOME/.config/financas/pg_url"
+unset PG_URL_PUBLICA
+chmod 600 "$HOME/.config/financas/pg_url"
 ```
 
 Crie o script `~/bin/backup-financas.sh` (também fora do repositório):
@@ -284,7 +354,7 @@ Na Railway, abra o serviço `Postgres`, o volume e procure uma aba **Backups**. 
 
 ### 7.5 Restaurar
 
-Teste a restauração **antes** de precisar dela, em um banco descartável no seu Mac (não use o Postgres de desenvolvimento do `docker-compose`, que seria sobrescrito):
+Teste a restauração **antes** de precisar dela, em um banco descartável no seu Mac (não use o Postgres de desenvolvimento do `docker-compose`, que seria sobrescrito). **Use a mesma versão principal do Postgres da Railway** (veja com `select version()`, como na seção 7.2): o exemplo abaixo usa `postgres:16-alpine`; se a Railway estiver na 17, troque por `postgres:17-alpine`, e assim por diante.
 
 ```
 docker run --rm -d --name teste-restore -e POSTGRES_PASSWORD=teste -p 5440:5432 postgres:16-alpine
@@ -299,7 +369,11 @@ Restauração de verdade, no Postgres da Railway:
 2. Restaure por cima do banco (apaga e recria os objetos do dump):
 
 ```
-pg_restore --clean --if-exists --no-owner --no-privileges --dbname '<DATABASE_PUBLIC_URL>' "$HOME/Backups/financas/financas-AAAA-MM-DD.dump"
+printf 'Cole a DATABASE_PUBLIC_URL e tecle Enter: '
+read -s PG_URL_PUBLICA
+echo
+pg_restore --clean --if-exists --no-owner --no-privileges --dbname "$PG_URL_PUBLICA" "$HOME/Backups/financas/financas-AAAA-MM-DD.dump"
+unset PG_URL_PUBLICA
 ```
 
 3. Faça um novo deploy dos serviços `api` e `worker` (aba **Deployments**, **Redeploy**). O `preDeploy` roda `migrate deploy`, que aplica as migrations que o dump ainda não tenha.
@@ -336,16 +410,35 @@ Os preços mudam: **confira sempre** em https://railway.com/pricing e https://ve
 | Sintoma | Causa provável | O que fazer |
 |---|---|---|
 | Chat ou ingestão por IA responde erro 404 "No endpoints found matching your data policy" | Com `OPENROUTER_DATA_COLLECTION=deny`, o modelo escolhido só é servido por provedores que coletam dados | Troque o modelo (`OPENROUTER_MODEL`, `OPENROUTER_VISION_MODEL`, `OPENROUTER_TEXT_MODEL`) por um que tenha provedor sem coleta. Só use `allow` se aceitar que o provedor retenha dados financeiros. |
-| Falha ao enviar imagem/áudio/PDF; erro do bucket nos logs da API/worker | Variáveis `MINIO_*` erradas, bucket com outro nome, ou região/assinatura recusada | Confira `MINIO_BUCKET` (nome real, não `financas`), endpoint e chaves. Se o navegador mostrar erro de CORS ao enviar a imagem (o upload do envio compartilhado vai direto do navegador ao bucket), libere `PUT` da origem do front nas configurações de CORS do bucket, se o seu bucket permitir; se não permitir, use Cloudflare R2. |
+| Falha ao enviar foto, áudio ou PDF; no Console do navegador aparece erro de CORS ("blocked by CORS policy") | O bucket não permite `PUT` vindo da origem do front. Quatro fluxos enviam direto do navegador ao bucket: imagem, áudio, PDF com IA e envio compartilhado | Aplique a regra de CORS da seção 2.4 (item 4) com a origem exata do front (`https://<nome>.vercel.app`, sem barra) e `Content-Type` em `AllowedHeaders`. Se o bucket da Railway não permitir CORS, use Cloudflare R2. |
+| Falha ao enviar arquivo e o erro é de assinatura/região/endereço (não de CORS), ou erro do bucket nos logs da API/worker | Variáveis `MINIO_*` erradas, bucket com outro nome, região ou estilo de endereço que o provedor recusa | Confira `MINIO_BUCKET` (nome real, não `financas`), endpoint e chaves; ajuste `MINIO_REGION` (ex.: `auto`) e `MINIO_FORCE_PATH_STYLE` (`false` para virtual-hosted), na API **e** no worker. |
 | `/api/...` devolve 502 ou 504 na Vercel | API fora do ar, ou `API_PUBLICA` não foi trocado / está com o endereço errado no `vercel.json` | Abra `https://<dominio-da-api>/health` direto. Se não responder, veja os logs da API na Railway. Se responder, corrija o `vercel.json` (sem `https://` duplicado, sem barra no final), commit e push. |
 | Login ou cadastro dá erro de origem ("Invalid origin" / 403) | `BETTER_AUTH_URL` diferente da origem do front, ou a origem não está confiável | Faça `BETTER_AUTH_URL` ser exatamente `https://<nome>.vercel.app` (sem barra), clique em **Deploy** na API. Para outro domínio, acrescente em `TRUSTED_ORIGINS`. |
-| Cadastro do seu próprio email é recusado | Email fora de `SIGNUP_ALLOWED_EMAILS` ou com erro de digitação | Corrija a variável (sem diferenciar maiúsculas; vírgula entre emails) e faça **Deploy**. |
+| Cadastro do seu próprio email é recusado ("Cadastro não permitido.") | `SIGNUP_ALLOWED_EMAILS` ausente/vazia (em produção isso fecha todos os cadastros), ou email fora da lista/com erro de digitação | Defina a variável com o seu email (sem diferenciar maiúsculas; vírgula entre emails) e faça **Deploy**. O log de boot da API mostra `Cadastro: fechado` ou `allowlist (N emails)`. |
 | Deploy da API falha no `preDeploy` | `DATABASE_URL` ausente/errada, ou banco inalcançável | Confira a referência `${{Postgres.DATABASE_URL}}` e o nome do serviço do Postgres; veja o log do preDeploy. |
 | API reinicia, healthcheck falha | `/health` devolve 503 (banco) ou a API não sobe | Veja os **Deploy Logs**; confira `DATABASE_URL`, `BETTER_AUTH_SECRET` e `REDIS_URL`. |
 | Worker reinicia em loop ou os jobs ficam parados ("pendentes") | `REDIS_URL` ausente/errada, Redis fora do ar, ou política diferente de `noeviction` | Confira `${{Redis.REDIS_URL}}` no worker **e** na API, e a política (seção 2.3). Nos logs deve aparecer `Worker started`. |
 | Build na Railway falha | Imagem testada só em arm64 | Veja a seção 2.5 ("O primeiro build é o verdadeiro teste em x64"). O erro de `node-gyp`/`msgpackr-extract` isolado é inofensivo. |
 | Build na Vercel falha ao instalar pacotes | Arquivos fora do Root Directory desligados | Settings, General, ligue "Include source files outside of the Root Directory". |
-| Páginas do app dão 404 ao recarregar | Regra de fallback ausente | Confira que o `vercel.json` do deploy tem a regra `/((?!api/).*)` -> `/index.html`; o smoke test acusa isso em `/painel`. |
-| Upload grande falha na Vercel | Limite de tamanho de corpo do proxy | Extratos ficam bem abaixo do limite. Se algum dia falhar, o plano B é o front chamar a API direto (`VITE_API_URL`) com CORS habilitado na API (não implementado). |
+| Install na Vercel falha com erro do pnpm/corepack (versão do pnpm 11 não encontrada) | A Vercel não ativou a versão do pnpm do campo `packageManager` | Em Settings, Environment Variables, crie `ENABLE_EXPERIMENTAL_COREPACK` com o valor `1` e refaça o deploy. |
+| Páginas do app dão 404 ao recarregar | Regra de fallback ausente | Confira que o `vercel.json` do deploy tem a regra `/((?!api/|assets/).*)` -> `/index.html`; o smoke test acusa isso em `/painel`. |
+| Upload grande (CSV/OFX) falha na Vercel | Limite de tamanho de corpo do proxy | Extratos CSV/OFX ficam bem abaixo do limite (PDFs nem passam pela Vercel: vão direto ao bucket). Se algum dia falhar, o plano B é o front chamar a API direto (`VITE_API_URL`) com CORS habilitado na API (não implementado). |
 
 Sempre que mudar uma variável na Railway, lembre de clicar em **Deploy** para ela valer.
+
+---
+
+## 9. Verificar no deploy real
+
+Estas coisas foram testadas localmente (ou só no papel), mas só o deploy real as confirma. Passe por esta lista no primeiro deploy e anote o que falhar:
+
+- [ ] **Build x64 na Railway:** o primeiro build é o teste de verdade (a imagem só foi testada em arm64). Veja a seção 2.5.
+- [ ] **`preDeployCommand` como lista aceito** nos dois `railway.json`: o log do deploy mostra `prisma migrate deploy` rodando antes de a API (e o worker) subir. Se a Railway reclamar do formato, use o campo de comando de pré-deploy no painel.
+- [ ] **Auth e família de IP do Redis:** a API e o worker conectam ao Redis privado com senha (`REDIS_URL` completa) e `family: 0` (a rede privada da Railway pode ser IPv6). Confira `redis: true` em `/health` e `Worker started` nos logs; jobs saem de "pendentes".
+- [ ] **CORS do bucket:** foto, áudio, PDF e envio compartilhado sem erro de CORS no console (seção 5).
+- [ ] **pnpm 11 na Vercel:** o install filtrado funciona; se não, `ENABLE_EXPERIMENTAL_COREPACK=1` (seção 8.4).
+- [ ] **Limites do rewrite externo da Vercel:** tamanho do corpo (CSV/OFX grandes) e tempo limite das respostas longas (chat com IA, importação).
+- [ ] **Cookies e `Origin` através do rewrite:** login, sessão persistindo após recarregar a página e logout funcionam em `https://<nome>.vercel.app` (cookie definido pela API chega ao navegador pela origem da Vercel).
+- [ ] **`X-Forwarded-For` na Railway (limite de tentativas):** com `TRUST_PROXY=true` a API enxerga o IP real; se ela enxergasse o IP do proxy da Vercel, todo mundo dividiria o mesmo limite de login. Teste errando a senha 4 vezes seguidas e conferindo que o bloqueio dura poucos segundos e depois libera.
+- [ ] **SIGTERM / encerramento do `pnpm` como PID 1:** o comando de partida é `pnpm --filter ... start:prod`, então o `pnpm` pode ficar como processo principal e repassar (ou não) o sinal de encerramento ao Node. Faça um redeploy no meio de uma importação em andamento e veja nos logs se a API/worker encerram sem erro ("Worker started" volta, nenhum job fica travado). Se houver encerramento brusco recorrente, a correção futura é iniciar o Node direto (sem o `pnpm`) no comando de partida.
+

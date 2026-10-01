@@ -12,7 +12,11 @@
 #                      API_PREFIX= ao testar a API direto, que não serve HTML.
 #
 # Atenção: a checagem de cadastro envia um email aleatório (@example.invalid) que NÃO está na lista de
-# permissão. Se a API não tiver SIGNUP_ALLOWED_EMAILS, esse cadastro será criado e o teste acusa falha.
+# permissão. Se o cadastro estiver aberto (SIGNUP_ALLOWED_EMAILS="*"), esse usuário será criado e o teste
+# acusa falha.
+#
+# Código de saída: 0 = tudo ok; 1 = alguma checagem falhou; 2 = alguma checagem ficou INCONCLUSIVA
+# (ex.: limite de requisições ou origem errada no cadastro) e nenhuma falhou. Inconclusivo não é aprovação.
 
 set -euo pipefail
 
@@ -40,6 +44,7 @@ trap 'rm -rf "$WORKDIR"' EXIT
 
 PASSED=0
 FAILED=0
+INCONCLUSIVE=0
 
 pass() {
   PASSED=$((PASSED + 1))
@@ -49,6 +54,11 @@ pass() {
 fail() {
   FAILED=$((FAILED + 1))
   echo "  ✘ $1"
+}
+
+inconclusive() {
+  INCONCLUSIVE=$((INCONCLUSIVE + 1))
+  echo "  ? $1"
 }
 
 # request <método> <caminho> [curl-args...]: grava corpo em $WORKDIR/body e define STATUS e CTYPE.
@@ -111,24 +121,46 @@ else
   fail "GET ${API_PREFIX}/balances sem token -> esperado 401, veio $STATUS"
 fi
 
-# 4) Cadastro fechado: email fora da lista de permissão precisa ser recusado (4xx).
-SMOKE_EMAIL="smoke-$(rand_hex)@example.invalid"
-SMOKE_PASS="$(rand_hex)$(rand_hex)"
-SIGNUP_BODY="{\"email\":\"${SMOKE_EMAIL}\",\"password\":\"${SMOKE_PASS}\",\"name\":\"Smoke\"}"
-# O Better Auth fica sempre em /api/auth/* (o rewrite do front não remove esse prefixo).
-request POST "/api/auth/sign-up/email" \
-  --header "Content-Type: application/json" --header "Origin: ${ORIGIN}" --data "$SIGNUP_BODY"
-case "$STATUS" in
-  4??)
-    pass "POST /api/auth/sign-up/email com email fora da lista -> $STATUS (recusado)"
-    ;;
-  2??)
-    fail "POST /api/auth/sign-up/email com email fora da lista -> $STATUS: CADASTRO ABERTO! Defina SIGNUP_ALLOWED_EMAILS na API e apague o usuário ${SMOKE_EMAIL} do banco"
-    ;;
-  *)
-    fail "POST /api/auth/sign-up/email -> esperado 4xx, veio $STATUS"
-    ;;
-esac
+# 4) Cadastro fechado: um email fora da lista precisa ser recusado pelo hook do servidor (403 com a
+#    mensagem "Cadastro não permitido"). Outro 4xx (429, origem errada...) não prova nada: inconclusivo.
+signup_attempt() {
+  SMOKE_EMAIL="smoke-$(rand_hex)@example.invalid"
+  SMOKE_PASS="$(rand_hex)$(rand_hex)"
+  local body="{\"email\":\"${SMOKE_EMAIL}\",\"password\":\"${SMOKE_PASS}\",\"name\":\"Smoke\"}"
+  # O Better Auth fica sempre em /api/auth/* (o rewrite do front não remove esse prefixo).
+  request POST "/api/auth/sign-up/email" \
+    --header "Content-Type: application/json" --header "Origin: ${ORIGIN}" --data "$body"
+}
+
+SMOKE_EMAIL=""
+SMOKE_PASS=""
+signup_attempt
+if [ "$STATUS" = "429" ]; then
+  # Limite de requisições do Better Auth (janela curta): espera e tenta uma vez mais, com outro email.
+  sleep 11
+  signup_attempt
+fi
+if [ "$STATUS" = "403" ] && grep -q "Cadastro não permitido" "$WORKDIR/body"; then
+  pass "POST /api/auth/sign-up/email com email fora da lista -> 403 \"Cadastro não permitido\""
+else
+  case "$STATUS" in
+    2??)
+      fail "POST /api/auth/sign-up/email com email fora da lista -> $STATUS: CADASTRO ABERTO! Defina SIGNUP_ALLOWED_EMAILS na API (e nunca use \"*\") e apague o usuário ${SMOKE_EMAIL} do banco"
+      ;;
+    429)
+      inconclusive "POST /api/auth/sign-up/email -> 429 (limite de requisições): aguarde alguns segundos e rode de novo"
+      ;;
+    403)
+      inconclusive "POST /api/auth/sign-up/email -> 403 sem a mensagem \"Cadastro não permitido\": provável recusa de origem; confira se BETTER_AUTH_URL é exatamente ${ORIGIN} (ou TRUSTED_ORIGINS)"
+      ;;
+    4??)
+      inconclusive "POST /api/auth/sign-up/email -> $STATUS (não é a recusa da lista): confira a origem (BETTER_AUTH_URL = ${ORIGIN}), o rewrite /api/auth e o corpo da resposta"
+      ;;
+    *)
+      fail "POST /api/auth/sign-up/email -> esperado 403, veio $STATUS"
+      ;;
+  esac
+fi
 
 # 5) Fallback de SPA: rotas do vue-router devolvem o index.html.
 if [ "$SKIP_FRONT_CHECKS" = "1" ]; then
@@ -147,9 +179,13 @@ else
 fi
 
 echo
-echo "Resumo: ${PASSED} ok, ${FAILED} com falha"
+echo "Resumo: ${PASSED} ok, ${FAILED} com falha, ${INCONCLUSIVE} inconclusivas"
 if [ "$FAILED" -ne 0 ]; then
   echo "✘ Teste de fumaça FALHOU"
   exit 1
+fi
+if [ "$INCONCLUSIVE" -ne 0 ]; then
+  echo "? Teste de fumaça INCONCLUSIVO (veja as linhas com ?): não conta como aprovado"
+  exit 2
 fi
 echo "✔ Teste de fumaça passou"
