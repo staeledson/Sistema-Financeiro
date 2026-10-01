@@ -894,6 +894,44 @@ describe("GET /dashboard/summary", () => {
     expect(b.spending.vsBudget).toEqual(spending.vsBudget);
   });
 
+  it("accounts: todas as contas não arquivadas (caixa e cartões) com saldo, tipo, entidade, instituição e dias; ordem entidade/nome", async () => {
+    const { u, pf1, pj1 } = await seedSummary("sm-acc");
+    await prisma.bankAccount.update({ where: { id: pf1.id }, data: { institution: "inter" } });
+    await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "savings", name: "Arquivada", entity: "pj", archived: true, openingBalanceCents: 99999n } });
+    const b = (await get(u, `/dashboard/summary?${AS_OF}`)).json();
+
+    type Acc = { accountId: string; name: string; type: string; entity: string; institution: string; balanceCents: number; closingDay: number | null; dueDay: number | null };
+    const accounts: Acc[] = b.accounts;
+    expect(accounts.map((a) => a.name)).toEqual(["Cartão A", "Cartão B", "Cartão C", "PF1", "PJ1"]);
+    expect(accounts.map((a) => a.name)).not.toContain("Arquivada");
+    const byName = Object.fromEntries(accounts.map((a) => [a.name, a]));
+    expect(byName["PF1"]).toEqual({ accountId: pf1.id, name: "PF1", type: "checking", entity: "pf", institution: "inter", balanceCents: 213400, closingDay: null, dueDay: null });
+    expect(byName["PJ1"]).toMatchObject({ accountId: pj1.id, type: "checking", entity: "pj", institution: "other", balanceCents: 160000 });
+    // cartões guardam o próprio saldo negativo (dívida) e os dias configurados
+    expect(byName["Cartão A"]).toMatchObject({ type: "credit_card", entity: "pf", balanceCents: -27000, closingDay: 10, dueDay: 17 });
+    expect(byName["Cartão B"]).toMatchObject({ balanceCents: -8000, closingDay: 25, dueDay: 5 });
+    expect(byName["Cartão C"]).toMatchObject({ balanceCents: 0, closingDay: 28, dueDay: 2 });
+
+    // a soma das contas que não são cartão, por entidade, é o saldo consolidado; a dos cartões, a dívida
+    const cash = (entity: string) => accounts.filter((a) => a.entity === entity && a.type !== "credit_card").reduce((s, a) => s + a.balanceCents, 0);
+    const owed = (entity: string) => accounts.filter((a) => a.entity === entity && a.type === "credit_card").reduce((s, a) => s + a.balanceCents, 0);
+    expect(cash("pf")).toBe(b.balances.pfCents);
+    expect(cash("pj")).toBe(b.balances.pjCents);
+    expect(owed("pf")).toBe(b.balances.cards.pfCents);
+    expect(owed("pj")).toBe(b.balances.cards.pjCents);
+  });
+
+  it("accounts não mostra contas de outro workspace; sem contas vem vazio", async () => {
+    const { u } = await seedSummary("sm-acc2");
+    const other = await seedCashflow("sm-acc3");
+    const ids = new Set((await prisma.bankAccount.findMany({ where: { workspaceId: other.u.workspaceId } })).map((a) => a.id));
+    const mine = (await get(u, `/dashboard/summary?${AS_OF}`)).json().accounts as Array<{ accountId: string }>;
+    expect(mine.length).toBe(5);
+    expect(mine.some((a) => ids.has(a.accountId))).toBe(false);
+    const empty = await newUser("sm-acc4");
+    expect((await get(empty, `/dashboard/summary?${AS_OF}`)).json().accounts).toEqual([]);
+  });
+
   it("month escolhe o mês dos gastos (totalCents/byCategory/insight); sem month vale o mês de asOf; saldos não mudam", async () => {
     const { u, pf1, tx } = await seedSummary("sm-month");
     const cat = await prisma.category.create({ data: { workspaceId: u.workspaceId, type: "expense", name: "Mercado M", entity: "both" } });

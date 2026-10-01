@@ -23,8 +23,12 @@ export class SummaryService {
    */
   async get(workspaceId: string, asOf: string, month?: string) {
     const { period } = parseDashboardFilter({ month: month ?? asOf.slice(0, 7), asOf });
-    const [{ consolidated, cards: cardBalances }, pendingCount, { cards }, spending] = await Promise.all([
+    const [{ consolidated, cards: cardBalances, accounts: balanceRows }, meta, pendingCount, { cards }, spending] = await Promise.all([
       this.cashflow.consolidated(workspaceId, asOf),
+      prisma.bankAccount.findMany({
+        where: { workspaceId, archived: false },
+        select: { id: true, institution: true, closingDay: true, dueDay: true },
+      }),
       prisma.transaction.count({ where: pendingReviewWhere(workspaceId) }),
       this.cards.get(workspaceId, { asOf }),
       this.spending.get(workspaceId, { period, asOf }),
@@ -51,9 +55,28 @@ export class SummaryService {
     }
     const next = candidates.sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
 
+    // Detalhe dos saldos: cada conta não arquivada (caixa e cartões), com o saldo já calculado acima; ordem: entidade, nome.
+    const metaById = new Map(meta.map((m) => [m.id, m]));
+    const accounts = balanceRows
+      .map((r) => {
+        const m = metaById.get(r.accountId);
+        return {
+          accountId: r.accountId,
+          name: r.name,
+          type: r.type,
+          entity: r.entity,
+          institution: m?.institution ?? "other",
+          balanceCents: r.balanceCents,
+          closingDay: m?.closingDay ?? null,
+          dueDay: m?.dueDay ?? null,
+        };
+      })
+      .sort((a, b) => a.entity.localeCompare(b.entity) || a.name.localeCompare(b.name, "pt-BR"));
+
     return {
       // pf/pj/total = saldo em contas (caixa, sem cartões); `cards` = dívida dos cartões (negativo = a pagar), mesmo formato.
       balances: { ...consolidated, cards: cardBalances },
+      accounts,
       pendingCount,
       nextInvoice: next ?? null,
       // Distingue "nenhum cartão configurado" de "configurado, mas nada a vencer" no estado vazio do Início.
