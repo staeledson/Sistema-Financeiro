@@ -143,7 +143,7 @@ sistema-financeiro/
 │
 └── prisma/
     ├── schema.prisma       28 modelos
-    └── migrations/         12 migrations
+    └── migrations/         13 migrations
 ```
 
 ---
@@ -208,6 +208,7 @@ O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `tu
 - **Chat financeiro** — pergunte sobre saldos, gastos e fluxo de caixa em linguagem natural (function calling com guardrails de segurança)
 - **Importação de extratos** — o arquivo é reconhecido sozinho (banco, tipo e conta): OFX de qualquer banco e extrato em PDF do C6 Bank (PF e PJ), com preview, marcação de duplicatas (períodos que se sobrepõem não duplicam), conferência dos saldos declarados no extrato, histórico de importações e desfazer. CSV por mapeamento manual; PDF de outros bancos via IA
 - **Categorização automática e fila "Para categorizar"** — depois de importar, o sistema pareia transferências entre contas próprias (pelo nome do titular e da empresa, configuráveis, ou pelo pagamento de fatura), aplica regras e usa IA em lote com limiar de confiança (configurável por workspace); o que sobra vira uma fila de pendentes agrupados por descrição, onde uma decisão cria regra e vale para lançamentos parecidos. Receita e despesa ignoram transferências pareadas e lançamentos ignorados; o saldo de cada conta continua contando todos os movimentos
+- **Painel, Início e Ajustes** — o Início resume saldos (PF, PJ e total), pendentes, próxima fatura e três gráficos; o Painel tem filtro global (todas/PF/PJ, conta e período: mês, trimestre, ano ou intervalo) guardado na URL e três blocos na ordem de prioridade: para onde vai o dinheiro (por categoria, evolução, orçamento, maiores destinos, recorrentes), cartões e faturas (fatura aberta, ciclo, parcelas, pagamentos) e fluxo de caixa (saldos, histórico de 12 meses e previsão de 3 meses). Todo gráfico abre a lista de transações já filtrada. Os endpoints `GET /dashboard/{spending,cards,cashflow,summary}` aceitam `entity`, `accountId`, `month|quarter|year|from+to` e `asOf` (data de referência, para testes). Em Ajustes ficam os nomes do titular/empresa, o limiar da IA e o tema; a lista de transações mostra os selos de transferência pareada, ignorado e parcela, com desfazer par e reativar
 - **Regras de categorização** — automação baseada em padrões de descrição
 - **Orçamentos e metas** — acompanhamento com progresso
 - **Splits** — divisão de despesas entre participantes de um workspace
