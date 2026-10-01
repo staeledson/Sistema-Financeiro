@@ -184,6 +184,15 @@ VAPID_PRIVATE_KEY=
 
 ---
 
+## Deploy
+
+O front vai para a Vercel (conta pessoal) e a API, o worker, o Postgres, o Redis e o bucket para a Railway. O passo a passo, com backup e restauração do banco, está em [`docs/deploy.md`](docs/deploy.md).
+
+- O cadastro é fechado por **lista de permissão**: em produção só os emails de `SIGNUP_ALLOWED_EMAILS` criam conta.
+- Depois de publicar, rode `scripts/smoke-prod.sh https://<seu-front>.vercel.app` para conferir o front, a API e o cadastro fechado.
+
+---
+
 ## Testes
 
 ```bash

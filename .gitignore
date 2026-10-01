@@ -11,3 +11,7 @@ dist/
 .cursor/
 .vite/
 .DS_Store
+
+# Backups do banco (contêm dados financeiros: nunca versionar)
+*.dump
+backups/
