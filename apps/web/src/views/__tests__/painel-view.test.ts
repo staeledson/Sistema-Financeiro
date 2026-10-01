@@ -22,6 +22,7 @@ vi.mock("../../lib/api", async (orig) => {
 
 import PainelView from "../PainelView.vue";
 import { useWorkspaceStore } from "../../stores/workspace";
+import { localToday, previousMonthOf } from "../../lib/dashboard-client";
 
 const period = { kind: "month", from: "2026-06-01", to: "2026-06-30", label: "06/2026" };
 const spending = {
@@ -95,6 +96,17 @@ describe("PainelView", () => {
     expect(cashflowMock.mock.calls[0][0].toString()).toMatch(/^entity=pj&asOf=\d{4}-\d{2}-\d{2}$/);
     expect(w.text()).toContain("Mercado subiu 150%");
     expect(w.text()).toContain("Transferências internas no mês");
+  });
+
+  it("sem período na URL: o padrão é o mês anterior (completo); month explícito continua valendo", async () => {
+    await mountAt("/painel");
+    const expected = previousMonthOf(localToday());
+    expect(spendingMock.mock.calls[0][0].toString()).toBe(`month=${expected}&asOf=${localToday()}`);
+    // o cashflow/cartões seguem com o "hoje" como asOf, sem período
+    expect(cashflowMock.mock.calls[0][0].toString()).toBe(`asOf=${localToday()}`);
+    spendingMock.mockClear();
+    await mountAt("/painel?month=2026-02");
+    expect(spendingMock.mock.calls[0][0].toString()).toMatch(/^month=2026-02&asOf=/);
   });
 
   it("saldo em contas exclui cartões; a dívida aparece como linha secundária e o cartão segue na tabela por conta", async () => {

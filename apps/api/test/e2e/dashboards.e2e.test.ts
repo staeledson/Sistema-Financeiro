@@ -894,6 +894,44 @@ describe("GET /dashboard/summary", () => {
     expect(b.spending.vsBudget).toEqual(spending.vsBudget);
   });
 
+  it("month escolhe o mês dos gastos (totalCents/byCategory/insight); sem month vale o mês de asOf; saldos não mudam", async () => {
+    const { u, pf1, tx } = await seedSummary("sm-month");
+    const cat = await prisma.category.create({ data: { workspaceId: u.workspaceId, type: "expense", name: "Mercado M", entity: "both" } });
+    await tx({ type: "expense", accountId: pf1.id, amountCents: 7000n, categoryId: cat.id, date: dayOf("2026-05-10") });
+
+    const may = (await get(u, `/dashboard/summary?${AS_OF}&month=2026-05`)).json();
+    expect(may.spending.totalCents).toBe(7000);
+    expect(may.spending.month).toBe("2026-05");
+    expect(may.spending.previousMonth).toBe("2026-04");
+    expect(may.spending.byCategory).toEqual((await get(u, "/dashboard/spending?month=2026-05&asOf=2026-06-20")).json().byCategory.slice(0, 6));
+    expect(may.spending.byCategory.map((c: { name: string }) => c.name)).toEqual(["Mercado M"]);
+    expect(may.spending.byMonth.months[11]).toBe("2026-05");
+
+    const def = (await get(u, `/dashboard/summary?${AS_OF}`)).json();
+    expect(def.spending.totalCents).toBe(111100);
+    expect(def.spending.month).toBe("2026-06");
+    expect(def.spending.previousMonth).toBe("2026-05");
+    const explicit = (await get(u, `/dashboard/summary?${AS_OF}&month=2026-06`)).json();
+    expect(explicit.spending).toEqual(def.spending);
+
+    // mês escolhido não mexe em saldos, pendências nem próxima fatura
+    expect(may.balances).toEqual(def.balances);
+    expect(may.pendingCount).toBe(def.pendingCount);
+    expect(may.nextInvoice).toEqual(def.nextInvoice);
+    // virada de ano: janeiro compara com dezembro
+    const jan = (await get(u, `/dashboard/summary?${AS_OF}&month=2026-01`)).json();
+    expect(jan.spending.previousMonth).toBe("2025-12");
+  });
+
+  it("month inválido dá 400", async () => {
+    const { u } = await seedCashflow("sm-month2");
+    expect((await get(u, `/dashboard/summary?${AS_OF}&month=2026-13`)).statusCode).toBe(400);
+    expect((await get(u, `/dashboard/summary?${AS_OF}&month=junho`)).statusCode).toBe(400);
+    expect((await get(u, `/dashboard/summary?${AS_OF}&month=2026-05&year=2026`)).statusCode).toBe(400);
+    // vazio é ignorado
+    expect((await get(u, `/dashboard/summary?${AS_OF}&month=`)).statusCode).toBe(200);
+  });
+
   it("byCategory é cortado nas 6 maiores categorias", async () => {
     const { u, pf1, tx } = await seedSummary("sm2");
     for (let i = 1; i <= 8; i++) {

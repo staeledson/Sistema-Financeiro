@@ -32,6 +32,31 @@ export function localToday(now = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+const MONTH_NAMES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+/** `YYYY-MM` válido (mês 01 a 12). */
+export function isValidMonth(ym: string): boolean {
+  return MONTH_RE.test(ym);
+}
+
+/** Mês anterior ao de `today` (YYYY-MM-DD ou YYYY-MM), com a virada de ano: o último mês completo. */
+export function previousMonthOf(today: string): string {
+  const [y, m] = today.split("-").map(Number);
+  return m === 1 ? `${y - 1}-12` : `${y}-${pad(m - 1)}`;
+}
+
+/** `YYYY-MM` → `MM/AAAA`. */
+export function monthLabel(ym: string): string {
+  const [y, m] = ym.split("-");
+  return `${m}/${y}`;
+}
+
+/** `YYYY-MM` → "setembro de 2026". */
+export function monthName(ym: string): string {
+  const [y, m] = ym.split("-");
+  return `${MONTH_NAMES[Number(m) - 1]} de ${y}`;
+}
+
 function isRealDate(s: string): boolean {
   if (!YMD_RE.test(s)) return false;
   const d = new Date(`${s}T00:00:00Z`);
@@ -67,7 +92,7 @@ function first(v: RouteQuery[string]): string {
 }
 
 /**
- * Lê o filtro da query da rota. Valores inválidos voltam ao padrão (mês de `today`, entidade `all`); havendo mais de um
+ * Lê o filtro da query da rota. Valores inválidos voltam ao padrão (mês anterior ao de `today`, o último completo, e entidade `all`); havendo mais de um
  * tipo de período válido, vale o primeiro na ordem mês, trimestre, ano, intervalo.
  */
 export function filterFromQuery(query: RouteQuery, today: string = localToday()): PainelFilter {
@@ -84,7 +109,7 @@ export function filterFromQuery(query: RouteQuery, today: string = localToday())
   const from = first(query.from);
   const to = first(query.to);
   if (isValidRange(from, to)) return { ...base, from, to };
-  return { ...base, month: today.slice(0, 7) };
+  return { ...base, month: previousMonthOf(today) };
 }
 
 /** Query da rota: omite vazios e `entity=all`. */

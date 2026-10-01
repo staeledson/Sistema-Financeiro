@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { prisma } from "../database";
 import { pendingReviewWhere } from "../common/pending-review";
+import { previousPeriod } from "@app/shared";
 import { parseDashboardFilter } from "./dashboard-filter";
 import { CardsService } from "./cards.service";
 import { CashflowService } from "./cashflow.service";
@@ -16,9 +17,12 @@ export class SummaryService {
     private readonly spending: SpendingService,
   ) {}
 
-  /** Resumo do Início: sempre o workspace inteiro (sem entidade/conta) e o mês de `asOf`. */
-  async get(workspaceId: string, asOf: string) {
-    const { period } = parseDashboardFilter({ month: asOf.slice(0, 7), asOf });
+  /**
+   * Resumo do Início: sempre o workspace inteiro (sem entidade/conta). Os gastos são do mês `month` (YYYY-MM);
+   * sem ele, o mês de `asOf`. Saldos, pendências e próxima fatura não dependem do mês.
+   */
+  async get(workspaceId: string, asOf: string, month?: string) {
+    const { period } = parseDashboardFilter({ month: month ?? asOf.slice(0, 7), asOf });
     const [{ consolidated, cards: cardBalances }, pendingCount, { cards }, spending] = await Promise.all([
       this.cashflow.consolidated(workspaceId, asOf),
       prisma.transaction.count({ where: pendingReviewWhere(workspaceId) }),
@@ -55,6 +59,8 @@ export class SummaryService {
       // Distingue "nenhum cartão configurado" de "configurado, mas nada a vencer" no estado vazio do Início.
       cardsConfigured: cards.some((c) => c.configured),
       spending: {
+        month: period.from.slice(0, 7),
+        previousMonth: previousPeriod(period).from.slice(0, 7),
         totalCents: spending.totalCents,
         insight: spending.insight,
         byCategory: spending.byCategory.slice(0, TOP_CATEGORIES),
