@@ -7,20 +7,33 @@ const finance = useFinanceStore();
 const rules = ref<RuleRow[]>([]);
 const erro = ref("");
 const busy = ref(false);
+const loaded = ref(false);
 
 const MATCH_LABEL: Record<RuleRow["matchType"], string> = { contains: "contém", equals: "igual a", regex: "regex" };
 
+let loadSeq = 0;
+
 async function load() {
+  const seq = ++loadSeq;
   erro.value = "";
   try {
-    rules.value = await listRules();
+    const res = await listRules();
+    if (seq !== loadSeq) return;
+    rules.value = res;
+    loaded.value = true;
   } catch (e) {
+    if (seq !== loadSeq) return;
     erro.value = (e as Error).message;
   }
 }
 
+// O pai recarrega a lista depois de criar uma regra com o painel aberto.
+defineExpose({ reload: load });
+
 onMounted(async () => {
-  await Promise.all([finance.loadCategories(), load()]);
+  // O pai já carrega as categorias; só busca aqui se o painel for montado sem elas.
+  const cats = finance.categories.length ? Promise.resolve() : finance.loadCategories().catch((e) => { erro.value = (e as Error).message; });
+  await Promise.all([cats, load()]);
 });
 
 function categoryName(id: string) {
@@ -46,8 +59,8 @@ async function remove(id: string) {
   <div class="rules">
     <h3>Regras de categorização</h3>
     <p v-if="erro" role="alert" class="error">{{ erro }}</p>
-    <p v-if="!rules.length" class="hint">Nenhuma regra ainda. Elas nascem quando você categoriza um grupo.</p>
-    <table v-else class="rules-table">
+    <p v-if="loaded && !rules.length" class="hint">Nenhuma regra ainda. Elas nascem quando você categoriza um grupo.</p>
+    <table v-else-if="rules.length" class="rules-table">
       <thead>
         <tr><th>Padrão</th><th>Casamento</th><th>Categoria</th><th>Prioridade</th><th>Acertos</th><th></th></tr>
       </thead>

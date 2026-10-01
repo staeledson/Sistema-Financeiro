@@ -18,6 +18,7 @@ const pending = ref<PendingResponse>({ total: 0, groups: [] });
 const entityFilter = ref<EntityFilter>("all");
 const accountFilter = ref("");
 const showRules = ref(false);
+const rulesPanel = ref<InstanceType<typeof RulesPanel> | null>(null);
 const erro = ref("");
 const info = ref("");
 const busy = ref(false);
@@ -28,6 +29,8 @@ interface GroupUi {
   applyToSimilar: boolean;
   transferOpen: boolean;
   candidates: TransferCandidate[];
+  candidatesLoaded: boolean;
+  candidatesError: string;
   counterpartId: string;
 }
 const ui = reactive<Record<string, GroupUi>>({});
@@ -50,11 +53,16 @@ async function loadPending() {
   for (const g of res.groups) {
     if (!ui[g.key]) {
       ui[g.key] = {
-        categoryId: g.suggestedCategoryId ?? "",
+        // Só pré-seleciona a sugestão se ela estiver entre as categorias oferecidas ao grupo.
+        categoryId: g.suggestedCategoryId && categoriesForGroup(finance.categories, g).some((c) => c.id === g.suggestedCategoryId)
+          ? g.suggestedCategoryId
+          : "",
         createRule: true,
         applyToSimilar: true,
         transferOpen: false,
         candidates: [],
+        candidatesLoaded: false,
+        candidatesError: "",
         counterpartId: "",
       };
     }
@@ -90,7 +98,12 @@ async function run(action: () => Promise<unknown>) {
 watch(entityFilter, () => {
   if (accountFilter.value && !filterAccounts.value.some((a) => a.id === accountFilter.value)) accountFilter.value = "";
 });
-watch([entityFilter, accountFilter], () => void refresh());
+// Trocar filtro descarta mensagens antigas (erro/aviso de ações anteriores) antes de recarregar.
+watch([entityFilter, accountFilter], () => {
+  erro.value = "";
+  info.value = "";
+  void refresh();
+});
 
 const categorize = (g: PendingGroup) => {
   const s = ui[g.key];
@@ -107,12 +120,13 @@ const categorize = (g: PendingGroup) => {
       applyToSimilar: s.applyToSimilar,
     });
     info.value = `${r.updated} lançamento(s) categorizado(s)${r.similarUpdated ? ` (${r.similarUpdated} parecidos)` : ""}${r.ruleCreated ? " e regra criada" : ""}.`;
+    if (r.ruleCreated) void rulesPanel.value?.reload();
   });
 };
 const accept = (g: PendingGroup) =>
   run(async () => {
     const r = await acceptSuggestions(g.transactionIds);
-    info.value = `${r.accepted} sugestão(ões) aceita(s).`;
+    info.value = `${r.accepted} sugestão(ões) aceita(s)${r.skipped > 0 ? `; ${r.skipped} sem sugestão aplicável` : ""}.`;
   });
 const ignore = (g: PendingGroup) =>
   run(async () => {
@@ -129,11 +143,15 @@ async function openTransfer(g: PendingGroup) {
   const s = ui[g.key];
   s.transferOpen = !s.transferOpen;
   if (s.transferOpen && g.count === 1) {
-    erro.value = "";
+    s.candidates = [];
+    s.counterpartId = "";
+    s.candidatesLoaded = false;
+    s.candidatesError = "";
     try {
       s.candidates = await getTransferCandidates(g.transactionIds[0]);
+      s.candidatesLoaded = true;
     } catch (e) {
-      erro.value = (e as Error).message;
+      s.candidatesError = (e as Error).message;
     }
   }
 }
@@ -180,7 +198,14 @@ async function loadDrafts() {
 }
 
 onMounted(async () => {
-  await Promise.all([finance.loadAccounts(), finance.loadCategories(), refresh(), loadDrafts()]);
+  // As categorias carregam ANTES da lista de pendentes: o estado de cada grupo nasce com a sugestão
+  // pré-selecionada só se ela estiver entre as categorias oferecidas ao grupo.
+  try {
+    await Promise.all([finance.loadAccounts(), finance.loadCategories()]);
+  } catch (e) {
+    erro.value = (e as Error).message;
+  }
+  await Promise.all([refresh(), loadDrafts()]);
 });
 
 async function confirm(draft: Draft) {
@@ -230,7 +255,7 @@ const confidenceColor = (c: number | null) =>
     <p v-if="erro" role="alert" class="error">{{ erro }}</p>
     <p v-if="info" role="status" class="info">{{ info }}</p>
 
-    <RulesPanel v-if="showRules" />
+    <RulesPanel v-if="showRules" ref="rulesPanel" />
 
     <div class="filters">
       <select v-model="entityFilter" aria-label="Entidade">
@@ -252,7 +277,7 @@ const confidenceColor = (c: number | null) =>
           <strong class="group-desc">{{ g.description }}</strong>
           <span class="group-meta">{{ g.count }} lançamento(s) · {{ formatBRL(g.totalCents) }} · {{ g.type === "income" ? "receita" : "despesa" }}<template v-if="g.entity"> · {{ ENTITY_SHORT[g.entity] }}</template></span>
         </div>
-        <p v-if="suggestedName(g.suggestedCategoryId)" class="suggested">IA sugere: {{ suggestedName(g.suggestedCategoryId) }}</p>
+        <p v-if="suggestedName(g.suggestedCategoryId)" class="suggested">IA sugere: {{ suggestedName(g.suggestedCategoryId) }}<template v-if="g.count > 1"> (aplicada a cada lançamento pela sugestão dele)</template></p>
 
         <div v-if="ui[g.key]" class="group-actions">
           <select v-model="ui[g.key].categoryId" :aria-label="`Categoria de ${g.description}`">
@@ -267,8 +292,12 @@ const confidenceColor = (c: number | null) =>
           <button type="button" class="btn-secondary" :disabled="busy" @click="ignore(g)">Ignorar</button>
         </div>
 
+        <p v-if="ui[g.key]" class="hint">Criar regra: lançamentos futuros iguais já entram categorizados. Aplicar a parecidos: leva junto os lançamentos sem categoria com a mesma descrição, em qualquer conta.</p>
+
         <div v-if="ui[g.key]?.transferOpen && g.count === 1" class="transfer">
-          <p v-if="!ui[g.key].candidates.length" class="hint">Nenhuma contraparte encontrada (mesmo valor, outra conta, até 7 dias).</p>
+          <p v-if="ui[g.key].candidatesError" role="alert" class="error">{{ ui[g.key].candidatesError }}</p>
+          <p v-else-if="!ui[g.key].candidatesLoaded" class="hint">Buscando contrapartes…</p>
+          <p v-else-if="!ui[g.key].candidates.length" class="hint">Nenhuma contraparte encontrada (mesmo valor, outra conta, até 7 dias).</p>
           <template v-else>
             <select v-model="ui[g.key].counterpartId" :aria-label="`Contraparte de ${g.description}`">
               <option value="">— Contraparte —</option>

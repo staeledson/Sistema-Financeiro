@@ -230,7 +230,7 @@ async function enqueuePdf() {
     });
     await fetch(url, { method: "PUT", body: file.value, headers: { "content-type": "application/pdf" } });
     const { jobId } = await http<{ jobId: string }>("POST", "/import/pdf", { storagePath });
-    status.value = `PDF enviado para análise! Job: ${jobId}. Os lançamentos aparecerão em "Revisar".`;
+    status.value = `PDF enviado para análise! Job: ${jobId}. Os lançamentos aparecerão em "Para categorizar".`;
     step.value = "done";
   } catch (e) {
     erro.value = (e as Error).message;
@@ -400,7 +400,7 @@ function reset() {
     <!-- 2c: PDF de banco desconhecido → IA -->
     <div v-if="step === 'ai'" class="card">
       <h3>Não reconheci o banco deste PDF</h3>
-      <p class="hint">A IA pode extrair os lançamentos. Eles aparecerão em "Revisar" para confirmação.</p>
+      <p class="hint">A IA pode extrair os lançamentos. Eles aparecerão em "Para categorizar" para confirmação.</p>
       <div class="btn-row">
         <button class="btn-secondary" @click="reset">Trocar arquivo</button>
         <button :disabled="busy" @click="enqueuePdf">Interpretar com IA</button>

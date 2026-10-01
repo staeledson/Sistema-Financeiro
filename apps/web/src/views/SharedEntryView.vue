@@ -5,8 +5,8 @@
 
       <div v-if="status === 'loading'" class="status-msg">Processando imagem…</div>
       <div v-else-if="status === 'success'" class="status-msg success">
-        <p>Rascunho criado! Acesse "Revisar" para confirmar.</p>
-        <button class="btn-primary" @click="emit('done')">Ir para Revisar</button>
+        <p>Rascunho criado! Acesse "Para categorizar" para confirmar.</p>
+        <button class="btn-primary" @click="emit('done')">Abrir Para categorizar</button>
       </div>
       <div v-else-if="status === 'error'" class="status-msg error">
         <p>{{ errorMsg }}</p>
