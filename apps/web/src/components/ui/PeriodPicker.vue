@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { rangeError } from "../../lib/dashboard-client";
 
 export interface PeriodValue {
   month?: string;
@@ -59,7 +60,13 @@ watch(
 const YEAR_RE = /^(19|20)\d{2}$/;
 const MONTH_RE = /^(19|20)\d{2}-(0[1-9]|1[0-2])$/;
 
-const rangeInvalid = computed(() => !!from.value && !!to.value && from.value > to.value);
+/** Intervalo inválido (invertido ou acima do limite da API): não emite e mostra a dica. */
+const rangeProblem = computed(() => rangeError(from.value, to.value));
+const rangeInvalid = computed(() => rangeProblem.value !== null);
+const RANGE_HINT = {
+  order: "A data inicial deve ser anterior à final.",
+  "too-long": "O intervalo máximo é de 1100 dias (cerca de 3 anos).",
+} as const;
 
 /** Valor atual da aba ativa, só com a chave dessa aba; `null` se incompleto. */
 const current = computed<PeriodValue | null>(() => {
@@ -117,7 +124,7 @@ function selectKind(k: Kind) {
         <input v-model="to" type="date" aria-label="Até" @change="emitCurrent" />
       </template>
     </div>
-    <p v-if="kind === 'range' && rangeInvalid" class="range-hint" role="alert">A data inicial deve ser anterior à final.</p>
+    <p v-if="kind === 'range' && rangeProblem" class="range-hint" role="alert">{{ RANGE_HINT[rangeProblem] }}</p>
   </div>
 </template>
 

@@ -10,7 +10,12 @@ import { formatBRL, formatBRLCompact } from "./money";
 import type { ThemeColors } from "./theme-colors";
 
 const toReais = (cents: number) => cents / 100;
-const reaisToBRL = (v: unknown) => formatBRL(Math.round(Number(v) * 100));
+/** Valor do tooltip (reais → BRL); ausente (null, "-" ou NaN) vira "—" em vez de R$ 0,00. */
+export function reaisToBRL(v: unknown): string {
+  if (v === null || v === undefined || v === "-" || v === "") return "—";
+  const n = Number(v);
+  return Number.isNaN(n) ? "—" : formatBRL(Math.round(n * 100));
+}
 const reaisToCompact = (v: number) => formatBRLCompact(Math.round(v * 100));
 
 /** "2026-06" → "06/26". */
@@ -18,9 +23,31 @@ export function monthLabel(ym: string): string {
   return `${ym.slice(5, 7)}/${ym.slice(2, 4)}`;
 }
 
-/** Paleta categórica derivada dos tokens do tema (cicla quando há mais séries que cores). */
+/**
+ * Paleta categórica derivada dos tokens do tema. Sem quase-duplicatas (income parecido com accent, danger com expense):
+ * quando há mais itens que cores, o excedente é agrupado em "Outras" (neutro) em vez de repetir cor.
+ */
 export function palette(c: ThemeColors): string[] {
-  return [c.accent, c.pf, c.pj, c.expense, c.transfer, c.warning, c.income, c.danger];
+  return [c.accent, c.pf, c.pj, c.expense, c.transfer, c.warning];
+}
+/** Quantidade de cores da paleta (as fatias além disso viram "Outras"). */
+export const PALETTE_SIZE = 6;
+
+export type PieSlice = { name: string; totalCents: number; categoryId: string | null };
+
+/** Fatias da pizza: as primeiras categorias com cor própria e o excedente somado em "Outras" (`categoryId: null`). */
+export function pieSlices(byCategory: SpendingCategory[], max: number): PieSlice[] {
+  const head: PieSlice[] = byCategory.slice(0, max).map((c) => ({ name: c.name, totalCents: c.totalCents, categoryId: c.categoryId }));
+  const rest = byCategory.slice(max);
+  if (rest.length) head.push({ name: "Outras", totalCents: rest.reduce((s, c) => s + c.totalCents, 0), categoryId: null });
+  return head;
+}
+
+/** Despesa média por mês na série empilhada (todas as séries somadas, "Outras" incluída). */
+export function averageMonthlyCents(byMonth: SpendingByMonth): number {
+  if (!byMonth.months.length) return 0;
+  const total = byMonth.series.reduce((s, x) => s + x.totalsCents.reduce((a, b) => a + b, 0), 0);
+  return Math.round(total / byMonth.months.length);
 }
 
 function base(c: ThemeColors): EChartsOption {
@@ -60,6 +87,7 @@ const GRID = { left: 8, right: 12, top: 36, bottom: 8, containLabel: true };
 
 export function spendingPie(byCategory: SpendingCategory[], colors: ThemeColors): EChartsOption {
   const pal = palette(colors);
+  const slices = pieSlices(byCategory, pal.length);
   return {
     ...base(colors),
     tooltip: { ...(base(colors).tooltip as object), trigger: "item" },
@@ -72,11 +100,11 @@ export function spendingPie(byCategory: SpendingCategory[], colors: ThemeColors)
         avoidLabelOverlap: true,
         label: { show: false },
         itemStyle: { borderColor: colors.surface, borderWidth: 2 },
-        data: byCategory.map((c, i) => ({
+        data: slices.map((c, i) => ({
           name: c.name,
           value: toReais(c.totalCents),
           categoryId: c.categoryId,
-          itemStyle: { color: pal[i % pal.length] },
+          itemStyle: { color: c.categoryId === null ? colors.textMuted : pal[i] },
         })),
       },
     ],
@@ -97,7 +125,7 @@ export function spendingStack(byMonth: SpendingByMonth, colors: ThemeColors): EC
       name: s.name,
       stack: "total",
       data: s.totalsCents.map(toReais),
-      itemStyle: { color: pal[i % pal.length] },
+      itemStyle: { color: s.key === "__others" ? colors.textMuted : pal[i % pal.length] },
     })),
   };
 }
@@ -134,7 +162,7 @@ export function budgetBars(vsBudget: BudgetUsage[], colors: ThemeColors): EChart
           spentCents: b.spentCents,
           limitCents: b.limitCents,
           categoryId: b.categoryId,
-          itemStyle: { color: b.pct > 100 ? colors.danger : colors.accent },
+          itemStyle: { color: b.spentCents > b.limitCents ? colors.danger : colors.accent },
         })),
         markLine: {
           silent: true,

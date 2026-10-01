@@ -24,6 +24,7 @@ export interface EChartClick {
   name: string;
   seriesName: string;
   dataIndex: number;
+  seriesIndex: number;
 }
 
 const props = withDefaults(
@@ -53,8 +54,8 @@ onMounted(() => {
   if (!el.value) return;
   const instance = echarts.init(el.value, undefined, { renderer: "canvas" });
   chart.value = instance;
-  instance.on("click", (p: { name?: string; seriesName?: string; dataIndex?: number }) => {
-    emit("click", { name: p.name ?? "", seriesName: p.seriesName ?? "", dataIndex: p.dataIndex ?? 0 });
+  instance.on("click", (p: { name?: string; seriesName?: string; dataIndex?: number; seriesIndex?: number }) => {
+    emit("click", { name: p.name ?? "", seriesName: p.seriesName ?? "", dataIndex: p.dataIndex ?? 0, seriesIndex: p.seriesIndex ?? 0 });
   });
   render();
   if (typeof ResizeObserver !== "undefined") {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useFinanceStore } from "../stores/finance";
 import type { Transaction, TransactionType } from "../lib/api";
 import EntityBadge from "../components/ui/EntityBadge.vue";
@@ -10,6 +10,7 @@ import { ENTITY_SHORT, accountsForEntity, categoriesForEntity, type EntityFilter
 
 const store = useFinanceStore();
 const route = useRoute();
+const router = useRouter();
 
 // filters
 const filterFrom = ref("");
@@ -18,7 +19,11 @@ const filterAccountId = ref("");
 const filterQ = ref("");
 const filterEntity = ref<EntityFilter>("all");
 const filterCategoryId = ref("");
-const filterCategoryName = computed(() => store.categories.find((c) => c.id === filterCategoryId.value)?.name ?? "");
+const filterType = ref<TransactionType | "">("");
+const filterReportable = ref(false);
+const filterCategoryName = computed(() =>
+  filterCategoryId.value === "__none" ? "Sem categoria" : (store.categories.find((c) => c.id === filterCategoryId.value)?.name ?? ""),
+);
 
 function queryValue(v: unknown): string {
   const x = Array.isArray(v) ? v[0] : v;
@@ -31,6 +36,10 @@ function applyRouteQuery() {
   filterFrom.value = queryValue(q.from);
   filterTo.value = queryValue(q.to);
   filterCategoryId.value = queryValue(q.categoryId);
+  const type = queryValue(q.type);
+  filterType.value = type === "income" || type === "expense" || type === "transfer" ? type : "";
+  // `reportable` só vale com type income/expense (a API devolve 400 nos demais casos)
+  filterReportable.value = queryValue(q.reportable) === "1" && (filterType.value === "income" || filterType.value === "expense");
   filterAccountId.value = queryValue(q.accountId);
   filterQ.value = queryValue(q.q);
   const entity = queryValue(q.entity);
@@ -88,14 +97,17 @@ watch(
   },
 );
 
+/** Remove categoria, tipo e "reportable" da URL; o watcher da rota reaplica os filtros e recarrega a lista. */
 async function limparCategoria() {
-  filterCategoryId.value = "";
-  await filtrar();
+  const { categoryId: _c, type: _t, reportable: _r, ...rest } = route.query;
+  await router.replace({ query: rest });
 }
 
 async function filtrar() {
   await store.loadTransactions({
     categoryId: filterCategoryId.value || undefined,
+    type: filterType.value || undefined,
+    reportable: filterReportable.value || undefined,
     from: filterFrom.value || undefined,
     to: filterTo.value || undefined,
     accountId: filterAccountId.value || undefined,
@@ -202,6 +214,7 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
     </div>
     <p v-if="filterCategoryId" class="category-chip">
       Categoria: <strong>{{ filterCategoryName || "selecionada" }}</strong>
+      <span v-if="filterReportable">(despesas, sem transferências internas nem ignoradas)</span>
       <button type="button" aria-label="Remover filtro de categoria" @click="limparCategoria">Limpar</button>
     </p>
 

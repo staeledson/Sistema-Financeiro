@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  budgetBars, cardDailyLine, cashflowBars, forecastLine, installmentsBars, monthLabel, spendingPie, spendingStack,
+  averageMonthlyCents, budgetBars, cardDailyLine, cashflowBars, forecastLine, installmentsBars, monthLabel, palette,
+  PALETTE_SIZE, pieSlices, reaisToBRL, spendingPie, spendingStack,
 } from "../dashboard-charts";
 import { themeColors } from "../theme-colors";
 import { formatBRL } from "../money";
@@ -30,7 +31,84 @@ describe("spendingPie", () => {
   });
 });
 
+const manyCats = (n: number) =>
+  Array.from({ length: n }, (_, i) => ({
+    categoryId: `c${i}`, name: `Cat ${i}`, totalCents: (n - i) * 1000, previousCents: 0, pct: 0, count: 1,
+  }));
+
+describe("paleta e fatias da pizza", () => {
+  it("a paleta não repete cor nem inclui quase-duplicatas (income, danger)", () => {
+    const pal = palette(colors);
+    expect(pal).toHaveLength(PALETTE_SIZE);
+    expect(new Set(pal).size).toBe(pal.length);
+    expect(pal).not.toContain(colors.income);
+    expect(pal).not.toContain(colors.danger);
+  });
+
+  it.each([9, 10])("com %i categorias agrupa o excedente em Outras, sem repetir cor", (n) => {
+    const data = series(spendingPie(manyCats(n), colors))[0].data as Array<Record<string, any>>;
+    expect(data).toHaveLength(PALETTE_SIZE + 1);
+    const last = data[data.length - 1];
+    expect(last.name).toBe("Outras");
+    expect(last.categoryId).toBeNull();
+    const rest = manyCats(n).slice(PALETTE_SIZE).reduce((s, c) => s + c.totalCents, 0);
+    expect(last.value).toBe(rest / 100);
+    const cols = data.map((d) => d.itemStyle.color);
+    expect(new Set(cols).size).toBe(cols.length);
+    // soma preservada
+    expect(data.reduce((s, d) => s + d.value, 0)).toBe(manyCats(n).reduce((s, c) => s + c.totalCents, 0) / 100);
+  });
+
+  it("até o tamanho da paleta não cria Outras", () => {
+    expect(pieSlices(manyCats(PALETTE_SIZE), PALETTE_SIZE)).toHaveLength(PALETTE_SIZE);
+    expect(pieSlices(manyCats(PALETTE_SIZE), PALETTE_SIZE).map((s) => s.name)).not.toContain("Outras");
+  });
+});
+
+describe("tooltip de valores ausentes", () => {
+  it("null, '-', vazio e NaN viram travessão; zero real continua R$ 0,00", () => {
+    expect(reaisToBRL(null)).toBe("—");
+    expect(reaisToBRL(undefined)).toBe("—");
+    expect(reaisToBRL("-")).toBe("—");
+    expect(reaisToBRL(Number.NaN)).toBe("—");
+    expect(reaisToBRL(0)).toBe(formatBRL(0));
+    expect(reaisToBRL(12.5)).toBe(formatBRL(1250));
+  });
+
+  it("os gráficos com lacunas usam o formatador que mostra travessão", () => {
+    const line = cardDailyLine([{ day: 1, currentCents: null, avgPreviousCents: 0 }], colors) as Opt;
+    expect(line.tooltip.valueFormatter(null)).toBe("—");
+    expect(line.tooltip.valueFormatter("-")).toBe("—");
+    const fc = forecastLine([], [], colors) as Opt;
+    expect(fc.tooltip.valueFormatter("-")).toBe("—");
+  });
+});
+
+describe("averageMonthlyCents", () => {
+  it("soma todas as séries e divide pelos meses", () => {
+    expect(
+      averageMonthlyCents({
+        months: ["2026-05", "2026-06"],
+        series: [
+          { key: "a", categoryId: "a", name: "A", totalsCents: [1000, 3000] },
+          { key: "__others", categoryId: null, name: "Outras", totalsCents: [500, 500] },
+        ],
+      }),
+    ).toBe(2500);
+    expect(averageMonthlyCents({ months: [], series: [] })).toBe(0);
+  });
+});
+
 describe("spendingStack", () => {
+  it("Outras fica em cor neutra e as demais não repetem", () => {
+    const sers = Array.from({ length: PALETTE_SIZE }, (_, i) => ({ key: `k${i}`, categoryId: `k${i}`, name: `K${i}`, totalsCents: [100] }));
+    sers.push({ key: "__others", categoryId: null as any, name: "Outras", totalsCents: [100] });
+    const o = spendingStack({ months: ["2026-06"], series: sers }, colors) as Opt;
+    const cols = o.series.map((x: Opt) => x.itemStyle.color);
+    expect(new Set(cols).size).toBe(cols.length);
+    expect(cols[cols.length - 1]).toBe(colors.textMuted);
+  });
+
   const byMonth = {
     months: ["2026-05", "2026-06"],
     series: [
@@ -63,6 +141,7 @@ describe("budgetBars", () => {
         { categoryId: "a", name: "Lazer", limitCents: 10000, spentCents: 15000, pct: 150 },
         { categoryId: "b", name: "Mercado", limitCents: 20000, spentCents: 15000, pct: 75 },
         { categoryId: "c", name: "Exato", limitCents: 10000, spentCents: 10000, pct: 100 },
+        { categoryId: "d", name: "Um centavo", limitCents: 10000, spentCents: 10001, pct: 100 },
       ],
       colors,
     ) as Opt;
@@ -70,7 +149,9 @@ describe("budgetBars", () => {
     expect(data[0].itemStyle.color).toBe(colors.danger);
     expect(data[1].itemStyle.color).toBe(colors.accent);
     expect(data[2].itemStyle.color).toBe(colors.accent);
-    expect(o.yAxis.data).toEqual(["Lazer", "Mercado", "Exato"]);
+    expect(data[3].itemStyle.color).toBe(colors.danger); // gastou mais que o limite, mesmo com pct arredondado em 100
+    expect(data[0].categoryId).toBe("a");
+    expect(o.yAxis.data).toEqual(["Lazer", "Mercado", "Exato", "Um centavo"]);
     expect(o.xAxis.max).toBe(150);
   });
 });

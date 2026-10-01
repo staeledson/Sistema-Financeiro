@@ -5,16 +5,18 @@ import { useFinanceStore } from "../stores/finance";
 import { useWorkspaceStore } from "../stores/workspace";
 import { api, type CardDashboard, type InvoiceStatus } from "../lib/api";
 import {
-  filterFromQuery, filterToParams, filterToQuery, scopeToParams, transactionsLink,
-  type PainelEntity, type PainelFilter,
+  cardCycleLink, categoryLink, expensesMonthLink, filterFromQuery, filterToParams, filterToQuery, monthLink, scopeToParams,
+  transactionsLink, type PainelEntity, type PainelFilter,
 } from "../lib/dashboard-client";
 import {
-  budgetBars, cardDailyLine, cashflowBars, forecastLine, installmentsBars, spendingPie, spendingStack,
+  averageMonthlyCents, budgetBars, cardDailyLine, cashflowBars, forecastLine, installmentsBars, PALETTE_SIZE, pieSlices,
+  spendingPie, spendingStack,
 } from "../lib/dashboard-charts";
 import { accountsForEntity, ENTITY_SHORT } from "../lib/entity";
 import { formatBRL } from "../lib/money";
 import { useSection } from "../lib/use-section";
 import type { ThemeColors } from "../lib/theme-colors";
+import type { EChartsOption } from "echarts";
 import Card from "../components/ui/Card.vue";
 import DataTable from "../components/ui/DataTable.vue";
 import EmptyState from "../components/ui/EmptyState.vue";
@@ -77,21 +79,51 @@ watch(scopeKey, () => {
   void cashflow.run();
 });
 
-onMounted(() => {
-  void store.loadAccounts();
+function runAll() {
   void spending.run();
   void cards.run();
   void cashflow.run();
+}
+
+/** A conta da URL precisa existir (não arquivada) e pertencer à entidade escolhida; senão sai da query. */
+function accountValid(f: PainelFilter): boolean {
+  return store.accounts.some((a) => a.id === f.accountId && !a.archived && (f.entity === "all" || a.entity === f.entity));
+}
+
+async function loadAccountsSafe() {
+  try {
+    await store.loadAccounts();
+  } catch {
+    /* sem a lista, o seletor fica só com "Todas as contas" */
+  }
+}
+
+onMounted(async () => {
+  if (filter.value.accountId) {
+    // espera as contas para não consultar a API com uma conta que não existe (400)
+    await loadAccountsSafe();
+    if (!onPainel()) return;
+    if (!accountValid(filter.value)) {
+      await router.replace({ query: filterToQuery({ ...filter.value, accountId: "" }) });
+    }
+  } else {
+    void loadAccountsSafe();
+  }
+  runAll();
 });
 
+// Troca de workspace: a conta escolhida pertence ao workspace anterior.
 watch(
   () => workspace.activeId,
-  () => {
+  async () => {
     if (!onPainel()) return;
-    void store.loadAccounts();
-    void spending.run();
-    void cards.run();
-    void cashflow.run();
+    if (filter.value.accountId) {
+      // a mudança da query dispara os watchers de filtro (spending, cards e cashflow)
+      await router.replace({ query: filterToQuery({ ...filter.value, accountId: "" }) });
+    } else {
+      runAll();
+    }
+    await loadAccountsSafe();
   },
 );
 
@@ -100,16 +132,36 @@ watch(
 const periodLink = computed(() => transactionsLink(filter.value));
 
 const pieOption = computed(() => (c: ThemeColors) => spendingPie(spending.data.value?.byCategory ?? [], c));
+// Mesmas fatias do gráfico (primeiras categorias + "Outras"), para mapear o clique no índice.
+const pieItems = computed(() => pieSlices(spending.data.value?.byCategory ?? [], PALETTE_SIZE));
 const stackOption = computed(() => (c: ThemeColors) =>
   spendingStack(spending.data.value?.byMonth ?? { months: [], series: [] }, c));
 const budgetOption = computed(() => (c: ThemeColors) => budgetBars(spending.data.value?.vsBudget ?? [], c));
 
 function onPieClick(e: EChartClick) {
-  const item = spending.data.value?.byCategory[e.dataIndex];
-  if (!item) return;
-  const categoryId = item.categoryId === "__none" ? undefined : item.categoryId;
-  void router.push(transactionsLink(filter.value, { categoryId }));
+  const item = pieItems.value[e.dataIndex];
+  if (!item || item.categoryId === null) return; // "Outras" reúne várias categorias: sem destino único
+  void router.push(categoryLink(filter.value, item.categoryId));
 }
+
+function onStackClick(e: EChartClick) {
+  const by = spending.data.value?.byMonth;
+  const series = by?.series[e.seriesIndex];
+  const month = by?.months[e.dataIndex];
+  if (!series || !month) return;
+  if (series.key === "__others") void router.push(expensesMonthLink(filter.value, month));
+  else void router.push(categoryLink(filter.value, series.categoryId ?? "__none", month));
+}
+
+function onBudgetClick(e: EChartClick) {
+  const item = spending.data.value?.vsBudget[e.dataIndex];
+  if (item) void router.push(categoryLink(filter.value, item.categoryId));
+}
+
+const monthlyAverage = computed(() => {
+  const by = spending.data.value?.byMonth;
+  return by ? averageMonthlyCents(by) : 0;
+});
 
 const spendingInsight = computed(() => {
   const s = spending.data.value;
@@ -119,7 +171,7 @@ const spendingInsight = computed(() => {
 
 const budgetSummary = computed(() => {
   const list = spending.data.value?.vsBudget ?? [];
-  const over = list.filter((b) => b.pct > 100).length;
+  const over = list.filter((b) => b.spentCents > b.limitCents).length;
   return {
     value: `${over} de ${list.length} acima do limite`,
     insight: list.length ? `${list[0].name} está em ${list[0].pct}% do limite.` : undefined,
@@ -166,12 +218,21 @@ function limitPct(c: CardDashboard): number {
   return Math.max(0, Math.min(100, c.limitUsedPct ?? 0));
 }
 
-const cycleOption = (c: CardDashboard) => (colors: ThemeColors) => cardDailyLine(c.cycleDaily, colors);
-const installmentsOption = (c: CardDashboard) => (colors: ThemeColors) => installmentsBars(c.installmentsAhead, colors);
+// Opções por cartão memorizadas: só mudam quando os dados de `cards` mudam (recarregar outras seções não reanima).
+const cardOptions = computed(() => {
+  const map = new Map<string, { cycle: (c: ThemeColors) => EChartsOption; installments: (c: ThemeColors) => EChartsOption }>();
+  for (const c of cards.data.value?.cards ?? []) {
+    map.set(c.accountId, {
+      cycle: (colors) => cardDailyLine(c.cycleDaily, colors),
+      installments: (colors) => installmentsBars(c.installmentsAhead, colors),
+    });
+  }
+  return map;
+});
 const hasInstallments = (c: CardDashboard) => c.installmentsAhead.some((m) => m.amountCents > 0);
 
 function cardLink(c: CardDashboard) {
-  return transactionsLink({ ...filter.value, entity: "all", accountId: c.accountId });
+  return cardCycleLink({ accountId: c.accountId, closingDate: c.closingDate!, closingDay: c.closingDay! });
 }
 
 // --- bloco 3: fluxo de caixa ------------------------------------------------------------------------------------
@@ -184,6 +245,13 @@ const currentMonth = computed(() => {
   const m = cashflow.data.value?.monthly;
   return m && m.length ? m[m.length - 1] : null;
 });
+// "Neste mês" é o último mês da série (o mês de hoje), não o período do filtro.
+const currentMonthLink = computed(() => (currentMonth.value ? monthLink(filter.value, currentMonth.value.month) : null));
+
+function onCashflowClick(e: EChartClick) {
+  const m = cashflow.data.value?.monthly[e.dataIndex];
+  if (m) void router.push(monthLink(filter.value, m.month));
+}
 
 const consolidatedInsight = computed(() => {
   const c = cashflow.data.value?.balances.consolidated;
@@ -253,8 +321,12 @@ const balanceColumns = [
             <template #actions><RouterLink :to="periodLink" class="card-link">Ver transações</RouterLink></template>
             <EChart :option="pieOption" label="Despesas por categoria" :height="300" @click="onPieClick" />
           </Card>
-          <Card title="Evolução mensal por categoria" insight="Últimos 12 meses até o fim do período.">
-            <EChart :option="stackOption" label="Despesas por mês, empilhadas por categoria" :height="300" />
+          <Card
+            title="Evolução mensal por categoria"
+            :value="`${formatBRL(monthlyAverage)} por mês`"
+            insight="Média dos últimos 12 meses até o fim do período."
+          >
+            <EChart :option="stackOption" label="Despesas por mês, empilhadas por categoria" :height="300" @click="onStackClick" />
           </Card>
           <Card title="Orçamento" :value="budgetSummary.value" :insight="budgetSummary.insight">
             <EChart
@@ -262,6 +334,7 @@ const balanceColumns = [
               :option="budgetOption"
               label="Uso do orçamento por categoria"
               :height="Math.max(160, spending.data.value.vsBudget.length * 38 + 24)"
+              @click="onBudgetClick"
             />
             <EmptyState v-else title="Nenhum orçamento fixo" hint="Defina limites em Orçamentos para acompanhar aqui." />
           </Card>
@@ -356,11 +429,11 @@ const balanceColumns = [
             <div class="grid inner">
               <div>
                 <h4 class="sub">Ciclo atual × média dos anteriores</h4>
-                <EChart :option="cycleOption(c)" :label="`Gasto acumulado no ciclo do cartão ${c.name}`" :height="220" />
+                <EChart :option="cardOptions.get(c.accountId)!.cycle" :label="`Gasto acumulado no ciclo do cartão ${c.name}`" :height="220" />
               </div>
               <div>
                 <h4 class="sub">Parcelas nos próximos meses</h4>
-                <EChart v-if="hasInstallments(c)" :option="installmentsOption(c)" :label="`Parcelas a vencer do cartão ${c.name}`" :height="220" />
+                <EChart v-if="hasInstallments(c)" :option="cardOptions.get(c.accountId)!.installments" :label="`Parcelas a vencer do cartão ${c.name}`" :height="220" />
                 <EmptyState v-else title="Sem parcelas a vencer" />
               </div>
             </div>
@@ -395,7 +468,6 @@ const balanceColumns = [
           title="Saldo consolidado"
           :value="formatBRL(cashflow.data.value.balances.consolidated.totalCents)"
           :insight="consolidatedInsight"
-          :to="periodLink"
         />
         <Card
           title="Saldo previsto em 3 meses"
@@ -405,12 +477,20 @@ const balanceColumns = [
           <EChart :option="forecastOption" label="Saldo realizado e previsto" :height="220" />
         </Card>
         <Card class="span-2" title="Receitas, despesas e saldo" :insight="monthFlowInsight">
-          <template #actions><RouterLink :to="periodLink" class="card-link">Ver transações</RouterLink></template>
-          <p v-if="scoped && currentMonth" class="transfers">
+          <template #actions>
+            <RouterLink v-if="currentMonthLink" :to="currentMonthLink" class="card-link">Ver transações do mês</RouterLink>
+          </template>
+          <p v-if="scoped && currentMonth && currentMonthLink" class="transfers">
             Transferências internas no mês:
             <strong>{{ formatBRL(currentMonth.transfersNetCents) }}</strong>
+            · <RouterLink :to="currentMonthLink" class="card-link">ver lançamentos</RouterLink>
           </p>
-          <EChart :option="cashflowOption" label="Receitas, despesas e saldo dos últimos 12 meses" :height="300" />
+          <EChart
+            :option="cashflowOption"
+            label="Receitas, despesas e saldo dos últimos 12 meses"
+            :height="300"
+            @click="onCashflowClick"
+          />
         </Card>
         <Card class="span-2" title="Saldos por conta">
           <DataTable

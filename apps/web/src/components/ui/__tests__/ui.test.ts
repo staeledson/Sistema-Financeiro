@@ -88,6 +88,25 @@ describe("PeriodPicker intervalo invertido", () => {
   });
 });
 
+describe("PeriodPicker intervalo longo demais", () => {
+  it("não emite acima de 1100 dias e mostra a dica; volta a emitir ao encurtar", async () => {
+    const w = mount(PeriodPicker, { props: { modelValue: { month: "2026-09" } } });
+    await w.findAll("button.tab")[3].trigger("click");
+    const [from, to] = w.findAll('input[type="date"]');
+    await from.setValue("2020-01-01");
+    await from.trigger("change");
+    await to.setValue("2026-01-01");
+    await to.trigger("change");
+    expect(w.emitted("update:modelValue")).toBeUndefined();
+    expect(w.find(".range-hint").text()).toContain("1100");
+    await from.setValue("2025-01-01");
+    await from.trigger("change");
+    expect(w.find(".range-hint").exists()).toBe(false);
+    const ev = w.emitted("update:modelValue")!;
+    expect(ev[ev.length - 1][0]).toEqual({ from: "2025-01-01", to: "2026-01-01" });
+  });
+});
+
 describe("Card", () => {
   it("com `to` renderiza um link do roteador", async () => {
     const router = createRouter({

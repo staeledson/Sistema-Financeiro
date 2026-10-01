@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  filterFromQuery, filterToParams, filterToQuery, periodRange, scopeToParams, transactionsLink, type PainelFilter,
+  cardCycleLink, categoryLink, cycleStart, expensesMonthLink, filterFromQuery, filterToParams, filterToQuery, isValidRange,
+  monthLink, monthRange, periodRange, rangeError, scopeToParams, transactionsLink, type PainelFilter,
 } from "../dashboard-client";
 
 const TODAY = "2026-09-15";
@@ -107,5 +108,59 @@ describe("transactionsLink", () => {
 describe("periodRange", () => {
   it("sem período usa o mês de today", () => {
     expect(periodRange({ entity: "all", accountId: "" }, "2026-09-15")).toEqual({ from: "2026-09-01", to: "2026-09-30" });
+  });
+});
+
+describe("builders de link dos gráficos", () => {
+  const f: PainelFilter = { entity: "pj", accountId: "a9", month: "2026-06" };
+
+  it("categoryLink: período do filtro, tipo despesa e reportable", () => {
+    expect(categoryLink(f, "c1")).toEqual({
+      path: "/transacoes",
+      query: { from: "2026-06-01", to: "2026-06-30", entity: "pj", accountId: "a9", categoryId: "c1", type: "expense", reportable: "1" },
+    });
+  });
+
+  it("categoryLink de 'Sem categoria' leva __none; com mês usa o mês do ponto clicado", () => {
+    const l = categoryLink({ entity: "all", accountId: "", year: "2026" }, "__none", "2026-02");
+    expect(l.query).toEqual({ from: "2026-02-01", to: "2026-02-28", categoryId: "__none", type: "expense", reportable: "1" });
+  });
+
+  it("expensesMonthLink não leva categoria", () => {
+    const q = expensesMonthLink({ entity: "all", accountId: "", month: "2026-06" }, "2026-03").query;
+    expect(q).toEqual({ from: "2026-03-01", to: "2026-03-31", type: "expense", reportable: "1" });
+  });
+
+  it("monthLink: só o mês e o escopo, sem tipo", () => {
+    expect(monthLink(f, "2026-05").query).toEqual({ from: "2026-05-01", to: "2026-05-31", entity: "pj", accountId: "a9" });
+    expect(monthRange("2028-02")).toEqual({ from: "2028-02-01", to: "2028-02-29" });
+  });
+
+  it("cycleStart: dia seguinte ao fechamento anterior, com virada de ano e dia limitado ao fim do mês", () => {
+    expect(cycleStart("2026-06-20", 20)).toBe("2026-05-21");
+    expect(cycleStart("2026-01-10", 10)).toBe("2025-12-11");
+    expect(cycleStart("2026-03-31", 31)).toBe("2026-03-01"); // fev fecha dia 28
+    expect(cycleStart("2026-06-30", 31)).toBe("2026-06-01"); // mai fecha dia 31
+  });
+
+  it("cardCycleLink: ciclo atual da conta do cartão, sem entidade", () => {
+    expect(cardCycleLink({ accountId: "k1", closingDate: "2026-06-20", closingDay: 20 })).toEqual({
+      path: "/transacoes",
+      query: { from: "2026-05-21", to: "2026-06-20", accountId: "k1" },
+    });
+  });
+});
+
+describe("rangeError / isValidRange", () => {
+  it("ordem, limite de 1100 dias e incompleto", () => {
+    expect(rangeError("2026-05-10", "2026-05-01")).toBe("order");
+    expect(rangeError("2020-01-01", "2026-01-01")).toBe("too-long");
+    expect(rangeError("2023-01-01", "2026-01-05")).toBeNull(); // exatamente 1100 dias
+    expect(rangeError("2023-01-01", "2026-01-06")).toBe("too-long");
+    expect(rangeError("2026-01-01", "2026-03-01")).toBeNull();
+    expect(rangeError("", "2026-03-01")).toBeNull();
+    expect(isValidRange("2026-01-01", "2026-03-01")).toBe(true);
+    expect(isValidRange("2026-01-01", "")).toBe(false);
+    expect(isValidRange("2020-01-01", "2026-01-01")).toBe(false);
   });
 });

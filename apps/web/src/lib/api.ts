@@ -270,7 +270,10 @@ export const api = {
     },
   },
   transactions: {
-    list: (params?: { from?: string; to?: string; accountId?: string; categoryId?: string; q?: string; entity?: AccountEntity }) => {
+    list: (params?: {
+      from?: string; to?: string; accountId?: string; categoryId?: string; q?: string; entity?: AccountEntity;
+      type?: TransactionType; reportable?: boolean;
+    }) => {
       const qs = new URLSearchParams();
       if (params?.from) qs.set("from", params.from);
       if (params?.to) qs.set("to", params.to);
@@ -278,6 +281,8 @@ export const api = {
       if (params?.categoryId) qs.set("categoryId", params.categoryId);
       if (params?.q) qs.set("q", params.q);
       if (params?.entity) qs.set("entity", params.entity);
+      if (params?.type) qs.set("type", params.type);
+      if (params?.reportable) qs.set("reportable", "1");
       const s = qs.toString();
       return req<Transaction[]>("GET", `/transactions${s ? `?${s}` : ""}`);
     },

@@ -47,6 +47,20 @@ function lastDayOfMonth(ym: string): number {
   return new Date(Date.UTC(y, m, 0)).getUTCDate();
 }
 
+export type RangeError = "order" | "too-long" | null;
+
+/** Por que um intervalo personalizado não vale (`null` = válido ou ainda incompleto). */
+export function rangeError(from: string, to: string): RangeError {
+  if (!isRealDate(from) || !isRealDate(to)) return null;
+  if (from > to) return "order";
+  return daysBetween(from, to) > MAX_RANGE_DAYS ? "too-long" : null;
+}
+
+/** Intervalo aceito pela API: datas reais, from <= to e no máximo 1100 dias. */
+export function isValidRange(from: string, to: string): boolean {
+  return isRealDate(from) && isRealDate(to) && rangeError(from, to) === null;
+}
+
 function first(v: RouteQuery[string]): string {
   const x = Array.isArray(v) ? v[0] : v;
   return typeof x === "string" ? x.trim() : "";
@@ -69,9 +83,7 @@ export function filterFromQuery(query: RouteQuery, today: string = localToday())
   if (YEAR_RE.test(year)) return { ...base, year };
   const from = first(query.from);
   const to = first(query.to);
-  if (isRealDate(from) && isRealDate(to) && from <= to && daysBetween(from, to) <= MAX_RANGE_DAYS) {
-    return { ...base, from, to };
-  }
+  if (isValidRange(from, to)) return { ...base, from, to };
   return { ...base, month: today.slice(0, 7) };
 }
 
@@ -114,16 +126,66 @@ export function periodRange(f: PainelFilter, today: string = localToday()): { fr
   return { from: `${ym}-01`, to: `${ym}-${pad(lastDayOfMonth(ym))}` };
 }
 
-/** Link para a lista de transações com o período, a entidade e a conta do filtro (e o que mais o clique pedir). */
+export type TransactionsLink = { path: "/transacoes"; query: Record<string, string> };
+
+/**
+ * Link para a lista de transações com o período, a entidade e a conta do filtro (e o que mais o clique pedir).
+ * `type` + `reportable` reproduzem a regra de despesa dos dashboards (sem pares de transferência nem ignorados).
+ */
 export function transactionsLink(
   f: PainelFilter,
-  extra: { categoryId?: string; from?: string; to?: string } = {},
+  extra: { categoryId?: string; from?: string; to?: string; type?: "income" | "expense"; reportable?: boolean } = {},
   today: string = localToday(),
-): { path: "/transacoes"; query: Record<string, string> } {
+): TransactionsLink {
   const range = periodRange(f, today);
   const query: Record<string, string> = { from: extra.from ?? range.from, to: extra.to ?? range.to };
   if (f.entity !== "all") query.entity = f.entity;
   if (f.accountId) query.accountId = f.accountId;
   if (extra.categoryId) query.categoryId = extra.categoryId;
+  if (extra.type) query.type = extra.type;
+  if (extra.reportable) query.reportable = "1";
   return { path: "/transacoes", query };
+}
+
+/** Primeiro e último dia de um mês YYYY-MM. */
+export function monthRange(ym: string): { from: string; to: string } {
+  return { from: `${ym}-01`, to: `${ym}-${pad(lastDayOfMonth(ym))}` };
+}
+
+/** Despesas de uma categoria (`"__none"` = sem categoria) no período do filtro, ou num mês específico. */
+export function categoryLink(f: PainelFilter, categoryId: string, month?: string, today?: string): TransactionsLink {
+  return transactionsLink(f, { categoryId, type: "expense", reportable: true, ...(month ? monthRange(month) : {}) }, today);
+}
+
+/** Despesas de todas as categorias num mês (fatia "Outras" do empilhado). */
+export function expensesMonthLink(f: PainelFilter, month: string, today?: string): TransactionsLink {
+  return transactionsLink(f, { type: "expense", reportable: true, ...monthRange(month) }, today);
+}
+
+/** Todos os lançamentos de um mês, no escopo (entidade/conta) do filtro. */
+export function monthLink(f: PainelFilter, month: string, today?: string): TransactionsLink {
+  return transactionsLink(f, monthRange(month), today);
+}
+
+function addDays(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Primeiro dia do ciclo cujo fechamento é `closingDate`: dia seguinte ao fechamento do mês anterior (dia limitado ao fim do mês). */
+export function cycleStart(closingDate: string, closingDay: number): string {
+  const [y, m] = closingDate.split("-").map(Number);
+  const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
+  const prevYm = `${prev.y}-${pad(prev.m)}`;
+  const day = Math.min(closingDay, lastDayOfMonth(prevYm));
+  return addDays(`${prevYm}-${pad(day)}`, 1);
+}
+
+/** Lançamentos do ciclo atual de um cartão (início do ciclo até o fechamento), só da conta do cartão. */
+export function cardCycleLink(card: { accountId: string; closingDate: string; closingDay: number }): TransactionsLink {
+  return transactionsLink(
+    { entity: "all", accountId: card.accountId },
+    { from: cycleStart(card.closingDate, card.closingDay), to: card.closingDate },
+  );
 }
