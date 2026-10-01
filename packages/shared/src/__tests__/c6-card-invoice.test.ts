@@ -68,6 +68,18 @@ describe("c6CardInvoiceParser.parse: escolha do cartão", () => {
     expect(q.rows).toHaveLength(2);
   });
 
+  it("cartão só com linhas de R$ 0 não é listado e não bloqueia a fila", () => {
+    const rows = [...C6_INVOICE_ROWS, `20/09/2026;${NAME};3333;-;CARTAO SO ZERO;Única;0;0;0.00`];
+    const text = c6InvoiceText({ rows });
+    const d = c6CardInvoiceParser.detect(text);
+    expect(d?.accountRefs).toEqual(["1111", "2222"]);
+    expect(() => parse("3333", text)).toThrow("o final do cartão informado não existe no arquivo");
+    const single = c6InvoiceText({ rows: [`20/09/2026;${NAME};3333;-;ZERO;Única;0;0;0.00`, ...C6_INVOICE_ROWS.filter((r) => r.includes(";2222;"))] });
+    const ds = c6CardInvoiceParser.detect(single);
+    expect(ds?.accountRefs).toEqual(["2222"]);
+    expect(ds?.accountRef).toBe("2222");
+  });
+
   it("com um único cartão dispensa cardRef", () => {
     const rows = C6_INVOICE_ROWS.filter((r) => r.includes(";2222;"));
     const p = c6CardInvoiceParser.parse(c6InvoiceText({ rows }), { accountId: "a" });

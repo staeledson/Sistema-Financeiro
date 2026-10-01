@@ -96,8 +96,8 @@ describe("formatDate", () => {
 
 describe("fatura em CSV", () => {
   it("previewStatement envia cardRef e format csv_invoice", async () => {
-    await previewStatement({ accountId: "a1", text: "t", format: "csv_invoice", cardRef: "1591" });
-    expect(lastCall()).toEqual(["POST", "/import/preview", { accountId: "a1", text: "t", format: "csv_invoice", cardRef: "1591" }]);
+    await previewStatement({ accountId: "a1", text: "t", format: "csv_invoice", cardRef: "1111" });
+    expect(lastCall()).toEqual(["POST", "/import/preview", { accountId: "a1", text: "t", format: "csv_invoice", cardRef: "1111" }]);
   });
 
   it("nextCardRef devolve o primeiro cartão ainda não importado", () => {

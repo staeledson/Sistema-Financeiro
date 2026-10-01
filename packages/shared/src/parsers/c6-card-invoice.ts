@@ -59,9 +59,12 @@ function toCents(raw: string): number | null {
   return Object.is(cents, -0) ? 0 : cents;
 }
 
-function distinctCards(rows: CsvLine[], cardIdx: number): string[] {
+/** Finais de cartão com ao menos uma linha de valor diferente de zero (cartão só com R$ 0 não entra na fila). */
+function distinctCards(rows: CsvLine[], cardIdx: number, brlIdx: number): string[] {
   const seen: string[] = [];
   for (const r of rows) {
+    // valor ilegível conta como não zero: o erro de valor aparece no parse
+    if (toCents(r.cells[brlIdx] ?? "") === 0) continue;
     const card = (r.cells[cardIdx] ?? "").trim();
     if (card && !seen.includes(card)) seen.push(card);
   }
@@ -74,7 +77,11 @@ export const c6CardInvoiceParser: StatementParser = {
   detect(text: string): DetectResult | null {
     const invoice = readInvoice(text);
     if (!invoice) return null;
-    const accountRefs = distinctCards(invoice.rows, columnIndex(invoice.header, "final do cartao"));
+    const accountRefs = distinctCards(
+      invoice.rows,
+      columnIndex(invoice.header, "final do cartao"),
+      columnIndex(invoice.header, "valor (em r$)"),
+    );
     return {
       institution: "c6",
       kind: "card_invoice",
@@ -100,7 +107,7 @@ export const c6CardInvoiceParser: StatementParser = {
       brl: columnIndex(header, "valor (em r$)"),
     };
 
-    const cards = distinctCards(invoice.rows, col.card);
+    const cards = distinctCards(invoice.rows, col.card, col.brl);
     let card: string;
     if (ctx.cardRef) {
       if (!cards.includes(ctx.cardRef)) {

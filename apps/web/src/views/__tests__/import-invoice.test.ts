@@ -185,3 +185,136 @@ describe("ImportView: extrato OFX continua no fluxo antigo", () => {
     expect(w.text()).toContain("1 transações importadas");
   });
 });
+
+const btn = (w: VueWrapper, label: string) => w.findAll("button").find((b) => b.text() === label);
+const importBtn = (w: VueWrapper) => w.findAll("button").find((b) => b.text().startsWith("Importar"));
+
+describe("ImportView: fila de cartões, pular e cancelar", () => {
+  it("Pular este cartão no passo de confirmação avança e o resumo lista os pulados", async () => {
+    const w = await mountView();
+    await pickFile(w);
+    await btn(w, "Pular este cartão")!.trigger("click");
+    await flushPromises();
+    expect(w.text()).toContain("Cartão final 2222 (2 de 2)");
+    expect(previewMock).not.toHaveBeenCalled();
+    await btn(w, "Pular este cartão")!.trigger("click");
+    await flushPromises();
+    expect(w.text()).toContain("Concluído");
+    expect(w.text()).toContain("Nenhum cartão importado");
+    expect(w.text()).toContain("Cartões pulados: final 1111, final 2222");
+  });
+
+  it("Pular no preview avança para o próximo cartão e o resumo separa importados e pulados", async () => {
+    previewMock
+      .mockResolvedValueOnce({ batchId: "b1", rows: [row(1)], balanceCheck: null })
+      .mockResolvedValueOnce({ batchId: "b2", rows: [row(2)], balanceCheck: null });
+    httpMock.mockResolvedValueOnce({ inserted: 1, skipped: 0 });
+    const w = await mountView();
+    await pickFile(w);
+    await btn(w, "Ver preview")!.trigger("click");
+    await flushPromises();
+    await btn(w, "Pular este cartão")!.trigger("click");
+    await flushPromises();
+    expect(httpMock).not.toHaveBeenCalled();
+    expect(w.text()).toContain("Cartão final 2222 (2 de 2)");
+    await w.find("#import-account").setValue("cc1");
+    await btn(w, "Ver preview")!.trigger("click");
+    await flushPromises();
+    await importBtn(w)!.trigger("click");
+    await flushPromises();
+    expect(w.text()).toContain("1 cartão, 1 transações importadas");
+    expect(w.text()).toContain("Cartões pulados: final 1111");
+  });
+
+  it("Cancelar no preview volta ao passo de confirmação do mesmo cartão, sem pedir o arquivo", async () => {
+    previewMock.mockResolvedValue({ batchId: "b1", rows: [row(1)], balanceCheck: null });
+    const w = await mountView();
+    await pickFile(w);
+    await btn(w, "Ver preview")!.trigger("click");
+    await flushPromises();
+    await btn(w, "Cancelar")!.trigger("click");
+    await flushPromises();
+    expect(w.find('input[type="file"]').exists()).toBe(false);
+    expect(w.text()).toContain("Cartão final 1111 (1 de 2)");
+    expect((w.find("#import-account").element as HTMLSelectElement).value).toBe("cc1");
+    expect(detectMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("cartão com todas as linhas duplicadas: Importar fica desabilitado e dá para pular", async () => {
+    previewMock.mockResolvedValue({ batchId: "b1", rows: [row(1, { dup: true }), row(2, { dup: true })], balanceCheck: null });
+    const w = await mountView();
+    await pickFile(w);
+    await btn(w, "Ver preview")!.trigger("click");
+    await flushPromises();
+    expect(importBtn(w)!.attributes("disabled")).toBeDefined();
+    await btn(w, "Pular este cartão")!.trigger("click");
+    await flushPromises();
+    expect(w.text()).toContain("Cartão final 2222 (2 de 2)");
+  });
+
+  it("Trocar arquivo e Cancelar ficam desabilitados enquanto ocupado", async () => {
+    let release!: (v: unknown) => void;
+    previewMock.mockReturnValue(new Promise((r) => { release = r; }));
+    const w = await mountView();
+    await pickFile(w);
+    await btn(w, "Ver preview")!.trigger("click");
+    await flushPromises();
+    expect(btn(w, "Trocar arquivo")!.attributes("disabled")).toBeDefined();
+    expect(btn(w, "Pular este cartão")!.attributes("disabled")).toBeDefined();
+    release({ batchId: "b1", rows: [row(1)], balanceCheck: null });
+    await flushPromises();
+    httpMock.mockReturnValue(new Promise(() => {}));
+    await importBtn(w)!.trigger("click");
+    await flushPromises();
+    expect(btn(w, "Cancelar")!.attributes("disabled")).toBeDefined();
+    expect(btn(w, "Pular este cartão")!.attributes("disabled")).toBeDefined();
+  });
+});
+
+describe("ImportView: validações e fatura em OFX", () => {
+  it("limite negativo e nome vazio mostram mensagem e não criam o cartão", async () => {
+    detectMock.mockResolvedValue({ ...invoiceDetect, matchedAccounts: { "1111": null, "2222": null } });
+    const w = await mountView();
+    await pickFile(w);
+    await w.find("#import-account").setValue("__new__");
+    await w.find("#new-card-limit").setValue("-5");
+    await w.find("#new-card-create").trigger("click");
+    await flushPromises();
+    expect(w.find('[role="alert"]').text()).toBe("O limite não pode ser negativo.");
+    await w.find("#new-card-name").setValue("  ");
+    await w.find("#new-card-create").trigger("click");
+    await flushPromises();
+    expect(w.find('[role="alert"]').text()).toBe("Nome obrigatório.");
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("textos de ajuda e erro citam a fatura do cartão C6 em CSV", async () => {
+    const w = await mountView();
+    expect(w.text()).toContain("fatura do cartão C6 em CSV");
+    detectMock.mockResolvedValue({ ...invoiceDetect, format: "unknown", kind: null, accountRefs: [], matchedAccounts: {} });
+    await pickFile(w, "x.bin");
+    expect(w.find('[role="alert"]').text()).toContain("fatura do cartão C6 em CSV");
+  });
+
+  it("OFX de fatura de cartão: só contas de cartão, Criar cartão com a referência do arquivo e sem lembrar conta em conta comum", async () => {
+    detectMock.mockResolvedValue({
+      format: "ofx", institution: "c6", kind: "card_invoice", accountRef: "555566", confidence: 1,
+      matchedAccountId: "ck1", accountRefs: [], matchedAccounts: {}, text: "OFX",
+    });
+    createMock.mockResolvedValue({ id: "novo", type: "credit_card", name: "Cartão 555566", entity: "pf", institution: "c6", externalId: "555566", closingDay: null, dueDay: null, creditLimitCents: null, openingBalanceCents: 0, archived: false });
+    const w = await mountView();
+    await pickFile(w, "fatura.ofx");
+    const options = w.findAll("#import-account option").map((o) => o.text());
+    expect(options).toContain("C6 Cartão A");
+    expect(options).not.toContain("Conta C6");
+    expect(options).toContain("Criar cartão");
+    // a conta casada é corrente, não aparece no seletor: nada selecionado e nenhuma oferta de lembrar
+    expect((w.find("#import-account").element as HTMLSelectElement).value).toBe("");
+    expect(w.find(".remember").exists()).toBe(false);
+    await w.find("#import-account").setValue("__new__");
+    await w.find("#new-card-create").trigger("click");
+    await flushPromises();
+    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({ type: "credit_card", externalId: "555566" }));
+    expect(w.text()).not.toContain("Cartão final 555566 (");
+  });
+});
