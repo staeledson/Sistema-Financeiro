@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
 import { S3Client, CreateBucketCommand, HeadBucketCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { s3ClientConfig } from "./s3-config";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 @Injectable()
@@ -9,15 +10,7 @@ export class StorageService implements OnModuleInit {
 
   constructor() {
     this.bucket = process.env["MINIO_BUCKET"] ?? "receipts";
-    this.s3 = new S3Client({
-      endpoint: process.env["MINIO_ENDPOINT"] ?? "http://localhost:9010",
-      region: "us-east-1",
-      credentials: {
-        accessKeyId: process.env["MINIO_ACCESS_KEY"] ?? "minio",
-        secretAccessKey: process.env["MINIO_SECRET_KEY"] ?? "minio123",
-      },
-      forcePathStyle: true,
-    });
+    this.s3 = new S3Client(s3ClientConfig(process.env));
   }
 
   async onModuleInit() {

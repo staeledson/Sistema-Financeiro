@@ -6,20 +6,15 @@ import { registerIngestWorker } from "./ai/ingest.processor";
 import { registerRemindersWorker, scheduleRemindersJob } from "./reminders/reminders.processor";
 import { OpenRouterGateway } from "./ai/openrouter";
 import { GroqSttGateway } from "./ai/stt-groq";
+import { s3ClientConfig } from "./s3-config";
 
+// A URL já traz usuário/senha/TLS (rediss:); family 0 aceita IPv4 e IPv6 (rede privada da Railway).
 const connection = new IORedis(process.env["REDIS_URL"] ?? "redis://127.0.0.1:6380", {
   maxRetriesPerRequest: null,
+  family: 0,
 });
 
-const s3 = new S3Client({
-  endpoint: process.env["MINIO_ENDPOINT"] ?? "http://localhost:9010",
-  region: "us-east-1",
-  credentials: {
-    accessKeyId: process.env["MINIO_ACCESS_KEY"] ?? "minio",
-    secretAccessKey: process.env["MINIO_SECRET_KEY"] ?? "minio123",
-  },
-  forcePathStyle: true,
-});
+const s3 = new S3Client(s3ClientConfig(process.env));
 
 const ai = new OpenRouterGateway(
   process.env["OPENROUTER_API_KEY"] ?? "",

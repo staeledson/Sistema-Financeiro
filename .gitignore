@@ -5,6 +5,9 @@ dist/
 *.tsbuildinfo
 .env
 .env.local
+.env.*
+!.env.example
+!.env.test
 
 /apps/*/generated
 
