@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { prisma } from "../database";
+import { REPORTABLE } from "../common/reportable";
 import type { Prisma } from "../../generated/prisma/client";
 
 export type Ctx = { workspaceId: string };
@@ -77,7 +78,7 @@ export const TOOLS = {
     async run(a: { month: string }, ctx: Ctx) {
       const { start, end } = parseMonth(a.month);
       const txs = await prisma.transaction.findMany({
-        where: { workspaceId: ctx.workspaceId, type: { in: ["income", "expense"] }, date: { gte: start, lt: end } },
+        where: { workspaceId: ctx.workspaceId, type: { in: ["income", "expense"] }, date: { gte: start, lt: end }, ...REPORTABLE },
         select: { type: true, amountCents: true },
       });
       let incomeCents = 0, expenseCents = 0;
@@ -107,7 +108,7 @@ export const TOOLS = {
       const { start, end } = parseMonth(a.month);
       const rows = await prisma.transaction.groupBy({
         by: ["categoryId"],
-        where: { workspaceId: ctx.workspaceId, type: a.type, date: { gte: start, lt: end } },
+        where: { workspaceId: ctx.workspaceId, type: a.type, date: { gte: start, lt: end }, ...REPORTABLE },
         _sum: { amountCents: true },
         orderBy: { _sum: { amountCents: "desc" } },
       });
@@ -140,7 +141,7 @@ export const TOOLS = {
         const monthStr = m.toISOString().slice(0, 7);
         const { start, end } = parseMonth(monthStr);
         const txs = await prisma.transaction.findMany({
-          where: { workspaceId: ctx.workspaceId, type: { in: ["income", "expense"] }, date: { gte: start, lt: end } },
+          where: { workspaceId: ctx.workspaceId, type: { in: ["income", "expense"] }, date: { gte: start, lt: end }, ...REPORTABLE },
           select: { type: true, amountCents: true },
         });
         let incomeCents = 0, expenseCents = 0;

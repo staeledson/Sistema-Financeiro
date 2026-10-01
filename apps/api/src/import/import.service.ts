@@ -90,6 +90,12 @@ export class ImportService {
     const owned = await prisma.bankAccount.count({ where: { id: { in: accountIds }, workspaceId } });
     if (owned !== accountIds.length) throw new BadRequestException("conta inexistente no workspace");
 
+    const categoryIds = [...new Set(rows.map((r) => r.categoryId).filter((c): c is string => !!c))];
+    if (categoryIds.length) {
+      const ownedCats = await prisma.category.count({ where: { id: { in: categoryIds }, workspaceId } });
+      if (ownedCats !== categoryIds.length) throw new BadRequestException("categoria inexistente no workspace");
+    }
+
     const payload = rows.map((r) => ({
       workspaceId,
       type: r.type,
@@ -100,6 +106,7 @@ export class ImportService {
       categoryId: r.categoryId ?? null,
       description: r.description,
       source: "import",
+      categorySource: r.categoryId ? ("import" as const) : ("none" as const),
       importFingerprint: r.fingerprint,
       importBatchId: batchId,
       createdById: userId,
@@ -116,12 +123,16 @@ export class ImportService {
     const legacySeen = new Set(legacyExisting.map((e) => e.importFingerprint));
     const toInsert = payload.filter((p) => !(p.importFingerprint.endsWith("|0") && legacySeen.has(p.importFingerprint.slice(0, -2))));
 
-    const { count: inserted } = await prisma.transaction.createMany({ data: toInsert, skipDuplicates: true });
-
-    await prisma.importBatch.update({
-      where: { id: batchId },
-      data: { status: "committed" },
-    });
+    const inserted = await prisma.$transaction(async (tx) => {
+      // a troca condicional de status serializa o commit com um desfazer concorrente
+      const claimed = await tx.importBatch.updateMany({
+        where: { id: batchId, workspaceId, undoneAt: null },
+        data: { status: "committed" },
+      });
+      if (claimed.count === 0) throw new ConflictException("o lote foi desfeito; gere um novo preview");
+      const { count } = await tx.transaction.createMany({ data: toInsert, skipDuplicates: true });
+      return count;
+    }, { timeout: 30_000 });
 
     if (inserted > 0) {
       try {

@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
-import type { WorkspaceSettingsInput } from "@app/shared";
+import { DEFAULT_WORKSPACE_SETTINGS, type WorkspaceSettingsInput } from "@app/shared";
 import { prisma } from "../database";
 
 const SETTINGS_SELECT = {
@@ -13,14 +13,10 @@ const CAN_EDIT = ["owner", "admin"];
 
 @Injectable()
 export class WorkspaceSettingsService {
-  /** Lê as configurações; a linha é criada com os padrões do banco na primeira leitura. */
+  /** Lê sem escrever: sem linha, devolve os padrões. */
   async get(workspaceId: string) {
-    return prisma.workspaceSettings.upsert({
-      where: { workspaceId },
-      create: { workspaceId },
-      update: {},
-      select: SETTINGS_SELECT,
-    });
+    const row = await prisma.workspaceSettings.findUnique({ where: { workspaceId }, select: SETTINGS_SELECT });
+    return row ?? { ...DEFAULT_WORKSPACE_SETTINGS, ownerNames: [...DEFAULT_WORKSPACE_SETTINGS.ownerNames] };
   }
 
   async update(workspaceId: string, role: string, dto: Partial<WorkspaceSettingsInput>) {

@@ -1,8 +1,9 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from "@nestjs/common";
 import { Queue } from "bullmq";
-import { transactionInputSchema, type AccountEntity, type TransactionInput } from "@app/shared";
+import { categoryFits, transactionInputSchema, type AccountEntity, type TransactionInput } from "@app/shared";
 import type { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../database";
+import { findSimilarUncategorizedIds } from "../common/similar-transactions";
 import { CategoryRulesService } from "../category-rules/category-rules.service";
 import { AI_QUEUE } from "../queue/queue.tokens";
 import type { IngestJobData } from "../ingest/ingest.types";
@@ -14,23 +15,40 @@ export class TransactionsService {
     @Optional() private readonly rules?: CategoryRulesService,
   ) {}
 
-  async updateCategory(workspaceId: string, id: string, categoryId: string | null) {
+  async updateCategory(workspaceId: string, id: string, categoryId: string | null, applyToSimilar = false) {
     const tx = await prisma.transaction.findFirst({
       where: { id, workspaceId },
-      select: { id: true, counterparty: true, description: true },
+      select: { id: true, type: true, counterparty: true, description: true, account: { select: { entity: true } } },
     });
     if (!tx) throw new NotFoundException("transação não encontrada");
 
-    await prisma.transaction.update({ where: { id }, data: { categoryId } });
-
-    if (categoryId && this.rules) {
-      await this.rules.learnFromCorrection(
-        { counterparty: tx.counterparty, description: tx.description },
-        categoryId,
-        workspaceId,
-      );
+    if (categoryId === null) {
+      await prisma.transaction.update({
+        where: { id },
+        data: { categoryId: null, categorySource: "none", categoryConfidence: null, suggestedCategoryId: null, reviewStatus: "pending" },
+      });
+      return { id, categoryId: null, similarCount: 0 };
     }
-    return { id, categoryId };
+
+    const category = await prisma.category.findFirst({
+      where: { id: categoryId, workspaceId },
+      select: { id: true, type: true, entity: true },
+    });
+    if (!category) throw new BadRequestException("categoria inexistente");
+    if (!categoryFits(category, tx, (tx.account?.entity ?? null) as AccountEntity | null)) {
+      throw new BadRequestException("a categoria não serve ao lançamento (tipo ou entidade)");
+    }
+
+    const similar = applyToSimilar ? await findSimilarUncategorizedIds(workspaceId, [tx], category) : [];
+    await prisma.transaction.updateMany({
+      where: { id: { in: [id, ...similar] }, workspaceId },
+      data: { categoryId, categorySource: "manual", categoryConfidence: null, reviewStatus: "ok", suggestedCategoryId: null },
+    });
+
+    if (this.rules) {
+      await this.rules.learnFromCorrection({ counterparty: tx.counterparty, description: tx.description }, categoryId, workspaceId);
+    }
+    return { id, categoryId, similarCount: similar.length };
   }
 
   async enqueueCategorizationJob(workspaceId: string, userId: string, batchId?: string) {
@@ -76,6 +94,7 @@ export class TransactionsService {
         description: dto.description ?? null,
         counterparty: dto.counterparty ?? null,
         source: "manual",
+        categorySource: dto.categoryId ? "manual" : "none",
         createdById: userId,
       },
       select: {

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "../database";
+import { reportableSql } from "../common/reportable";
 
 @Injectable()
 export class BudgetsService {
@@ -61,6 +62,7 @@ export class BudgetsService {
         FROM transactions
         WHERE "workspaceId" = ${workspaceId}
           AND "date" >= DATE_TRUNC('month', NOW())
+          ${reportableSql()}
         GROUP BY "categoryId"
       `,
     ]);

@@ -1,3 +1,4 @@
+import { CATCH_ALL_EXPENSE_NAME, CATCH_ALL_INCOME_NAME } from "@app/shared";
 import { prisma } from "../database";
 
 type SeedCategory = { type: "income" | "expense"; name: string; entity: "both" | "pj" };
@@ -7,7 +8,7 @@ const PESSOAIS: SeedCategory[] = [
   { type: "income", name: "Freelance", entity: "both" },
   { type: "income", name: "Investimentos", entity: "both" },
   { type: "income", name: "Reembolso", entity: "both" },
-  { type: "income", name: "Outras receitas", entity: "both" },
+  { type: "income", name: CATCH_ALL_INCOME_NAME, entity: "both" },
   { type: "expense", name: "Moradia", entity: "both" },
   { type: "expense", name: "Contas e utilidades", entity: "both" },
   { type: "expense", name: "Supermercado", entity: "both" },
@@ -22,7 +23,7 @@ const PESSOAIS: SeedCategory[] = [
   { type: "expense", name: "Assinaturas", entity: "both" },
   { type: "expense", name: "Impostos e taxas", entity: "both" },
   { type: "expense", name: "Pets", entity: "both" },
-  { type: "expense", name: "Outras despesas", entity: "both" },
+  { type: "expense", name: CATCH_ALL_EXPENSE_NAME, entity: "both" },
 ];
 
 const PJ: SeedCategory[] = [

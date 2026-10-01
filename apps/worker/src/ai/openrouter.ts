@@ -1,4 +1,5 @@
-import { extractedDraftSchema, type ExtractedDraft, DRAFT_JSON_SCHEMA, invoiceLineSchema, type InvoiceLine, INVOICE_JSON_SCHEMA } from "./draft-schema";
+import { aiBatchResultSchema, type AiBatchResult } from "@app/shared";
+import { extractedDraftSchema, type ExtractedDraft, DRAFT_JSON_SCHEMA, invoiceLineSchema, type InvoiceLine, INVOICE_JSON_SCHEMA, CATEGORIZE_JSON_SCHEMA } from "./draft-schema";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const SYSTEM =
@@ -104,5 +105,25 @@ export class OpenRouterGateway {
     const parsed = this.repairParse(raw) as { transactions?: unknown[] };
     const lines = (parsed.transactions ?? []).map((item) => invoiceLineSchema.parse(item));
     return { lines, costTokens: (data.usage?.total_tokens ?? null) as number | null };
+  }
+
+  async categorizeBatch(input: { system: string; user: string }): Promise<{ results: AiBatchResult[]; costTokens: number | null }> {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.apiKey}` },
+      body: JSON.stringify({
+        model: this.textModel,
+        messages: [
+          { role: "system", content: input.system },
+          { role: "user", content: input.user },
+        ],
+        response_format: { type: "json_schema", json_schema: CATEGORIZE_JSON_SCHEMA },
+      }),
+    });
+    if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const raw: string = data.choices?.[0]?.message?.content ?? '{"results":[]}';
+    const parsed = aiBatchResultSchema.parse(this.repairParse(raw));
+    return { results: parsed.results, costTokens: (data.usage?.total_tokens ?? null) as number | null };
   }
 }

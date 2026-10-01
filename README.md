@@ -121,7 +121,7 @@ sistema-financeiro/
 │   │   │   ├── push/       notificações push (VAPID)
 │   │   │   ├── transactions/
 │   │   │   └── workspaces/ multi-tenant
-│   │   └── test/e2e/       149 testes de integração
+│   │   └── test/e2e/       200 testes de integração
 │   │
 │   ├── worker/             BullMQ job processors
 │   │   └── src/
@@ -143,7 +143,7 @@ sistema-financeiro/
 │
 └── prisma/
     ├── schema.prisma       28 modelos
-    └── migrations/         11 migrations
+    └── migrations/         12 migrations
 ```
 
 ---
@@ -191,10 +191,10 @@ VAPID_PRIVATE_KEY=
 pnpm test
 
 # por app
-pnpm --filter @app/shared test   # 103 testes unitários
-pnpm --filter @app/api    test   # 149 testes e2e
-pnpm --filter @app/worker test   # 22 testes unitários
-pnpm --filter @app/web    test   # 45 testes unitários
+pnpm --filter @app/shared test   # 145 testes unitários
+pnpm --filter @app/api    test   # 200 testes e2e
+pnpm --filter @app/worker test   # 55 testes unitários
+pnpm --filter @app/web    test   # 51 testes unitários
 ```
 
 O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `turbo typecheck` e as quatro suítes de teste a cada push.
@@ -207,6 +207,7 @@ O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `tu
 - **Ingestão por IA** — lançamento via texto, áudio (Groq Whisper) ou imagem (OCR)
 - **Chat financeiro** — pergunte sobre saldos, gastos e fluxo de caixa em linguagem natural (function calling com guardrails de segurança)
 - **Importação de extratos** — o arquivo é reconhecido sozinho (banco, tipo e conta): OFX de qualquer banco e extrato em PDF do C6 Bank (PF e PJ), com preview, marcação de duplicatas (períodos que se sobrepõem não duplicam), conferência dos saldos declarados no extrato, histórico de importações e desfazer. CSV por mapeamento manual; PDF de outros bancos via IA
+- **Categorização automática e fila "Para categorizar"** — depois de importar, o sistema pareia transferências entre contas próprias (pelo nome do titular e da empresa, configuráveis, ou pelo pagamento de fatura), aplica regras e usa IA em lote com limiar de confiança (configurável por workspace); o que sobra vira uma fila de pendentes agrupados por descrição, onde uma decisão cria regra e vale para lançamentos parecidos. Receita e despesa ignoram transferências pareadas e lançamentos ignorados; o saldo de cada conta continua contando todos os movimentos
 - **Regras de categorização** — automação baseada em padrões de descrição
 - **Orçamentos e metas** — acompanhamento com progresso
 - **Splits** — divisão de despesas entre participantes de um workspace

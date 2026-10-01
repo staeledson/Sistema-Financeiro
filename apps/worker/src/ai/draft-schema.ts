@@ -67,3 +67,27 @@ export const DRAFT_JSON_SCHEMA = {
     additionalProperties: false,
   },
 } as const;
+
+export const CATEGORIZE_JSON_SCHEMA = {
+  name: "categorize",
+  schema: {
+    type: "object",
+    properties: {
+      results: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            transactionId: { type: "string" },
+            categoryId: { type: ["string", "null"] },
+            confidence: { type: "number" },
+          },
+          required: ["transactionId", "categoryId", "confidence"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["results"],
+    additionalProperties: false,
+  },
+} as const;

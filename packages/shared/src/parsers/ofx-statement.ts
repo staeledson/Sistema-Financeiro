@@ -1,6 +1,7 @@
 import type { Institution } from "../enums";
 import { importFingerprint, ordinalFingerprints } from "../import";
 import { parseOfx } from "../ofx";
+import { toISODate } from "./text";
 import {
   StatementParseError,
   type BalancePoint,
@@ -45,6 +46,12 @@ export const ofxStatementParser: StatementParser = {
   parse(text: string, ctx: { accountId: string }): ParsedStatement {
     const txns = parseOfx(text);
     if (txns.length === 0) throw new StatementParseError("nenhuma transação encontrada no OFX");
+    txns.forEach((t, i) => {
+      const [y, m, d] = t.dateISO.split("-").map(Number);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(t.dateISO) || !toISODate(y, m, d) || !Number.isFinite(t.amountCents)) {
+        throw new StatementParseError(`transação ${i + 1} do OFX sem data ou valor válidos`);
+      }
+    });
 
     const base = txns.map((t) =>
       t.fitid ? null : importFingerprint(ctx.accountId, t.dateISO, t.amountCents, t.memo),

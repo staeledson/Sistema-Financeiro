@@ -255,6 +255,15 @@ describe("ofxStatementParser", () => {
       StatementParseError,
     );
   });
+
+  it("lança StatementParseError quando uma transação não tem data ou valor válidos", () => {
+    const semData = "<OFX><BANKTRANLIST><STMTTRN><TRNAMT>-10.00<FITID>1<MEMO>x</STMTTRN></BANKTRANLIST></OFX>";
+    const semValor = "<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>20260605<FITID>1<MEMO>x</STMTTRN></BANKTRANLIST></OFX>";
+    const dataImpossivel = "<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>20261345<TRNAMT>-10.00<FITID>1<MEMO>x</STMTTRN></BANKTRANLIST></OFX>";
+    for (const text of [semData, semValor, dataImpossivel]) {
+      expect(() => ofxStatementParser.parse(text, { accountId: "a" })).toThrow(StatementParseError);
+    }
+  });
 });
 
 describe("detectStatement", () => {

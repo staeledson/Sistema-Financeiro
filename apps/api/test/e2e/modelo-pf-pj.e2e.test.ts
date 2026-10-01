@@ -272,11 +272,12 @@ describe("Fase 10 — transações filtradas por entidade", () => {
 });
 
 describe("Fase 10 — configurações do workspace", () => {
-  it("GET devolve os padrões da spec na primeira leitura", async () => {
+  it("GET devolve os padrões da spec na primeira leitura, sem gravar", async () => {
     const u = await newUser("set1");
     const res = await app.inject({ method: "GET", url: "/workspaces/current/settings", headers: u.h });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ aiConfidenceThreshold: 0.8, aiBatchSize: 40, transferMatchWindowDays: 2, ownerNames: [] });
+    expect(await prisma.workspaceSettings.count({ where: { workspaceId: u.workspaceId } })).toBe(0);
   });
 
   it("PATCH parcial persiste e preserva os demais campos", async () => {

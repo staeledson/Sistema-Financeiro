@@ -1,4 +1,5 @@
 import { prisma } from "../database";
+import { reportableSql } from "./reportable";
 import type { OpenRouterGateway } from "../ai/openrouter";
 
 type MonthRow = { month: Date; income: bigint; expenses: bigint };
@@ -18,6 +19,7 @@ export async function computeCashflowForecast(
     WHERE "workspaceId" = ${workspaceId}
       AND "date" >= NOW() - INTERVAL '3 months'
       AND "date" < DATE_TRUNC('month', NOW())
+      ${reportableSql()}
     GROUP BY 1
     ORDER BY 1 ASC
   `;
