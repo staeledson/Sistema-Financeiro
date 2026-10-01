@@ -77,7 +77,7 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
     await prisma.$transaction([
       prisma.aiJob.update({
         where: { id: jobId },
-        data: { status: "done", result: { total: 0, transfers: 0, byRule: 0, byAi: 0, pending: 0 } },
+        data: { status: "done", result: { total: 0, transfers: 0, byRule: 0, byAi: 0, pending: 0, aiFailures: 0, deferred: 0 } },
       }),
     ]);
     return;
@@ -219,7 +219,7 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
         data: {
           status: "done",
           costTokens: plan.costTokens || null,
-          result: { total: scope.length, transfers, byRule, byAi, pending },
+          result: { total: scope.length, transfers, byRule, byAi, pending, aiFailures: plan.aiFailures, deferred: plan.deferred },
         },
       });
     },

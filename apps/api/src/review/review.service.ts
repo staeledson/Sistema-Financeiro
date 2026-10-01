@@ -8,6 +8,7 @@ import { TransactionsService } from "../transactions/transactions.service";
 
 const CANDIDATE_WINDOW_DAYS = 7;
 const NO_DESCRIPTION_KEY = "(sem descrição)";
+const FORGOTTEN_AFTER_MS = 15 * 60_000;
 
 const textOf = (t: { counterparty: string | null; description: string | null }) =>
   [t.counterparty, t.description].filter(Boolean).join(" ");
@@ -25,7 +26,11 @@ export class ReviewService {
     const rows = await prisma.transaction.findMany({
       where: {
         workspaceId,
-        reviewStatus: "pending",
+        // Pendentes + "esquecidas": sem categoria nenhuma e fora da fila há mais de 15 min (ex.: job de IA que morreu no meio).
+        OR: [
+          { reviewStatus: "pending" },
+          { reviewStatus: "ok", categorySource: "none", categoryId: null, createdAt: { lt: new Date(Date.now() - FORGOTTEN_AFTER_MS) } },
+        ],
         ignored: false,
         transferPairId: null,
         type: { in: ["income", "expense"] },

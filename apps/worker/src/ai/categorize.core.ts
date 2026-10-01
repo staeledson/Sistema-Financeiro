@@ -1,5 +1,5 @@
 import {
-  categoryFits, chunk, decideAiResult, detectTransferPairs, isCatchAllCategoryName, matchRule, rankBySimilarity,
+  categoryFits, chunk, decideAiResult, detectTransferPairs, isCatchAllCategoryName, matchRule, rankBySimilarity, redactForLlm,
   type AccountEntity, type AccountType, type AiBatchResult, type CategoryEntity, type Rule, type TransferCandidate,
 } from "@app/shared";
 
@@ -49,9 +49,15 @@ export interface CategorizePlan {
   byAi: Array<{ txId: string; categoryId: string; confidence: number }>;
   pending: Array<{ txId: string; suggestedCategoryId: string | null; confidence: number | null }>;
   costTokens: number;
+  /** Lotes em que o gateway de IA falhou (as linhas do lote ficam pendentes). */
+  aiFailures: number;
+  /** Linhas que passaram do teto de IA do job e ficaram pendentes sem sugestão. */
+  deferred: number;
 }
 
 const MAX_EXAMPLES = 30;
+/** Teto de linhas enviadas à IA por job (as mais recentes); o excedente vira pendência. */
+export const MAX_AI_ROWS_PER_JOB = 500;
 
 export const CATEGORIZE_SYSTEM =
   "Você classifica lançamentos financeiros brasileiros. Para cada lançamento, escolha UMA categoria da lista, " +
@@ -62,13 +68,16 @@ export const CATEGORIZE_SYSTEM =
 export const txText = (tx: { counterparty: string | null; description: string | null }) =>
   [tx.counterparty, tx.description].filter(Boolean).join(" ");
 
+/** Texto que sai do sistema rumo ao LLM: documentos e sequências longas de dígitos mascarados. */
+const llmText = (tx: { counterparty: string | null; description: string | null }) => redactForLlm(txText(tx));
+
 function buildUserPrompt(batch: CatTx[], categories: CatCategory[], examples: CatExample[]): string {
   return JSON.stringify({
     categories: categories.map((c) => ({ id: c.id, name: c.name, type: c.type })),
-    examples: examples.map((e) => ({ descricao: e.text, categoria: e.categoryName })),
+    examples: examples.map((e) => ({ descricao: redactForLlm(e.text), categoria: e.categoryName })),
     transactions: batch.map((t) => ({
       id: t.id,
-      descricao: txText(t),
+      descricao: llmText(t),
       valorCents: t.amountCents,
       tipo: t.type,
       conta: t.accountId,
@@ -92,7 +101,7 @@ export async function planCategorization(
   ai: CategorizeAi,
 ): Promise<CategorizePlan> {
   const { scope, categories, rules, examples, settings } = input;
-  const plan: CategorizePlan = { transferPairs: [], byRule: [], byAi: [], pending: [], costTokens: 0 };
+  const plan: CategorizePlan = { transferPairs: [], byRule: [], byAi: [], pending: [], costTokens: 0, aiFailures: 0, deferred: 0 };
   if (scope.length === 0) return plan;
 
   const scopeIds = new Set(scope.map((t) => t.id));
@@ -125,10 +134,13 @@ export async function planCategorization(
     else remaining.push(tx);
   }
 
-  // 3. IA em lote, uma entidade por vez
+  // 3. IA em lote, uma entidade por vez; só as MAX_AI_ROWS_PER_JOB linhas mais recentes vão à IA (sort estável).
+  const byRecency = [...remaining].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const forAi = byRecency.slice(0, MAX_AI_ROWS_PER_JOB);
+  const deferred = byRecency.slice(MAX_AI_ROWS_PER_JOB);
   const batchSize = Math.max(1, Math.floor(Number.isFinite(settings.aiBatchSize) ? settings.aiBatchSize : 40));
   const byEntity = new Map<AccountEntity | null, CatTx[]>();
-  for (const tx of remaining) {
+  for (const tx of forAi) {
     const group = byEntity.get(tx.accountEntity);
     if (group) group.push(tx);
     else byEntity.set(tx.accountEntity, [tx]);
@@ -147,6 +159,7 @@ export async function planCategorization(
         plan.costTokens += out.costTokens ?? 0;
       } catch {
         results = null; // falha da IA nunca derruba o job: o lote inteiro fica pendente
+        plan.aiFailures++;
       }
       const byId = new Map((results ?? []).map((r) => [r.transactionId, r]));
       for (const tx of batch) {
@@ -162,6 +175,9 @@ export async function planCategorization(
       }
     }
   }
+
+  for (const tx of deferred) plan.pending.push({ txId: tx.id, suggestedCategoryId: null, confidence: null });
+  plan.deferred = deferred.length;
 
   return plan;
 }

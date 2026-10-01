@@ -21,6 +21,7 @@ describe("OpenRouterGateway.categorizeBatch", () => {
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(body.model).toBe("text-x");
+    expect(body.provider).toEqual({ data_collection: "deny" });
     expect(body.response_format.json_schema.name).toBe("categorize");
     expect(body.messages).toEqual([
       { role: "system", content: "sys" },

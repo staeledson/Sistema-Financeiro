@@ -92,6 +92,22 @@ describe("GET /review/pending", () => {
     expect((await get(u, "/review/pending?entity=xx")).statusCode).toBe(400);
   });
 
+  it("lista linhas esquecidas (sem categoria, reviewStatus ok, criadas há mais de 15 min), mas não as recentes, pareadas ou ignoradas", async () => {
+    const u = await newUser("rev-forgot");
+    const acc = await account(u, "PF", "pf");
+    const old = new Date(Date.now() - 30 * 60_000);
+    const forgotten = await tx(u, acc.id, { description: "esquecida", reviewStatus: "ok", categorySource: "none", createdAt: old });
+    await tx(u, acc.id, { description: "recente", reviewStatus: "ok", categorySource: "none" });
+    await tx(u, acc.id, { description: "par esquecido", reviewStatus: "ok", categorySource: "none", createdAt: old, transferPairId: "p-forgot" });
+    await tx(u, acc.id, { description: "ignorada esquecida", reviewStatus: "ok", categorySource: "none", createdAt: old, ignored: true });
+    await tx(u, acc.id, { description: "regra", reviewStatus: "ok", categorySource: "rule", createdAt: old });
+
+    const res = (await get(u, "/review/pending")).json();
+    expect(res.total).toBe(1);
+    expect(res.groups[0].description).toBe("esquecida");
+    expect(res.groups[0].transactionIds).toEqual([forgotten.id]);
+  });
+
   it("é isolado por workspace", async () => {
     const a = await newUser("rev3a");
     const b = await newUser("rev3b");

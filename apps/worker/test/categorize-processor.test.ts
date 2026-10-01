@@ -44,6 +44,7 @@ vi.mock("../src/database", () => ({
 }));
 
 import { processCategorize } from "../src/ai/categorize.processor";
+import { MAX_AI_ROWS_PER_JOB } from "../src/ai/categorize.core";
 
 type Row = Record<string, unknown>;
 const row = (id: string, over: Row = {}): Row => ({
@@ -109,7 +110,7 @@ describe("processCategorize", () => {
     expect(all.some((o) => o.op === "transaction.update")).toBe(false);
     expect(all.find((o) => o.op === "categoryRule.updateMany")!.args).toEqual({ where: { id: "r1" }, data: { hitCount: { increment: 1 } } });
     const job = all.find((o) => o.op === "aiJob.update")!;
-    expect(job.args.data).toMatchObject({ status: "done", costTokens: 7, result: { total: 3, transfers: 0, byRule: 1, byAi: 1, pending: 1 } });
+    expect(job.args.data).toMatchObject({ status: "done", costTokens: 7, result: { total: 3, transfers: 0, byRule: 1, byAi: 1, pending: 1, aiFailures: 0, deferred: 0 } });
   });
 
   it("categoria de fábrica (isSystem) é aplicada pela IA, mas Outras despesas fica pendente com sugestão", async () => {
@@ -139,7 +140,7 @@ describe("processCategorize", () => {
     expect(pending.args.where).toEqual({ id: "t1", workspaceId: "w1", categoryId: null, ignored: false, transferPairId: null });
     expect(ops().some((o) => o.op === "transaction.update")).toBe(false);
     expect(pending.args.data).toEqual({ reviewStatus: "pending", suggestedCategoryId: null, categoryConfidence: null });
-    expect(ops().find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({ status: "done", result: { pending: 1 } });
+    expect(ops().find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({ status: "done", result: { pending: 1, aiFailures: 1, deferred: 0 } });
   });
 
   it("pareia transferência usando os nomes do titular configurados", async () => {
@@ -219,7 +220,7 @@ describe("processCategorize", () => {
     await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
     expect(ai.categorizeBatch).not.toHaveBeenCalled();
     expect(ops().find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({
-      status: "done", result: { total: 0, transfers: 0, byRule: 0, byAi: 0, pending: 0 },
+      status: "done", result: { total: 0, transfers: 0, byRule: 0, byAi: 0, pending: 0, aiFailures: 0, deferred: 0 },
     });
   });
 
@@ -274,5 +275,26 @@ describe("processCategorize", () => {
     expect(exampleCalls.map((a) => a.where["account"]).sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y)))).toEqual([
       { entity: "pf" }, { entity: "pj" },
     ]);
+  });
+
+  it("linhas além do teto de IA viram pendentes pelo mesmo updateMany guardado e o job registra deferred", async () => {
+    const rows = Array.from({ length: MAX_AI_ROWS_PER_JOB + 2 }, (_, i) =>
+      row(`t${i}`, { description: "Coisa estranha", date: new Date(i < 2 ? "2026-01-05" : "2026-06-10") }));
+    const ai = setup(rows);
+    await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
+
+    const all = ops();
+    const guard = (id: string) => ({ id, workspaceId: "w1", categoryId: null, ignored: false, transferPairId: null });
+    for (const id of ["t0", "t1"]) {
+      const o = all.find((x) => x.op === "transaction.updateMany" && (x.args.where as Row).id === id)!;
+      expect(o.args.where).toEqual(guard(id));
+      expect(o.args.data).toEqual({ reviewStatus: "pending", suggestedCategoryId: null, categoryConfidence: null });
+    }
+    const sent = (ai.categorizeBatch.mock.calls as unknown as Array<[{ user: string }]>).flatMap(([c]) => (JSON.parse(c.user).transactions as Array<{ id: string }>).map((t) => t.id));
+    expect(sent).toHaveLength(MAX_AI_ROWS_PER_JOB);
+    expect(sent).not.toContain("t0");
+    expect(all.find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({
+      status: "done", result: { total: MAX_AI_ROWS_PER_JOB + 2, byAi: MAX_AI_ROWS_PER_JOB, pending: 2, aiFailures: 0, deferred: 2 },
+    });
   });
 });

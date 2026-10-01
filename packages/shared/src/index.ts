@@ -12,5 +12,6 @@ export * from "./categorization";
 export * from "./dashboard";
 export * from "./cards";
 export * from "./recurring";
+export * from "./redact";
 // Mesma instância de ZodError dos schemas: o filtro da API usa `instanceof`.
 export { ZodError } from "zod";
