@@ -8,6 +8,8 @@ function req<T>(method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE", path: strin
 export type AccountType = "checking" | "savings" | "credit_card" | "cash" | "investment";
 export type CategoryType = "income" | "expense";
 export type TransactionType = "income" | "expense" | "transfer";
+export type CategorySource = "none" | "manual" | "rule" | "ai" | "import";
+export type ReviewStatus = "ok" | "pending";
 
 export interface BankAccount {
   id: string;
@@ -59,6 +61,13 @@ export interface Transaction {
   categoryId: string | null;
   description: string | null;
   counterparty: string | null;
+  /** Mesmo id nos dois lados de uma transferência pareada; `null` fora de par. */
+  transferPairId: string | null;
+  ignored: boolean;
+  categorySource: CategorySource;
+  reviewStatus: ReviewStatus;
+  installmentCurrent: number | null;
+  installmentTotal: number | null;
 }
 
 export interface AccountBalance {
@@ -71,12 +80,6 @@ export interface AccountBalance {
 export interface Balances {
   accounts: AccountBalance[];
   consolidatedCents: number;
-}
-
-export interface Dashboard {
-  cashflow: { incomeCents: number; expenseCents: number };
-  expenseBreakdown: { categoryId: string | null; name: string; totalCents: number }[];
-  cashflowSeries: { month: string; incomeCents: number; expenseCents: number }[];
 }
 
 // --- Dashboards (Fase 13) ---------------------------------------------------
@@ -248,6 +251,13 @@ export interface SummaryDashboard {
   };
 }
 
+export interface WorkspaceSettings {
+  aiConfidenceThreshold: number;
+  aiBatchSize: number;
+  transferMatchWindowDays: number;
+  ownerNames: string[];
+}
+
 function dashboardPath(name: string, params?: URLSearchParams): string {
   const qs = params?.toString();
   return `/dashboard/${name}${qs ? `?${qs}` : ""}`;
@@ -301,10 +311,19 @@ export const api = {
     get: () => req<Balances>("GET", "/balances"),
   },
   dashboard: {
-    get: (month: string) => req<Dashboard>("GET", `/dashboard?month=${month}`),
     spending: (params: URLSearchParams) => req<SpendingDashboard>("GET", dashboardPath("spending", params)),
     cards: (params: URLSearchParams) => req<CardsDashboard>("GET", dashboardPath("cards", params)),
     cashflow: (params: URLSearchParams) => req<CashflowDashboard>("GET", dashboardPath("cashflow", params)),
-    summary: (params?: URLSearchParams) => req<SummaryDashboard>("GET", dashboardPath("summary", params)),
+  },
+  /** Resumo do Início: sempre o workspace inteiro; só `asOf` (YYYY-MM-DD) tem efeito. */
+  summary: (asOf?: string) => req<SummaryDashboard>("GET", dashboardPath("summary", asOf ? new URLSearchParams({ asOf }) : undefined)),
+  review: {
+    unpair: (transferPairId: string) => req<{ unpaired: number }>("POST", "/review/unpair", { transferPairId }),
+    ignore: (transactionIds: string[]) => req<{ ignored: number }>("POST", "/review/ignore", { transactionIds }),
+    unignore: (transactionIds: string[]) => req<{ unignored: number }>("POST", "/review/unignore", { transactionIds }),
+  },
+  settings: {
+    get: () => req<WorkspaceSettings>("GET", "/workspaces/current/settings"),
+    update: (body: Partial<WorkspaceSettings>) => req<WorkspaceSettings>("PATCH", "/workspaces/current/settings", body),
   },
 };

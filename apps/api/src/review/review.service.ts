@@ -200,6 +200,24 @@ export class ReviewService {
     return { ignored: count };
   }
 
+  /** Reativa lançamentos ignorados: sem categoria voltam para a fila; com categoria ficam ok. 404 se nada mudou. */
+  async unignore(workspaceId: string, transactionIds: string[]) {
+    const ids = [...new Set(transactionIds)];
+    const [uncategorized, categorized] = await prisma.$transaction([
+      prisma.transaction.updateMany({
+        where: { id: { in: ids }, workspaceId, ignored: true, categoryId: null },
+        data: { ignored: false, reviewStatus: "pending", categorySource: "none" },
+      }),
+      prisma.transaction.updateMany({
+        where: { id: { in: ids }, workspaceId, ignored: true, categoryId: { not: null } },
+        data: { ignored: false, reviewStatus: "ok" },
+      }),
+    ]);
+    const count = uncategorized.count + categorized.count;
+    if (count === 0) throw new NotFoundException("lançamento ignorado não encontrado");
+    return { unignored: count };
+  }
+
   recategorize(workspaceId: string, userId: string) {
     return this.transactions.enqueueCategorizationJob(workspaceId, userId);
   }

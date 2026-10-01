@@ -57,6 +57,12 @@ export class ReviewController {
     return this.service.ignore(user.workspaceId, idsBody.parse(body).transactionIds);
   }
 
+  @Post("unignore")
+  @HttpCode(200)
+  unignore(@CurrentUser() user: AuthenticatedUser, @Body() body: unknown) {
+    return this.service.unignore(user.workspaceId, idsBody.parse(body).transactionIds);
+  }
+
   @Post("recategorize")
   @HttpCode(201)
   recategorize(@CurrentUser() user: AuthenticatedUser) {

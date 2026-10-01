@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useFinanceStore } from "../stores/finance";
-import type { Transaction, TransactionType } from "../lib/api";
+import { api, type CategorySource, type Transaction, type TransactionType } from "../lib/api";
 import EntityBadge from "../components/ui/EntityBadge.vue";
 import EmptyState from "../components/ui/EmptyState.vue";
 import Money from "../components/ui/Money.vue";
@@ -21,6 +21,46 @@ const filterEntity = ref<EntityFilter>("all");
 const filterCategoryId = ref("");
 const filterType = ref<TransactionType | "">("");
 const filterReportable = ref(false);
+// filtro rápido (sobre as linhas já carregadas)
+type ShowFilter = "all" | "paired" | "ignored" | "pending";
+const SHOW_OPTIONS: { value: ShowFilter; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "paired", label: "Pareados" },
+  { value: "ignored", label: "Ignorados" },
+  { value: "pending", label: "Pendentes" },
+];
+const showFilter = ref<ShowFilter>("all");
+const visibleTransactions = computed(() =>
+  store.transactions.filter((t) => {
+    if (showFilter.value === "paired") return !!t.transferPairId;
+    if (showFilter.value === "ignored") return !!t.ignored;
+    if (showFilter.value === "pending") return t.reviewStatus === "pending" && !t.ignored;
+    return true;
+  }),
+);
+
+const SOURCE_LABEL: Partial<Record<CategorySource, string>> = { manual: "manual", rule: "regra", ai: "IA", import: "importação" };
+const sourceLabel = (tx: Transaction) => (tx.categoryId ? SOURCE_LABEL[tx.categorySource] : undefined);
+
+const actionErro = ref("");
+const busyId = ref("");
+
+/** Desfaz o par (os dois lados) ou reativa o ignorado, e recarrega a lista com os filtros atuais. */
+async function runAction(tx: Transaction, action: () => Promise<unknown>) {
+  actionErro.value = "";
+  busyId.value = tx.id;
+  try {
+    await action();
+    await filtrar();
+  } catch (e) {
+    actionErro.value = (e as Error).message || "Não foi possível concluir a ação.";
+  } finally {
+    busyId.value = "";
+  }
+}
+const desfazerPar = (tx: Transaction) => runAction(tx, () => api.review.unpair(tx.transferPairId!));
+const reativar = (tx: Transaction) => runAction(tx, () => api.review.unignore([tx.id]));
+
 const filterCategoryName = computed(() =>
   filterCategoryId.value === "__none" ? "Sem categoria" : (store.categories.find((c) => c.id === filterCategoryId.value)?.name ?? ""),
 );
@@ -134,6 +174,7 @@ async function registrar() {
       body.categoryId = txCategoryId.value || null;
     }
     await store.createTransaction(body);
+    await filtrar(); // a resposta do POST não traz os campos de revisão/par; recarrega a lista com os filtros atuais
     txAmount.value = 0;
     txDesc.value = "";
     txCategoryId.value = "";
@@ -218,20 +259,46 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
       <button type="button" aria-label="Remover filtro de categoria" @click="limparCategoria">Limpar</button>
     </p>
 
+    <div class="show-filter" role="group" aria-label="Mostrar">
+      <span class="show-label">Mostrar:</span>
+      <button
+        v-for="o in SHOW_OPTIONS"
+        :key="o.value"
+        type="button"
+        class="chip-btn"
+        :class="{ active: showFilter === o.value }"
+        :aria-pressed="showFilter === o.value"
+        @click="showFilter = o.value"
+      >{{ o.label }}</button>
+    </div>
+    <p v-if="actionErro" role="alert" class="text-error">{{ actionErro }}</p>
+
     <!-- List -->
     <ul class="tx-list">
-      <li v-for="tx in store.transactions" :key="tx.id" class="tx-item" :class="tx.type">
-        <div class="tx-info">
-          <span class="tx-type">{{ txTypeLabel[tx.type] }}</span>
-          <EntityBadge v-if="entityOf(tx)" :entity="entityOf(tx)!" />
-          <span class="tx-desc">{{ tx.description ?? "—" }}</span>
-          <span class="tx-date">{{ formatDate(tx.date) }}</span>
+      <li v-for="tx in visibleTransactions" :key="tx.id" class="tx-item" :class="[tx.type, { dim: tx.ignored }]">
+        <div class="tx-main">
+          <div class="tx-info">
+            <span class="tx-type">{{ txTypeLabel[tx.type] }}</span>
+            <EntityBadge v-if="entityOf(tx)" :entity="entityOf(tx)!" />
+            <span class="tx-desc">{{ tx.description ?? "—" }}</span>
+            <span class="tx-date">{{ formatDate(tx.date) }}</span>
+          </div>
+          <div class="tx-tags">
+            <span v-if="tx.transferPairId" class="tag paired">Transferência pareada</span>
+            <button v-if="tx.transferPairId" type="button" class="tag-action" :disabled="busyId === tx.id" @click="desfazerPar(tx)">Desfazer par</button>
+            <span v-if="tx.ignored" class="tag ignored">Ignorado</span>
+            <button v-if="tx.ignored" type="button" class="tag-action" :disabled="busyId === tx.id" @click="reativar(tx)">Reativar</button>
+            <span v-if="tx.installmentCurrent && tx.installmentTotal" class="tag">Parcela {{ tx.installmentCurrent }}/{{ tx.installmentTotal }}</span>
+            <span v-if="tx.reviewStatus === 'pending' && !tx.ignored" class="tag pending">Sem categoria</span>
+            <span v-if="sourceLabel(tx)" class="source">Categoria: {{ sourceLabel(tx) }}</span>
+          </div>
         </div>
         <span class="tx-amount" :class="{ negative: tx.type === 'expense' }">
           {{ tx.type === 'expense' ? '−' : tx.type === 'income' ? '+' : '⇄' }}<Money :cents="tx.amountCents" />
         </span>
       </li>
       <li v-if="store.transactions.length === 0" class="empty"><EmptyState title="Nenhuma transação encontrada." /></li>
+      <li v-else-if="visibleTransactions.length === 0" class="empty"><EmptyState title="Nenhuma transação neste filtro." hint="Troque o filtro “Mostrar” para ver as demais." /></li>
     </ul>
   </section>
 </template>
@@ -247,6 +314,19 @@ h2, h3 { margin-bottom: calc(var(--space) * 2); }
 button { white-space: nowrap; }
 .tx-list { list-style: none; display: flex; flex-direction: column; gap: var(--space); }
 .tx-item { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--space) * 2); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.tx-main { display: flex; flex-direction: column; gap: calc(var(--space) * 0.75); min-width: 0; }
+.tx-tags { display: flex; gap: var(--space); align-items: center; flex-wrap: wrap; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); background: var(--surface-2); }
+.tag.paired { color: var(--c-transfer); background: color-mix(in srgb, var(--c-transfer) 15%, transparent); }
+.tag.ignored { color: var(--text-muted); }
+.tag.pending { color: var(--warning); background: color-mix(in srgb, var(--warning) 15%, transparent); }
+.tag-action { padding: 0 8px; font-size: 0.75rem; }
+.source { font-size: 0.75rem; color: var(--text-muted); }
+.dim .tx-desc, .dim .tx-amount { opacity: 0.6; }
+.show-filter { display: flex; align-items: center; gap: var(--space); flex-wrap: wrap; margin-bottom: calc(var(--space) * 2); }
+.show-label { font-size: 0.85rem; color: var(--text-muted); }
+.chip-btn { padding: 2px 12px; border-radius: 999px; font-size: 0.85rem; }
+.chip-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 .tx-info { display: flex; gap: calc(var(--space) * 2); align-items: baseline; flex-wrap: wrap; }
 .tx-type { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
 .tx-desc { font-weight: 500; }

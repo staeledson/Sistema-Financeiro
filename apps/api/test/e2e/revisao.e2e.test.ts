@@ -308,6 +308,35 @@ describe("transferências e ignorar", () => {
     expect((await get(u, "/review/pending")).json().total).toBe(0);
   });
 
+  it("reativar ignorados: com categoria volta ok, sem categoria volta para a fila", async () => {
+    const u = await newUser("unign1");
+    const acc = await account(u, "PF", "pf");
+    const c = await category(u, "Categoria unignore", "expense");
+    const comCat = await tx(u, acc.id, { ignored: true, reviewStatus: "ok", categoryId: c.id, categorySource: "manual" });
+    const semCat = await tx(u, acc.id, { ignored: true, reviewStatus: "ok", categorySource: "none" });
+    const res = await post(u, "/review/unignore", { transactionIds: [comCat.id, semCat.id, comCat.id] });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ unignored: 2 });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: comCat.id } })).toMatchObject({ ignored: false, reviewStatus: "ok", categoryId: c.id, categorySource: "manual" });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: semCat.id } })).toMatchObject({ ignored: false, reviewStatus: "pending", categorySource: "none" });
+    const pending = (await get(u, "/review/pending")).json();
+    expect(pending.groups.flatMap((g: { transactionIds: string[] }) => g.transactionIds)).toEqual([semCat.id]);
+  });
+
+  it("reativar: linha não ignorada ou de outro workspace retorna 404; corpo vazio retorna 400", async () => {
+    const u = await newUser("unign2");
+    const other = await newUser("unign3");
+    const acc = await account(u, "PF", "pf");
+    const otherAcc = await account(other, "PF", "pf");
+    const normal = await tx(u, acc.id);
+    const alheia = await tx(other, otherAcc.id, { ignored: true, reviewStatus: "ok" });
+    expect((await post(u, "/review/unignore", { transactionIds: [normal.id] })).statusCode).toBe(404);
+    expect((await post(u, "/review/unignore", { transactionIds: [alheia.id] })).statusCode).toBe(404);
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: alheia.id } })).toMatchObject({ ignored: true });
+    expect((await post(u, "/review/unignore", {})).statusCode).toBe(400);
+    expect((await post(u, "/review/unignore", { transactionIds: [] })).statusCode).toBe(400);
+  });
+
   it("desfazer par: sem categoria volta para a fila; com categoria só perde o par", async () => {
     const u = await newUser("tr4");
     const pj = await account(u, "PJ", "pj");
