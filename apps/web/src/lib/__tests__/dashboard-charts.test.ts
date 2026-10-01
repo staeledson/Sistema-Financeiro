@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   averageMonthlyCents, budgetBars, cardDailyLine, cashflowBars, forecastLine, installmentsBars, monthLabel, palette,
-  PALETTE_SIZE, pieSlices, reaisToBRL, spendingPie, spendingStack,
+  PALETTE_SIZE, pieSlices, reaisToBRL, spendingPie, spendingStack, stackTooltip, totalStackCents,
 } from "../dashboard-charts";
 import { themeColors } from "../theme-colors";
 import { formatBRL } from "../money";
@@ -230,5 +230,44 @@ describe("listas vazias", () => {
     expect(() => cashflowBars([], colors)).not.toThrow();
     expect(() => forecastLine([], [], colors)).not.toThrow();
     expect(series(forecastLine([], [], colors))[0].data).toEqual([]);
+  });
+});
+
+describe("total da evolução mensal", () => {
+  const byMonth = {
+    months: ["2026-05", "2026-06"],
+    series: [
+      { key: "c1", categoryId: "c1", name: "Mercado", totalsCents: [6000, 15000] },
+      { key: "__others", categoryId: null as any, name: "Outras", totalsCents: [100, 50] },
+    ],
+  };
+
+  it("totalStackCents soma todas as séries e meses, Outras incluída", () => {
+    expect(totalStackCents(byMonth)).toBe(21150);
+    expect(totalStackCents({ months: [], series: [] })).toBe(0);
+  });
+
+  it("o tooltip lista as categorias e fecha com o total do mês", () => {
+    const html = stackTooltip([
+      { axisValueLabel: "2026-06", marker: "", seriesName: "Mercado", value: 150 },
+      { axisValueLabel: "2026-06", marker: "", seriesName: "Outras", value: 0.5 },
+    ]);
+    expect(html).toContain("2026-06");
+    expect(html).toContain(formatBRL(15000));
+    expect(html).toContain("Total");
+    expect(html).toContain(formatBRL(15050));
+  });
+
+  it("o total soma só as séries recebidas (as desligadas na legenda não vêm) e escapa HTML do nome", () => {
+    const html = stackTooltip([{ axisValueLabel: "2026-06", seriesName: "<b>x</b>", value: 10 }]);
+    expect(html).not.toContain("<b>x</b>");
+    expect(html).toContain("&lt;b&gt;x&lt;/b&gt;");
+    expect(html).toContain(formatBRL(1000));
+  });
+
+  it("spendingStack usa o tooltip com total", () => {
+    const o = spendingStack(byMonth, colors) as Opt;
+    expect(o.tooltip.trigger).toBe("axis");
+    expect(o.tooltip.formatter).toBe(stackTooltip);
   });
 });

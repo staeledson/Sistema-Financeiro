@@ -111,11 +111,36 @@ export function spendingPie(byCategory: SpendingCategory[], colors: ThemeColors)
   };
 }
 
+/** Despesa total dos meses da série empilhada (todas as séries somadas, "Outras" incluída). */
+export function totalStackCents(byMonth: SpendingByMonth): number {
+  return byMonth.series.reduce((s, x) => s + x.totalsCents.reduce((a, b) => a + b, 0), 0);
+}
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+type AxisTooltipItem = { axisValueLabel?: string; marker?: string; seriesName?: string; value?: unknown };
+
+/** Tooltip do eixo com uma linha "Total" somando só as séries visíveis (categorias desligadas na legenda ficam fora). */
+export function stackTooltip(params: unknown): string {
+  const items = (Array.isArray(params) ? params : [params]) as AxisTooltipItem[];
+  if (!items.length || !items[0]) return "";
+  const row = (label: string, value: string, marker = "") =>
+    `<div style="display:flex;justify-content:space-between;gap:24px">` +
+    `<span>${marker}${escapeHtml(label)}</span><b>${value}</b></div>`;
+  const total = items.reduce((s, p) => (Number.isFinite(Number(p.value)) ? s + Number(p.value) : s), 0);
+  return (
+    `<div>${escapeHtml(String(items[0].axisValueLabel ?? ""))}</div>` +
+    items.map((p) => row(p.seriesName ?? "", reaisToBRL(p.value), p.marker ?? "")).join("") +
+    `<div style="margin-top:4px;padding-top:4px;border-top:1px solid currentColor">${row("Total", formatBRL(Math.round(total * 100)))}</div>`
+  );
+}
+
 export function spendingStack(byMonth: SpendingByMonth, colors: ThemeColors): EChartsOption {
   const pal = palette(colors);
   return {
     ...base(colors),
-    tooltip: { ...(base(colors).tooltip as object), trigger: "axis" },
+    tooltip: { ...(base(colors).tooltip as object), trigger: "axis", formatter: stackTooltip },
     legend: { ...(base(colors).legend as object), type: "scroll", top: 0 },
     grid: GRID,
     xAxis: categoryAxis(colors, byMonth.months, monthLabel),
