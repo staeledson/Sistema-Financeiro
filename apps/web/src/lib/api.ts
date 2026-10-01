@@ -270,6 +270,9 @@ export interface SummaryDashboard {
   /** Há ao menos um cartão com dias de fechamento e vencimento. */
   cardsConfigured: boolean;
   spending: {
+    /** Mês dos gastos (YYYY-MM) e o anterior, usado na comparação do insight. */
+    month: string;
+    previousMonth: string;
     totalCents: number;
     insight: string | null;
     byCategory: SpendingCategory[];
@@ -343,8 +346,13 @@ export const api = {
     cards: (params: URLSearchParams) => req<CardsDashboard>("GET", dashboardPath("cards", params)),
     cashflow: (params: URLSearchParams) => req<CashflowDashboard>("GET", dashboardPath("cashflow", params)),
   },
-  /** Resumo do Início: sempre o workspace inteiro; só `asOf` (YYYY-MM-DD) tem efeito. */
-  summary: (asOf?: string) => req<SummaryDashboard>("GET", dashboardPath("summary", asOf ? new URLSearchParams({ asOf }) : undefined)),
+  /** Resumo do Início: sempre o workspace inteiro; só `asOf` (YYYY-MM-DD) e `month` (YYYY-MM, mês dos gastos) têm efeito. */
+  summary: (asOf?: string, month?: string) => {
+    const params = new URLSearchParams();
+    if (asOf) params.set("asOf", asOf);
+    if (month) params.set("month", month);
+    return req<SummaryDashboard>("GET", dashboardPath("summary", params));
+  },
   review: {
     unpair: (transferPairId: string) => req<{ unpaired: number }>("POST", "/review/unpair", { transferPairId }),
     ignore: (transactionIds: string[]) => req<{ ignored: number }>("POST", "/review/ignore", { transactionIds }),

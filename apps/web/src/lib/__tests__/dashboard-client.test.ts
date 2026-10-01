@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   cardCycleLink, categoryLink, cycleStart, expensesMonthLink, filterFromQuery, filterToParams, filterToQuery, isValidRange, localToday,
-  monthLink, monthRange, periodRange, rangeError, scopeToParams, transactionsLink, type PainelFilter,
+  isValidMonth, monthLabel, monthLink, monthName, monthRange, previousMonthOf, periodRange, rangeError, scopeToParams, transactionsLink, type PainelFilter,
 } from "../dashboard-client";
 
 const TODAY = "2026-09-15";
 
 describe("filterFromQuery", () => {
-  it("query vazia: mês atual e entidade all", () => {
-    expect(filterFromQuery({}, TODAY)).toEqual({ entity: "all", accountId: "", month: "2026-09" });
+  it("query vazia: mês anterior (completo) e entidade all", () => {
+    expect(filterFromQuery({}, TODAY)).toEqual({ entity: "all", accountId: "", month: "2026-08" });
+    expect(filterFromQuery({}, "2026-01-03").month).toBe("2025-12");
   });
 
   it("preserva entidade, conta e mês válidos", () => {
@@ -18,13 +19,13 @@ describe("filterFromQuery", () => {
   });
 
   it("valores inválidos voltam ao padrão", () => {
-    expect(filterFromQuery({ month: "2026-13" }, TODAY).month).toBe("2026-09");
+    expect(filterFromQuery({ month: "2026-13" }, TODAY).month).toBe("2026-08");
     expect(filterFromQuery({ entity: "xx" }, TODAY).entity).toBe("all");
-    expect(filterFromQuery({ quarter: "2026-Q5" }, TODAY).month).toBe("2026-09");
-    expect(filterFromQuery({ year: "26" }, TODAY).month).toBe("2026-09");
-    expect(filterFromQuery({ from: "2026-02-30", to: "2026-03-01" }, TODAY).month).toBe("2026-09");
-    expect(filterFromQuery({ from: "2026-03-10", to: "2026-03-01" }, TODAY).month).toBe("2026-09");
-    expect(filterFromQuery({ from: "2026-03-01" }, TODAY).month).toBe("2026-09");
+    expect(filterFromQuery({ quarter: "2026-Q5" }, TODAY).month).toBe("2026-08");
+    expect(filterFromQuery({ year: "26" }, TODAY).month).toBe("2026-08");
+    expect(filterFromQuery({ from: "2026-02-30", to: "2026-03-01" }, TODAY).month).toBe("2026-08");
+    expect(filterFromQuery({ from: "2026-03-10", to: "2026-03-01" }, TODAY).month).toBe("2026-08");
+    expect(filterFromQuery({ from: "2026-03-01" }, TODAY).month).toBe("2026-08");
   });
 
   it("mês e ano juntos: o mês vence e só ele é mantido", () => {
@@ -43,7 +44,32 @@ describe("filterFromQuery", () => {
   });
 
   it("intervalo acima de 1100 dias é rejeitado (limite da API)", () => {
-    expect(filterFromQuery({ from: "2020-01-01", to: "2026-01-01" }, TODAY).month).toBe("2026-09");
+    expect(filterFromQuery({ from: "2020-01-01", to: "2026-01-01" }, TODAY).month).toBe("2026-08");
+  });
+});
+
+describe("previousMonthOf / monthLabel / monthName / isValidMonth", () => {
+  it("mês anterior ao de hoje, com virada de ano", () => {
+    expect(previousMonthOf("2026-10-01")).toBe("2026-09");
+    expect(previousMonthOf("2026-01-31")).toBe("2025-12");
+    expect(previousMonthOf("2026-03-15")).toBe("2026-02");
+    expect(previousMonthOf("2026-12-31")).toBe("2026-11");
+    expect(previousMonthOf("2026-01")).toBe("2025-12"); // aceita YYYY-MM
+  });
+
+  it("rótulos pt-BR", () => {
+    expect(monthLabel("2026-09")).toBe("09/2026");
+    expect(monthName("2026-09")).toBe("setembro de 2026");
+    expect(monthName("2026-03")).toBe("março de 2026");
+    expect(monthName("2025-12")).toBe("dezembro de 2025");
+  });
+
+  it("valida YYYY-MM", () => {
+    expect(isValidMonth("2026-09")).toBe(true);
+    expect(isValidMonth("2026-13")).toBe(false);
+    expect(isValidMonth("2026-9")).toBe(false);
+    expect(isValidMonth("")).toBe(false);
+    expect(isValidMonth("abc")).toBe(false);
   });
 });
 

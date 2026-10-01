@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { api } from "../lib/api";
-import { categoryLink, expensesMonthLink, localToday, type PainelFilter } from "../lib/dashboard-client";
+import {
+  categoryLink, expensesMonthLink, isValidMonth, localToday, monthLabel, monthName, previousMonthOf, type PainelFilter,
+} from "../lib/dashboard-client";
 import { budgetBars, PALETTE_SIZE, pieSlices, spendingPie, spendingStack } from "../lib/dashboard-charts";
 import { formatDate } from "../lib/import-client";
 import { formatBRL } from "../lib/money";
@@ -19,18 +21,35 @@ const route = useRoute();
 const router = useRouter();
 const workspace = useWorkspaceStore();
 
-// O resumo é sempre do workspace inteiro; só o "hoje" do navegador entra na consulta.
-const summary = useSection(() => api.summary(localToday()));
+// Saldos, pendências e próxima fatura são sempre "hoje"; os gastos são de um mês, por padrão o anterior ao atual
+// (o último completo: extratos e faturas costumam ser importados depois da virada). Não é guardado em lugar nenhum.
+const currentMonth = localToday().slice(0, 7);
+const month = ref(previousMonthOf(currentMonth));
+const summary = useSection(() => api.summary(localToday(), month.value));
 const onInicio = () => route.path === "/";
 
 onMounted(() => void summary.run());
 // Troca de workspace: os números são de outro workspace.
 watch(() => workspace.activeId, () => onInicio() && void summary.run());
 
-// Filtro usado só para montar os links da lista de transações (mês corrente, tudo).
-const monthFilter = computed<PainelFilter>(() => ({ entity: "all", accountId: "", month: localToday().slice(0, 7) }));
+function onMonth(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const next = input.value;
+  // Vazio/inválido (ou no futuro): mantém o mês anterior e devolve o valor ao campo.
+  if (!isValidMonth(next) || next > currentMonth) {
+    input.value = month.value;
+    return;
+  }
+  if (next === month.value) return;
+  month.value = next;
+  void summary.run();
+}
 
-const monthExpensesLink = computed(() => expensesMonthLink(monthFilter.value, monthFilter.value.month!));
+// Filtro usado só para montar os links da lista de transações (o mês escolhido, tudo).
+const monthFilter = computed<PainelFilter>(() => ({ entity: "all", accountId: "", month: month.value }));
+
+const monthExpensesLink = computed(() => expensesMonthLink(monthFilter.value, month.value));
+const monthTitle = computed(() => monthName(month.value));
 
 const data = computed(() => summary.data.value);
 const spending = computed(() => data.value?.spending ?? null);
@@ -128,11 +147,17 @@ const pendingText = computed(() => {
       </section>
 
       <section class="spending" aria-labelledby="sec-inicio-gastos">
-        <h3 id="sec-inicio-gastos" class="block-title">Para onde foi o dinheiro este mês</h3>
-        <Card title="Despesas do mês" :value="formatBRL(data.spending.totalCents)" :insight="spendingInsight" :to="monthExpensesLink" />
+        <div class="spending-head">
+          <h3 id="sec-inicio-gastos" class="block-title">Para onde foi o dinheiro em {{ monthLabel(month) }}</h3>
+          <div class="month-pick">
+            <label for="inicio-mes">Mês</label>
+            <input id="inicio-mes" type="month" :value="month" :max="currentMonth" @change="onMonth" />
+          </div>
+        </div>
+        <Card :title="`Despesas de ${monthTitle}`" :value="formatBRL(data.spending.totalCents)" :insight="spendingInsight" :to="monthExpensesLink" />
         <div v-if="data.spending.totalCents > 0" class="grid two">
           <Card title="Por categoria">
-            <EChart :option="pieOption" label="Despesas do mês por categoria" :height="280" @click="onPieClick" />
+            <EChart :option="pieOption" :label="`Despesas de ${monthTitle} por categoria`" :height="280" @click="onPieClick" />
           </Card>
           <Card title="Evolução mensal por categoria">
             <EChart :option="stackOption" label="Despesas dos últimos 12 meses, empilhadas por categoria" :height="280" @click="onStackClick" />
@@ -148,7 +173,7 @@ const pendingText = computed(() => {
             <EmptyState v-else title="Nenhum orçamento fixo" hint="Defina limites em Orçamentos para acompanhar aqui." />
           </Card>
         </div>
-        <EmptyState v-else title="Sem despesas este mês" hint="Importe um extrato ou lance despesas para ver a distribuição." />
+        <EmptyState v-else :title="`Sem despesas em ${monthTitle}`" hint="Importe um extrato ou lance despesas para ver a distribuição." />
       </section>
 
     </div>
@@ -166,6 +191,8 @@ const pendingText = computed(() => {
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid .span-2 { grid-column: 1 / -1; }
 .spending { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.spending-head { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--space) * 2); flex-wrap: wrap; }
+.month-pick { display: flex; align-items: center; gap: var(--space); font-size: 0.85rem; color: var(--text-muted); }
 .block-title { font-size: 1.1rem; }
 .big { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 1.6rem; font-weight: 700; }
 .note { margin-top: calc(var(--space) * 0.5); font-size: 0.85rem; color: var(--text-muted); }

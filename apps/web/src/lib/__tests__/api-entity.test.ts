@@ -20,6 +20,17 @@ describe("api — entidade PF/PJ", () => {
     expect(lastCall()).toEqual(["GET", "/accounts?entity=pj", undefined]);
   });
 
+  it("summary envia asOf e month só quando informados", async () => {
+    await api.summary();
+    expect(lastCall()[1]).toBe("/dashboard/summary");
+    await api.summary("2026-10-01");
+    expect(lastCall()[1]).toBe("/dashboard/summary?asOf=2026-10-01");
+    await api.summary("2026-10-01", "2026-09");
+    expect(lastCall()[1]).toBe("/dashboard/summary?asOf=2026-10-01&month=2026-09");
+    await api.summary("2026-10-01", "");
+    expect(lastCall()[1]).toBe("/dashboard/summary?asOf=2026-10-01");
+  });
+
   it("accounts.update usa PATCH /accounts/:id", async () => {
     await api.accounts.update("a1", { entity: "pj" });
     expect(lastCall()).toEqual(["PATCH", "/accounts/a1", { entity: "pj" }]);
