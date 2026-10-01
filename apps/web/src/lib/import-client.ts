@@ -173,3 +173,8 @@ export function rowTags(description: string | null): { installment: string | nul
   const m = /\s(\d{1,3}\/\d{1,3})$/.exec(base);
   return { installment: m ? m[1] : null, usd };
 }
+
+/** Confirma no banco as linhas escolhidas de um preview (mesma chamada do fluxo individual). */
+export function commitImport(batchId: string, rows: unknown[]) {
+  return http<{ inserted: number; skipped: number }>("POST", `/import/${batchId}/commit`, { rows });
+}
