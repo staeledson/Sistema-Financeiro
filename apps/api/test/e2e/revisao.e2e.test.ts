@@ -168,6 +168,20 @@ describe("POST /review/categorize", () => {
   });
 });
 
+describe("POST /review/categorize (regra aprendida)", () => {
+  it("aprende a regra do primeiro id listado, não de uma ordem arbitrária", async () => {
+    const u = await newUser("cat5");
+    const acc = await account(u, "PF", "pf");
+    const c = await category(u, "Mercado r", "expense");
+    const t1 = await tx(u, acc.id, { description: "Alfa Loja" });
+    const t2 = await tx(u, acc.id, { description: "Beta Loja" });
+    const res = await post(u, "/review/categorize", { transactionIds: [t2.id, t1.id], categoryId: c.id });
+    expect(res.statusCode).toBe(200);
+    const rules = await prisma.categoryRule.findMany({ where: { workspaceId: u.workspaceId } });
+    expect(rules.map((r) => r.pattern)).toEqual(["beta loja"]);
+  });
+});
+
 describe("POST /review/accept-suggestion", () => {
   it("aplica a sugestão como ai e pula o que não tem sugestão ou ficou incompatível", async () => {
     const u = await newUser("acc1");
@@ -251,6 +265,90 @@ describe("transferências e ignorar", () => {
     expect((await get(u, "/review/pending")).json().total).toBe(0);
   });
 
+  it("desfazer par: sem categoria volta para a fila; com categoria só perde o par", async () => {
+    const u = await newUser("tr4");
+    const pj = await account(u, "PJ", "pj");
+    const pf = await account(u, "PF", "pf");
+    const c = await category(u, "Categoria par", "expense");
+    const semCat = await tx(u, pj.id, { transferPairId: "pair-x", reviewStatus: "ok" });
+    const comCat = await tx(u, pf.id, { transferPairId: "pair-x", reviewStatus: "ok", categoryId: c.id, categorySource: "manual", type: "income" });
+    const res = await post(u, "/review/unpair", { transferPairId: "pair-x" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ unpaired: 2 });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: semCat.id } })).toMatchObject({ transferPairId: null, reviewStatus: "pending", categorySource: "none", categoryId: null });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: comCat.id } })).toMatchObject({ transferPairId: null, reviewStatus: "ok", categorySource: "manual", categoryId: c.id });
+    expect((await post(u, "/review/unpair", { transferPairId: "pair-x" })).statusCode).toBe(404);
+  });
+
+  it("marcar limpa sugestão e confiança do par", async () => {
+    const u = await newUser("tr5");
+    const { saida, entrada } = await par(u);
+    const c = await category(u, "Sug par", "expense");
+    await prisma.transaction.update({ where: { id: saida.id }, data: { suggestedCategoryId: c.id, categoryConfidence: 0.7 } });
+    expect((await post(u, "/review/mark-transfer", { transactionId: saida.id, counterpartTransactionId: entrada.id })).statusCode).toBe(200);
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: saida.id } })).toMatchObject({ suggestedCategoryId: null, categoryConfidence: null, reviewStatus: "ok" });
+  });
+
+  it("recusa marcar lançamento ignorado (400)", async () => {
+    const u = await newUser("tr6");
+    const { saida, entrada } = await par(u);
+    await prisma.transaction.update({ where: { id: entrada.id }, data: { ignored: true } });
+    expect((await post(u, "/review/mark-transfer", { transactionId: saida.id, counterpartTransactionId: entrada.id })).statusCode).toBe(400);
+    expect((await post(u, "/review/mark-transfer", { transactionId: entrada.id, counterpartTransactionId: saida.id })).statusCode).toBe(400);
+    expect((await prisma.transaction.findUniqueOrThrow({ where: { id: saida.id } })).transferPairId).toBeNull();
+  });
+
+  it("duas marcações concorrentes do mesmo lançamento: só uma vence e nenhum par fica pela metade", async () => {
+    const u = await newUser("tr7");
+    const pj = await account(u, "PJ", "pj");
+    const pf = await account(u, "PF", "pf");
+    const pf2 = await account(u, "PF2", "pf");
+    for (let round = 0; round < 5; round++) {
+      const saida = await tx(u, pj.id, { amountCents: 7000n + BigInt(round), description: `Saída ${round}` });
+      const e1 = await tx(u, pf.id, { type: "income", amountCents: 7000n + BigInt(round) });
+      const e2 = await tx(u, pf2.id, { type: "income", amountCents: 7000n + BigInt(round) });
+      const [r1, r2] = await Promise.all([
+        post(u, "/review/mark-transfer", { transactionId: saida.id, counterpartTransactionId: e1.id }),
+        post(u, "/review/mark-transfer", { transactionId: saida.id, counterpartTransactionId: e2.id }),
+      ]);
+      const codes = [r1.statusCode, r2.statusCode].sort();
+      expect(codes[0]).toBe(200);
+      expect([400, 409]).toContain(codes[1]);
+      const rows = await prisma.transaction.findMany({ where: { id: { in: [saida.id, e1.id, e2.id] } } });
+      const paired = rows.filter((r) => r.transferPairId);
+      expect(paired).toHaveLength(2);
+      expect(new Set(paired.map((r) => r.transferPairId)).size).toBe(1);
+    }
+  });
+
+  it("transfer-candidates exige conta no lançamento de origem (400)", async () => {
+    const u = await newUser("tr8");
+    const semConta = await tx(u, null as never, { accountId: null });
+    expect((await get(u, `/review/transfer-candidates?transactionId=${semConta.id}`)).statusCode).toBe(400);
+  });
+
+  it("isolamento: outro workspace não aceita sugestão, ignora, desfaz par nem lista candidatos", async () => {
+    const u = await newUser("iso1");
+    const other = await newUser("iso1b");
+    const c = await category(u, "Iso cat", "expense");
+    const pj = await account(u, "PJ", "pj");
+    const pf = await account(u, "PF", "pf");
+    const comSug = await tx(u, pj.id, { suggestedCategoryId: c.id, description: "Sug iso" });
+    const a = await tx(u, pj.id, { transferPairId: "pair-iso", reviewStatus: "ok", amountCents: 900n });
+    const b = await tx(u, pf.id, { transferPairId: "pair-iso", reviewStatus: "ok", amountCents: 900n, type: "income" });
+    const fonte = await tx(u, pj.id, { amountCents: 123n });
+    await tx(u, pf.id, { amountCents: 123n, type: "income" });
+
+    expect((await post(other, "/review/accept-suggestion", { transactionIds: [comSug.id] })).json()).toEqual({ accepted: 0, skipped: 1 });
+    expect((await post(other, "/review/ignore", { transactionIds: [comSug.id] })).json()).toEqual({ ignored: 0 });
+    expect((await post(other, "/review/unpair", { transferPairId: "pair-iso" })).statusCode).toBe(404);
+    expect((await get(other, `/review/transfer-candidates?transactionId=${fonte.id}`)).statusCode).toBe(404);
+
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: comSug.id } })).toMatchObject({ categoryId: null, ignored: false, reviewStatus: "pending", suggestedCategoryId: c.id });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: a.id } })).toMatchObject({ transferPairId: "pair-iso", reviewStatus: "ok" });
+    expect((await prisma.transaction.findUniqueOrThrow({ where: { id: b.id } })).transferPairId).toBe("pair-iso");
+  });
+
   it("recategorize enfileira um job categorize sem lote", async () => {
     const u = await newUser("rec1");
     const res = await post(u, "/review/recategorize");
@@ -286,7 +384,39 @@ describe("PATCH /transactions/:id/category", () => {
     expect((await patch(u, t.id, { categoryId: receita.id })).statusCode).toBe(400);
     const res = await patch(u, t.id, { categoryId: null });
     expect(res.statusCode).toBe(200);
-    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: t.id } })).toMatchObject({ categoryId: null, categorySource: "none" });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: t.id } })).toMatchObject({
+      categoryId: null, categorySource: "none", categoryConfidence: null, suggestedCategoryId: null, reviewStatus: "pending",
+    });
+  });
+
+  it("recusa corpo inválido (400) sem alterar o lançamento nem criar regra; categoryId nulo segue funcionando", async () => {
+    const u = await newUser("pat3");
+    const acc = await account(u, "PF", "pf");
+    await category(u, "Qualquer p", "expense");
+    const t = await tx(u, acc.id, { description: "Corpo ruim" });
+    const bodies: unknown[] = [{}, { applyToSimilar: true }, { categoryId: 123 }, { categoryId: "" }, { categoryId: "x", applyToSimilar: "sim" }];
+    for (const b of bodies) {
+      expect((await patch(u, t.id, b)).statusCode, JSON.stringify(b)).toBe(400);
+    }
+    const semCorpo = await app.inject({ method: "PATCH", url: `/transactions/${t.id}/category`, headers: { authorization: u.h.authorization } });
+    expect(semCorpo.statusCode).toBe(400);
+    const corpoVazioJson = await app.inject({ method: "PATCH", url: `/transactions/${t.id}/category`, headers: u.h });
+    expect(corpoVazioJson.statusCode).toBe(400);
+
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: t.id } })).toMatchObject({ categoryId: null, categorySource: "none", reviewStatus: "pending" });
+    expect(await prisma.categoryRule.count({ where: { workspaceId: u.workspaceId } })).toBe(0);
+    expect((await patch(u, t.id, { categoryId: null })).statusCode).toBe(200);
+  });
+
+  it("applyToSimilar nunca toca pendentes de outro workspace com a mesma descrição", async () => {
+    const u = await newUser("pat4");
+    const other = await newUser("pat4b");
+    const c = await category(u, "Assinaturas iso", "expense");
+    const mine = await tx(u, (await account(u, "PF", "pf")).id, { description: "Hulu 1" });
+    const theirs = await tx(other, (await account(other, "PF", "pf")).id, { description: "Hulu 2" });
+    const res = await patch(u, mine.id, { categoryId: c.id, applyToSimilar: true });
+    expect(res.json().similarCount).toBe(0);
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: theirs.id } })).toMatchObject({ categoryId: null, reviewStatus: "pending" });
   });
 });
 
@@ -328,6 +458,23 @@ describe("POST /category-rules valida o padrão", () => {
     expect((await rule("contains", "   ")).statusCode).toBe(400);
     expect((await rule("regex", "")).statusCode).toBe(400);
     expect((await get(u, "/category-rules")).json()).toHaveLength(3);
+  });
+});
+
+describe("POST /category-rules: padrão aparado e limitado", () => {
+  it("grava o padrão aparado e recusa mais de 200 caracteres em qualquer tipo", async () => {
+    const u = await newUser("rule2");
+    const c = await category(u, "Regras t", "expense");
+    const rule = (matchType: string, pattern: string) => post(u, "/category-rules", { matchType, pattern, categoryId: c.id });
+
+    expect((await rule("contains", "  padaria  ")).statusCode).toBe(201);
+    expect((await rule("regex", "  ^uber  ")).statusCode).toBe(201);
+    expect((await get(u, "/category-rules")).json().map((r: { pattern: string }) => r.pattern).sort()).toEqual(["^uber", "padaria"]);
+    expect((await rule("contains", "a".repeat(200))).statusCode).toBe(201);
+    for (const t of ["contains", "equals", "regex"]) {
+      expect((await rule(t, "a".repeat(201))).statusCode, t).toBe(400);
+    }
+    expect((await rule("contains", `  ${"b".repeat(201)}  `)).statusCode).toBe(400);
   });
 });
 

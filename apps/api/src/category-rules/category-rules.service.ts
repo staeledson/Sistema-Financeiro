@@ -2,6 +2,8 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { prisma } from "../database";
 import { ruleFromCorrection } from "@app/shared";
 
+const MAX_PATTERN_LENGTH = 200;
+
 @Injectable()
 export class CategoryRulesService {
   list(workspaceId: string) {
@@ -19,16 +21,20 @@ export class CategoryRulesService {
     if (typeof data.pattern !== "string" || data.pattern.trim() === "") {
       throw new BadRequestException("o padrão da regra não pode ser vazio");
     }
+    const pattern = data.pattern.trim();
+    if (pattern.length > MAX_PATTERN_LENGTH) {
+      throw new BadRequestException(`o padrão da regra deve ter no máximo ${MAX_PATTERN_LENGTH} caracteres`);
+    }
     if (data.matchType === "regex") {
       try {
-        new RegExp(data.pattern, "i");
+        new RegExp(pattern, "i");
       } catch {
         throw new BadRequestException("expressão regular inválida");
       }
     }
     return prisma.categoryRule.upsert({
-      where: { workspaceId_matchType_pattern: { workspaceId, matchType: data.matchType, pattern: data.pattern } },
-      create: { workspaceId, ...data, priority: data.priority ?? 100 },
+      where: { workspaceId_matchType_pattern: { workspaceId, matchType: data.matchType, pattern } },
+      create: { workspaceId, ...data, pattern, priority: data.priority ?? 100 },
       update: { categoryId: data.categoryId, priority: data.priority ?? 100 },
       select: { id: true },
     });

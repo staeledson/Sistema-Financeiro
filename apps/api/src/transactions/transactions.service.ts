@@ -25,7 +25,7 @@ export class TransactionsService {
     if (categoryId === null) {
       await prisma.transaction.update({
         where: { id },
-        data: { categoryId: null, categorySource: "none", categoryConfidence: null, suggestedCategoryId: null },
+        data: { categoryId: null, categorySource: "none", categoryConfidence: null, suggestedCategoryId: null, reviewStatus: "pending" },
       });
       return { id, categoryId: null, similarCount: 0 };
     }

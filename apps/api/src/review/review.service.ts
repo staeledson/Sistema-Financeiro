@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { categoryFits, normalizeDescriptionKey, type AccountEntity } from "@app/shared";
 import { prisma } from "../database";
 import { findSimilarUncategorizedIds } from "../common/similar-transactions";
@@ -118,7 +118,9 @@ export class ReviewService {
 
     let ruleCreated = false;
     if (dto.createRule) {
-      await this.rules.learnFromCorrection({ counterparty: txs[0].counterparty, description: txs[0].description }, category.id, workspaceId);
+      // A regra vem do primeiro id listado pelo usuário (a consulta não garante ordem).
+      const first = txs.find((t) => t.id === dto.transactionIds[0]) ?? txs[0];
+      await this.rules.learnFromCorrection({ counterparty: first.counterparty, description: first.description }, category.id, workspaceId);
       ruleCreated = true;
     }
     return { updated: ids.size, similarUpdated, ruleCreated };
@@ -151,28 +153,47 @@ export class ReviewService {
 
   async markTransfer(workspaceId: string, transactionId: string, counterpartTransactionId: string) {
     if (transactionId === counterpartTransactionId) throw new BadRequestException("os lançamentos precisam ser diferentes");
-    const [a, b] = await this.loadTransactions(workspaceId, [transactionId, counterpartTransactionId]);
-    const ok =
-      a.accountId && b.accountId && a.accountId !== b.accountId &&
-      a.type !== "transfer" && b.type !== "transfer" && a.type !== b.type &&
-      Number(a.amountCents) === Number(b.amountCents) &&
-      !a.transferPairId && !b.transferPairId;
-    if (!ok) {
-      throw new BadRequestException("não formam um par: contas diferentes, sentidos opostos, mesmo valor e sem par anterior");
-    }
     const transferPairId = randomUUID();
-    await prisma.transaction.updateMany({
-      where: { id: { in: [a.id, b.id] }, workspaceId },
-      data: { transferPairId, reviewStatus: "ok" },
+    await prisma.$transaction(async (tx) => {
+      const unique = [transactionId, counterpartTransactionId];
+      const found = await tx.transaction.findMany({
+        where: { id: { in: unique }, workspaceId },
+        select: { id: true, type: true, amountCents: true, accountId: true, transferPairId: true, ignored: true },
+      });
+      const a = found.find((t) => t.id === transactionId);
+      const b = found.find((t) => t.id === counterpartTransactionId);
+      if (!a || !b) throw new NotFoundException("lançamento não encontrado");
+      const ok =
+        a.accountId && b.accountId && a.accountId !== b.accountId &&
+        a.type !== "transfer" && b.type !== "transfer" && a.type !== b.type &&
+        Number(a.amountCents) === Number(b.amountCents) &&
+        !a.transferPairId && !b.transferPairId &&
+        !a.ignored && !b.ignored;
+      if (!ok) {
+        throw new BadRequestException("não formam um par: contas diferentes, sentidos opostos, mesmo valor, sem par anterior e não ignorados");
+      }
+      // Escrita guardada: se outra requisição pareou ou ignorou um deles entre a leitura e aqui, count != 2 e tudo desfaz.
+      const { count } = await tx.transaction.updateMany({
+        where: { id: { in: [a.id, b.id] }, workspaceId, transferPairId: null, ignored: false },
+        data: { transferPairId, reviewStatus: "ok", suggestedCategoryId: null, categoryConfidence: null },
+      });
+      if (count !== 2) throw new ConflictException("um dos lançamentos mudou durante a operação; tente novamente");
     });
     return { transferPairId };
   }
 
   async unpair(workspaceId: string, transferPairId: string) {
-    const { count } = await prisma.transaction.updateMany({
-      where: { workspaceId, transferPairId },
-      data: { transferPairId: null, reviewStatus: "pending", categorySource: "none" },
-    });
+    const [uncategorized, categorized] = await prisma.$transaction([
+      prisma.transaction.updateMany({
+        where: { workspaceId, transferPairId, categoryId: null },
+        data: { transferPairId: null, reviewStatus: "pending", categorySource: "none" },
+      }),
+      prisma.transaction.updateMany({
+        where: { workspaceId, transferPairId, categoryId: { not: null } },
+        data: { transferPairId: null },
+      }),
+    ]);
+    const count = uncategorized.count + categorized.count;
     if (count === 0) throw new NotFoundException("par não encontrado");
     return { unpaired: count };
   }
@@ -195,6 +216,7 @@ export class ReviewService {
       select: { id: true, type: true, amountCents: true, date: true, accountId: true },
     });
     if (!tx || tx.type === "transfer") throw new NotFoundException("lançamento não encontrado");
+    if (!tx.accountId) throw new BadRequestException("o lançamento não tem conta; não pode ser marcado como transferência");
     const from = new Date(tx.date.getTime() - CANDIDATE_WINDOW_DAYS * 86_400_000);
     const to = new Date(tx.date.getTime() + CANDIDATE_WINDOW_DAYS * 86_400_000);
     const rows = await prisma.transaction.findMany({
