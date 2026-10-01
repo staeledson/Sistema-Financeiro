@@ -121,7 +121,7 @@ sistema-financeiro/
 │   │   │   ├── push/       notificações push (VAPID)
 │   │   │   ├── transactions/
 │   │   │   └── workspaces/ multi-tenant
-│   │   └── test/e2e/       263 testes de integração
+│   │   └── test/e2e/       299 testes de integração
 │   │
 │   ├── worker/             BullMQ job processors
 │   │   └── src/
@@ -184,6 +184,15 @@ VAPID_PRIVATE_KEY=
 
 ---
 
+## Deploy
+
+O front vai para a Vercel (conta pessoal) e a API, o worker, o Postgres, o Redis e o bucket para a Railway. O passo a passo, com backup e restauração do banco, está em [`docs/deploy.md`](docs/deploy.md).
+
+- O cadastro é fechado por **lista de permissão**: em produção só os emails de `SIGNUP_ALLOWED_EMAILS` criam conta, e sem a variável ninguém cria (falha segura); `*` abre o cadastro de propósito.
+- Depois de publicar, rode `scripts/smoke-prod.sh https://<seu-front>.vercel.app` para conferir o front, a API e o cadastro fechado.
+
+---
+
 ## Testes
 
 ```bash
@@ -192,9 +201,9 @@ pnpm test
 
 # por app
 pnpm --filter @app/shared test   # 271 testes unitários
-pnpm --filter @app/api    test   # 263 testes e2e
-pnpm --filter @app/worker test   # 61 testes unitários
-pnpm --filter @app/web    test   # 223 testes unitários
+pnpm --filter @app/api    test   # 299 testes (e2e e unitários)
+pnpm --filter @app/worker test   # 64 testes unitários
+pnpm --filter @app/web    test   # 236 testes unitários
 ```
 
 O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `turbo typecheck` e as quatro suítes de teste a cada push.
