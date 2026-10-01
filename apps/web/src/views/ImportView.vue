@@ -2,17 +2,19 @@
 import { ref, computed, onMounted } from "vue";
 import { http } from "../lib/http";
 import { useFinanceStore } from "../stores/finance";
-import { INSTITUTION_LABEL } from "../lib/entity";
 import { formatBRL } from "../lib/money";
+import { ENTITY_LABEL, INSTITUTION_LABEL, type AccountEntity } from "../lib/entity";
+import { buildCreateAccountPayload, emptyAccountForm } from "../lib/account-form";
 import {
   balanceSummary, detectFile, previewStatement, undoBatch, listBatches, decodeText, readFileBytes, formatDate,
+  nextCardRef, rowTags,
   type BatchSummary, type DetectResponse, type PreviewRow, type StatementPreview,
 } from "../lib/import-client";
 
 const finance = useFinanceStore();
 
 type Step = "upload" | "confirm" | "csv" | "ai" | "preview" | "done";
-type SelectableRow = PreviewRow & { selected: boolean };
+type SelectableRow = PreviewRow & { selected: boolean; tags: ReturnType<typeof rowTags> };
 
 const step = ref<Step>("upload");
 const file = ref<File | null>(null);
@@ -28,6 +30,15 @@ const preview = ref<StatementPreview | null>(null);
 const previewRows = ref<SelectableRow[]>([]);
 const batchId = ref("");
 const batches = ref<BatchSummary[]>([]);
+
+// Fatura de cartão em CSV: o arquivo traz vários cartões e importamos um por vez
+const NEW_CARD = "__new__";
+const doneCardRefs = ref<string[]>([]);
+const skippedCardRefs = ref<string[]>([]);
+const currentCardRef = ref<string | null>(null);
+const invoiceInserted = ref(0);
+const invoiceSkipped = ref(0);
+const newCard = ref({ name: "", entity: "pf" as AccountEntity, closingDay: null as number | null, dueDay: null as number | null, limitReais: null as number | null });
 
 // CSV (mapeamento manual)
 const csvText = ref("");
@@ -46,21 +57,146 @@ const mapping = ref({
 
 onMounted(async () => {
   await finance.loadAccounts();
+  if (!finance.categories.length) {
+    try {
+      await finance.loadCategories();
+    } catch {
+      /* os nomes das categorias sugeridas são secundários */
+    }
+  }
   await loadBatches();
 });
 
 const balance = computed(() => balanceSummary(preview.value?.balanceCheck ?? null));
 const selectedCount = computed(() => previewRows.value.filter((r) => r.selected).length);
 const selectedAccount = computed(() => finance.accounts.find((a) => a.id === selectedAccountId.value));
+// número/final que o arquivo traz: o do cartão da vez (fatura CSV) ou o da conta (OFX/PDF)
+const fileRef = computed(() => currentCardRef.value ?? detected.value?.accountRef ?? null);
+const isCardFile = computed(() => detected.value?.kind === "card_invoice");
 const canRemember = computed(
   () =>
-    !!detected.value?.accountRef &&
+    !!fileRef.value &&
     !!selectedAccount.value &&
+    // fatura de cartão só vale para conta de cartão: não grava externalId em conta comum antes do 400 da API
+    (!isCardFile.value || selectedAccount.value.type === "credit_card") &&
     !selectedAccount.value.externalId &&
-    !finance.accounts.some((a) => a.externalId === detected.value?.accountRef),
+    !finance.accounts.some((a) => a.externalId === fileRef.value),
 );
 const kindLabel = computed(() => (detected.value?.kind === "card_invoice" ? "Fatura de cartão" : "Extrato de conta"));
-const isStatement = computed(() => detected.value?.format === "ofx" || detected.value?.format === "pdf_statement");
+// isInvoice: fila de cartões do CSV; isCardFile: qualquer fatura de cartão (CSV ou OFX), que só importa para conta de cartão
+const isInvoice = computed(() => detected.value?.format === "csv_invoice");
+const isStatement = computed(() => detected.value?.format === "ofx" || detected.value?.format === "pdf_statement" || isInvoice.value);
+const cardAccounts = computed(() => finance.accounts.filter((a) => a.type === "credit_card"));
+const destinationAccounts = computed(() => (isCardFile.value ? cardAccounts.value : finance.accounts));
+const creatingCard = computed(() => isCardFile.value && selectedAccountId.value === NEW_CARD);
+const cardPosition = computed(() => {
+  const total = detected.value?.accountRefs.length ?? 0;
+  return `${doneCardRefs.value.length + 1} de ${total}`;
+});
+const showBankCategory = computed(() => previewRows.value.some((r) => !!r.bankCategory));
+const showSuggestion = computed(() => previewRows.value.some((r) => !!r.categoryId));
+const previewColumns = computed(
+  () => `28px 100px 80px 110px ${showBankCategory.value ? "minmax(90px, 1fr) " : ""}${showSuggestion.value ? "minmax(90px, 1fr) " : ""}minmax(120px, 2fr)`,
+);
+
+function categoryName(id: string | null | undefined): string {
+  return (id && finance.categories.find((c) => c.id === id)?.name) || "—";
+}
+
+function defaultCardName(ref: string | null): string {
+  if (!ref) return "Cartão";
+  return ref.length <= 4 ? `Cartão final ${ref}` : `Cartão ${ref}`;
+}
+
+function resetNewCard(ref: string | null) {
+  newCard.value = { name: defaultCardName(ref), entity: "pf", closingDay: null, dueDay: null, limitReais: null };
+}
+
+function selectCard(ref: string) {
+  currentCardRef.value = ref;
+  selectedAccountId.value = detected.value?.matchedAccounts[ref] ?? "";
+  resetNewCard(ref);
+}
+
+/** Cartão da vez resolvido (importado ou pulado): vai para o próximo ou fecha com o resumo. */
+function advanceQueue(message: string) {
+  const d = detected.value;
+  if (!d) return;
+  erro.value = "";
+  preview.value = null;
+  previewRows.value = [];
+  batchId.value = "";
+  const next = nextCardRef(d.accountRefs, doneCardRefs.value);
+  if (next) {
+    selectCard(next);
+    status.value = message;
+    step.value = "confirm";
+    return;
+  }
+  const imported = doneCardRefs.value.length - skippedCardRefs.value.length;
+  const dup = invoiceSkipped.value ? ` (${invoiceSkipped.value} já existiam)` : "";
+  const head = imported === 0
+    ? "Nenhum cartão importado."
+    : `${imported} ${imported === 1 ? "cartão" : "cartões"}, ${invoiceInserted.value} transações importadas${dup}.`;
+  const skipped = skippedCardRefs.value.length
+    ? ` Cartões pulados: ${skippedCardRefs.value.map((r) => `final ${r}`).join(", ")}.`
+    : "";
+  status.value = head + skipped;
+  step.value = "done";
+}
+
+function skipCard() {
+  const ref = currentCardRef.value;
+  if (!isInvoice.value || !ref) return;
+  doneCardRefs.value.push(ref);
+  skippedCardRefs.value.push(ref);
+  advanceQueue(`Cartão final ${ref} pulado.`);
+}
+
+function cancelPreview() {
+  if (!isInvoice.value) { reset(); return; }
+  erro.value = "";
+  status.value = "";
+  preview.value = null;
+  previewRows.value = [];
+  batchId.value = "";
+  step.value = "confirm";
+}
+
+async function createCard() {
+  erro.value = "";
+  const ref = fileRef.value;
+  const nc = newCard.value;
+  if (!nc.name.trim()) { erro.value = "Nome obrigatório."; return; }
+  if (typeof nc.limitReais === "number" && nc.limitReais < 0) { erro.value = "O limite não pode ser negativo."; return; }
+  for (const day of [nc.closingDay, nc.dueDay]) {
+    if (typeof day === "number" && (!Number.isInteger(day) || day < 1 || day > 31)) {
+      erro.value = "Os dias de fechamento e vencimento vão de 1 a 31.";
+      return;
+    }
+  }
+  busy.value = true;
+  try {
+    const acc = await finance.createAccount(
+      buildCreateAccountPayload({
+        ...emptyAccountForm(),
+        type: "credit_card",
+        name: nc.name,
+        entity: nc.entity,
+        institution: detected.value?.institution ?? "other",
+        externalId: ref ?? "",
+        closingDay: nc.closingDay,
+        dueDay: nc.dueDay,
+        creditLimitReais: nc.limitReais,
+      }),
+    );
+    selectedAccountId.value = acc.id;
+  } catch (e) {
+    erro.value = (e as Error).message;
+  } finally {
+    busy.value = false;
+  }
+}
 
 async function loadBatches() {
   try {
@@ -93,8 +229,23 @@ async function handleFile(f: File) {
     const d = await detectFile(f);
     detected.value = d;
     status.value = "";
-    if (d.format === "ofx" || d.format === "pdf_statement") {
-      selectedAccountId.value = d.matchedAccountId ?? "";
+    if (d.format === "csv_invoice") {
+      doneCardRefs.value = [];
+      skippedCardRefs.value = [];
+      invoiceInserted.value = 0;
+      invoiceSkipped.value = 0;
+      const first = nextCardRef(d.accountRefs, []);
+      if (!first) {
+        erro.value = "Não encontrei cartões neste arquivo.";
+      } else {
+        selectCard(first);
+        step.value = "confirm";
+      }
+    } else if (d.format === "ofx" || d.format === "pdf_statement") {
+      // fatura de cartão em OFX: a conta casada só vale se for de cartão (o seletor só lista cartões)
+      const matched = d.matchedAccountId ?? "";
+      selectedAccountId.value = d.kind === "card_invoice" && !cardAccounts.value.some((a) => a.id === matched) ? "" : matched;
+      if (d.kind === "card_invoice") resetNewCard(d.accountRef);
       step.value = "confirm";
     } else if (d.format === "csv") {
       await prepareCsv(f);
@@ -102,7 +253,7 @@ async function handleFile(f: File) {
     } else if (d.format === "pdf") {
       step.value = "ai";
     } else {
-      erro.value = "Não reconheci este arquivo. Use um extrato OFX, PDF do C6 ou CSV.";
+      erro.value = "Não reconheci este arquivo. Use um extrato OFX, PDF do C6, CSV ou a fatura do cartão C6 em CSV.";
     }
   } catch (e) {
     erro.value = (e as Error).message;
@@ -145,7 +296,7 @@ async function saveMapping() {
 function showPreview(data: { batchId: string; rows: PreviewRow[] }, p: StatementPreview | null) {
   preview.value = p;
   batchId.value = data.batchId;
-  previewRows.value = data.rows.map((r) => ({ ...r, selected: !r.dup }));
+  previewRows.value = data.rows.map((r) => ({ ...r, selected: !r.dup, tags: rowTags(r.description) }));
   step.value = "preview";
 }
 
@@ -161,13 +312,15 @@ async function runStatementPreview() {
   try {
     if (rememberAccount.value && canRemember.value) {
       try {
-        await finance.updateAccount(selectedAccountId.value, { externalId: detected.value.accountRef });
+        await finance.updateAccount(selectedAccountId.value, { externalId: fileRef.value });
       } catch {
         /* lembrar a conta é opcional e não bloqueia o preview */
       }
     }
-    const format = detected.value.format === "ofx" ? "ofx" : "pdf_statement";
-    const p = await previewStatement({ accountId: selectedAccountId.value, text: detected.value.text, format });
+    const body = isInvoice.value
+      ? { accountId: selectedAccountId.value, text: detected.value.text, format: "csv_invoice" as const, cardRef: currentCardRef.value ?? undefined }
+      : { accountId: selectedAccountId.value, text: detected.value.text, format: (detected.value.format === "ofx" ? "ofx" : "pdf_statement") as "ofx" | "pdf_statement" };
+    const p = await previewStatement(body);
     showPreview(p, p);
   } catch (e) {
     erro.value = (e as Error).message;
@@ -204,12 +357,22 @@ async function commit() {
   try {
     const rows = previewRows.value.filter((r) => r.selected);
     const result = await http<{ inserted: number; skipped: number }>("POST", `/import/${batchId.value}/commit`, {
-      rows: rows.map(({ type, amountCents, date, postedDate, fingerprint, description }) => ({
+      rows: rows.map(({ type, amountCents, date, postedDate, fingerprint, description, categoryId }) => ({
         type, amountCents, date, postedDate: postedDate ?? null, fingerprint, description, accountId: selectedAccountId.value,
+        categoryId: categoryId ?? null,
       })),
     });
-    status.value = `${result.inserted} transações importadas${result.skipped ? ` (${result.skipped} já existiam)` : ""}.`;
-    step.value = "done";
+    const dupNote = result.skipped ? ` (${result.skipped} já existiam)` : "";
+    if (isInvoice.value && currentCardRef.value) {
+      const doneRef = currentCardRef.value;
+      doneCardRefs.value.push(doneRef);
+      invoiceInserted.value += result.inserted;
+      invoiceSkipped.value += result.skipped;
+      advanceQueue(`Cartão final ${doneRef}: ${result.inserted} transações importadas${dupNote}.`);
+    } else {
+      status.value = `${result.inserted} transações importadas${dupNote}.`;
+      step.value = "done";
+    }
     await loadBatches();
   } catch (e) {
     erro.value = (e as Error).message;
@@ -267,6 +430,11 @@ function reset() {
   csvText.value = "";
   csvHeaders.value = [];
   selectedAccountId.value = "";
+  doneCardRefs.value = [];
+  skippedCardRefs.value = [];
+  currentCardRef.value = null;
+  invoiceInserted.value = 0;
+  invoiceSkipped.value = 0;
   rememberAccount.value = true;
   selectedMappingId.value = "";
   mappingName.value = "";
@@ -295,7 +463,7 @@ function reset() {
         @drop.prevent="onDrop"
       >
         <strong>Solte o arquivo aqui ou clique para escolher</strong>
-        <span class="hint">OFX, PDF do extrato do C6 ou CSV. O banco e a conta são reconhecidos pelo próprio arquivo.</span>
+        <span class="hint">OFX, PDF do extrato do C6, CSV ou a fatura do cartão C6 em CSV. O banco e a conta são reconhecidos pelo próprio arquivo.</span>
         <input type="file" accept=".ofx,.qfx,.pdf,.csv,application/pdf,text/csv" @change="onPick" />
       </label>
     </div>
@@ -303,25 +471,52 @@ function reset() {
     <!-- 2: arquivo reconhecido -->
     <div v-if="step === 'confirm' && detected" class="card">
       <h3>Arquivo reconhecido</h3>
+      <p v-if="isInvoice && currentCardRef" class="card-step">Cartão final {{ currentCardRef }} ({{ cardPosition }})</p>
       <dl class="detected">
         <dt>Banco</dt>
         <dd>{{ detected.institution ? INSTITUTION_LABEL[detected.institution] : "—" }}</dd>
         <dt>Tipo</dt>
         <dd>{{ kindLabel }}</dd>
-        <dt>Conta no arquivo</dt>
-        <dd>{{ detected.accountRef ?? "—" }}</dd>
+        <template v-if="isInvoice">
+          <dt>Cartão no arquivo</dt>
+          <dd>final {{ currentCardRef }}</dd>
+        </template>
+        <template v-else>
+          <dt>Conta no arquivo</dt>
+          <dd>{{ detected.accountRef ?? "—" }}</dd>
+        </template>
       </dl>
 
-      <p v-if="detected.kind === 'card_invoice'" class="hint">
-        Faturas de cartão em OFX são importadas como lançamentos da conta de cartão escolhida.
+      <p v-if="detected.kind === 'card_invoice' && !isInvoice" class="hint">
+        Faturas de cartão (CSV do C6 ou OFX) são importadas como lançamentos da conta de cartão escolhida.
       </p>
 
-      <label class="field-label" for="import-account">Conta de destino</label>
+      <label class="field-label" for="import-account">{{ isCardFile ? "Cartão de destino" : "Conta de destino" }}</label>
       <select id="import-account" v-model="selectedAccountId">
-        <option value="">— Selecione uma conta —</option>
-        <option v-for="a in finance.accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+        <option value="">{{ isCardFile ? "— Selecione um cartão —" : "— Selecione uma conta —" }}</option>
+        <option v-for="a in destinationAccounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+        <option v-if="isCardFile" :value="NEW_CARD">Criar cartão</option>
       </select>
-      <p v-if="detected.matchedAccountId" class="hint">Conta reconhecida pelo número do arquivo.</p>
+      <p v-if="isInvoice && currentCardRef && detected.matchedAccounts[currentCardRef]" class="hint">Cartão reconhecido pelo final do arquivo.</p>
+      <p v-else-if="!isInvoice && detected.matchedAccountId && selectedAccountId === detected.matchedAccountId" class="hint">Conta reconhecida pelo número do arquivo.</p>
+
+      <div v-if="creatingCard" class="new-card">
+        <label class="field-label" for="new-card-name">Nome do cartão</label>
+        <input id="new-card-name" v-model="newCard.name" type="text" />
+        <label class="field-label" for="new-card-entity">Titular</label>
+        <select id="new-card-entity" v-model="newCard.entity">
+          <option v-for="(label, value) in ENTITY_LABEL" :key="value" :value="value">{{ label }}</option>
+        </select>
+        <label class="field-label" for="new-card-closing">Dia de fechamento (1–31)</label>
+        <input id="new-card-closing" v-model.number="newCard.closingDay" type="number" min="1" max="31" />
+        <label class="field-label" for="new-card-due">Dia de vencimento (1–31)</label>
+        <input id="new-card-due" v-model.number="newCard.dueDay" type="number" min="1" max="31" />
+        <label class="field-label" for="new-card-limit">Limite (R$, opcional)</label>
+        <input id="new-card-limit" v-model.number="newCard.limitReais" type="number" min="0" step="0.01" />
+        <div class="btn-row">
+          <button id="new-card-create" type="button" :disabled="busy" @click="createCard">Criar e selecionar</button>
+        </div>
+      </div>
 
       <label v-if="canRemember" class="remember">
         <input type="checkbox" v-model="rememberAccount" />
@@ -329,8 +524,9 @@ function reset() {
       </label>
 
       <div class="btn-row">
-        <button type="button" class="btn-secondary" @click="reset">Trocar arquivo</button>
-        <button type="button" :disabled="busy || !selectedAccountId || !isStatement" @click="runStatementPreview">Ver preview</button>
+        <button type="button" class="btn-secondary" :disabled="busy" @click="reset">Trocar arquivo</button>
+        <button v-if="isInvoice" type="button" class="btn-secondary" :disabled="busy" @click="skipCard">Pular este cartão</button>
+        <button type="button" :disabled="busy || !selectedAccountId || creatingCard || !isStatement" @click="runStatementPreview">Ver preview</button>
       </div>
     </div>
 
@@ -391,7 +587,7 @@ function reset() {
       </div>
 
       <div class="btn-row">
-        <button type="button" class="btn-secondary" @click="reset">Trocar arquivo</button>
+        <button type="button" class="btn-secondary" :disabled="busy" @click="reset">Trocar arquivo</button>
         <button type="button" :disabled="busy || !selectedAccountId || !csvText" @click="runCsvPreview">Ver preview</button>
       </div>
     </div>
@@ -401,7 +597,7 @@ function reset() {
       <h3>Não reconheci o banco deste PDF</h3>
       <p class="hint">A IA pode extrair os lançamentos. Eles aparecerão em "Para categorizar" para confirmação.</p>
       <div class="btn-row">
-        <button type="button" class="btn-secondary" @click="reset">Trocar arquivo</button>
+        <button type="button" class="btn-secondary" :disabled="busy" @click="reset">Trocar arquivo</button>
         <button type="button" :disabled="busy" @click="enqueuePdf">Interpretar com IA</button>
       </div>
     </div>
@@ -430,9 +626,10 @@ function reset() {
         <button type="button" class="btn-small btn-secondary" @click="previewRows.forEach(r => r.selected = !r.dup)">Reset seleção</button>
       </div>
 
-      <div class="preview-table">
+      <div class="preview-table" :style="{ '--cols': previewColumns }">
         <div class="preview-row header">
-          <span></span><span>Data</span><span>Tipo</span><span>Valor</span><span>Descrição</span>
+          <span></span><span>Data</span><span>Tipo</span><span>Valor</span>
+          <span v-if="showBankCategory">Categoria do banco</span><span v-if="showSuggestion">Sugestão</span><span>Descrição</span>
         </div>
         <div
           v-for="(row, i) in previewRows" :key="i"
@@ -443,12 +640,21 @@ function reset() {
           <span>{{ formatDate(row.date) }}</span>
           <span :class="row.type">{{ row.type === 'income' ? 'receita' : 'despesa' }}</span>
           <span>{{ formatBRL(row.amountCents) }}</span>
-          <span class="desc">{{ row.description ?? '—' }} {{ row.dup ? '⚠' : '' }}</span>
+          <span v-if="showBankCategory" class="desc">{{ row.bankCategory ?? '—' }}</span>
+          <span v-if="showSuggestion" class="desc">{{ categoryName(row.categoryId) }}</span>
+          <span class="desc">
+            {{ row.description ?? '—' }} {{ row.dup ? '⚠' : '' }}
+            <template v-if="isInvoice">
+              <span v-if="row.tags.installment" class="tag">parcela {{ row.tags.installment }}</span>
+              <span v-if="row.tags.usd" class="tag">US$</span>
+            </template>
+          </span>
         </div>
       </div>
 
       <div class="btn-row">
-        <button type="button" class="btn-secondary" @click="reset">Cancelar</button>
+        <button type="button" class="btn-secondary" :disabled="busy" @click="cancelPreview">Cancelar</button>
+        <button v-if="isInvoice" type="button" class="btn-secondary" :disabled="busy" @click="skipCard">Pular este cartão</button>
         <button type="button" @click="commit" :disabled="busy || selectedCount === 0">
           Importar {{ selectedCount }} lançamento{{ selectedCount !== 1 ? 's' : '' }}
         </button>
@@ -495,7 +701,7 @@ h3 { margin: 0; font-size: 1rem; }
 .detected dd { margin: 0; font-weight: 600; }
 .remember { display: flex; align-items: center; gap: var(--space); font-size: 0.85rem; cursor: pointer; }
 .field-label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: -8px; }
-select, input[type="text"], input:not([type]) { width: 100%; }
+select, input[type="text"], input[type="number"], input:not([type]) { width: 100%; }
 .mapping-saved { display: flex; align-items: center; gap: var(--space); flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted); }
 .mapping-grid { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space) calc(var(--space) * 2); align-items: center; font-size: 0.9rem; }
 .save-mapping { display: flex; gap: var(--space); align-items: center; }
@@ -510,12 +716,15 @@ select, input[type="text"], input:not([type]) { width: 100%; }
 .mismatches { margin: 0; padding-left: calc(var(--space) * 3); font-size: 0.85rem; color: var(--warning); }
 .preview-controls { display: flex; gap: var(--space); }
 .preview-table { border: 1px solid var(--border); border-radius: calc(var(--radius) / 1.5); overflow: hidden; }
-.preview-row { display: grid; grid-template-columns: 28px 100px 80px 110px 1fr; gap: var(--space); padding: calc(var(--space) * 1.2) calc(var(--space) * 2); align-items: center; font-size: 0.85rem; cursor: pointer; border-bottom: 1px solid var(--border); }
+.preview-row { display: grid; grid-template-columns: var(--cols, 28px 100px 80px 110px 1fr); gap: var(--space); padding: calc(var(--space) * 1.2) calc(var(--space) * 2); align-items: center; font-size: 0.85rem; cursor: pointer; border-bottom: 1px solid var(--border); }
 .preview-row:last-child { border-bottom: none; }
 .preview-row.header { font-weight: 600; color: var(--text-muted); cursor: default; background: var(--surface-2); }
 .preview-row:hover:not(.header) { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .preview-row.selected { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .preview-row.dup { opacity: 0.5; }
+.card-step { margin: 0; font-weight: 600; }
+.new-card { display: flex; flex-direction: column; gap: var(--space); padding: calc(var(--space) * 2); border: 1px dashed var(--border); border-radius: calc(var(--radius) / 1.5); }
+.tag { margin-left: calc(var(--space)); padding: 0 6px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 999px; color: var(--text-muted); }
 .income { color: var(--c-income); }
 .expense { color: var(--c-expense); }
 .desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

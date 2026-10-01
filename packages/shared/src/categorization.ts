@@ -112,6 +112,17 @@ export interface TransferCandidate {
 }
 
 const CARD_PAYMENT = /pgto\.?\s*fat|pagamento\s+(de\s+)?fatura|pag\.?\s*fatura/;
+const STARTS_WITH_PAYMENT = /^pagamento\b|^inclusao de pagamento\b/;
+
+/**
+ * Texto de pagamento de fatura de cartão (`pgto fat…`, `pagamento (de) fatura`, `pag fatura`), que começa com
+ * "pagamento" ou "inclusão de pagamento" (os dois rótulos que o C6 usa, conforme o mês). Pensado para linhas
+ * negativas de conta de cartão, onde isso é o pagamento da fatura.
+ */
+export function isCardPaymentText(text: string | null | undefined): boolean {
+  const folded = foldText(text ?? "").trim();
+  return CARD_PAYMENT.test(folded) || STARTS_WITH_PAYMENT.test(folded);
+}
 
 const dayNumber = (iso: string) => Math.floor(Date.parse(`${iso.slice(0, 10)}T00:00:00Z`) / 86_400_000);
 

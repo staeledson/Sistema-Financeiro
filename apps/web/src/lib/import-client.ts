@@ -2,7 +2,7 @@ import { http } from "./http";
 import type { Institution } from "./entity";
 import { formatDateOnly } from "./date";
 
-export type DetectedFormat = "ofx" | "pdf_statement" | "csv" | "pdf" | "unknown";
+export type DetectedFormat = "ofx" | "pdf_statement" | "csv_invoice" | "csv" | "pdf" | "unknown";
 
 export interface DetectResponse {
   format: DetectedFormat;
@@ -11,6 +11,10 @@ export interface DetectResponse {
   accountRef: string | null;
   confidence: number;
   matchedAccountId: string | null;
+  /** Finais de cartão distintos de uma fatura (vazio nos demais formatos). */
+  accountRefs: string[];
+  /** Por final de cartão: id da conta de cartão que casa por externalId, ou null. */
+  matchedAccounts: Record<string, string | null>;
   text: string | null;
 }
 
@@ -37,6 +41,10 @@ export interface PreviewRow {
   fingerprint: string;
   accountId?: string;
   dup: boolean;
+  /** Categoria nossa sugerida a partir da categoria do banco (fatura). */
+  categoryId?: string | null;
+  /** Categoria como veio no arquivo do banco (fatura). */
+  bankCategory?: string | null;
 }
 
 export interface StatementPreview {
@@ -125,7 +133,12 @@ export async function detectFile(file: File): Promise<DetectResponse> {
   });
 }
 
-export function previewStatement(body: { accountId: string; text: string; format: "ofx" | "pdf_statement" }) {
+export function previewStatement(body: {
+  accountId: string;
+  text: string;
+  format: "ofx" | "pdf_statement" | "csv_invoice";
+  cardRef?: string;
+}) {
   return http<StatementPreview>("POST", "/import/preview", body);
 }
 
@@ -135,4 +148,18 @@ export function undoBatch(batchId: string) {
 
 export function listBatches() {
   return http<BatchSummary[]>("GET", "/import/batches");
+}
+
+/** Próximo final de cartão do arquivo que ainda não foi importado; null quando acabou. */
+export function nextCardRef(accountRefs: string[], doneRefs: string[]): string | null {
+  return accountRefs.find((r) => !doneRefs.includes(r)) ?? null;
+}
+
+/** Parcela ("3/10") e compra em dólar, lidas dos sufixos que o parser põe na descrição da fatura. */
+export function rowTags(description: string | null): { installment: string | null; usd: boolean } {
+  const text = description ?? "";
+  const usd = /\(US\$ [\d.,]+ @ [\d.,]+\)$/.test(text);
+  const base = usd ? text.replace(/\s*\(US\$ [\d.,]+ @ [\d.,]+\)$/, "") : text;
+  const m = /\s(\d{1,3}\/\d{1,3})$/.exec(base);
+  return { installment: m ? m[1] : null, usd };
 }

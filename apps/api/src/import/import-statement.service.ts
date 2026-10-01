@@ -6,7 +6,10 @@ import {
   UnprocessableEntityException,
 } from "@nestjs/common";
 import {
+  categoryFits,
   detectStatement,
+  foldText,
+  mapBankCategory,
   StatementParseError,
   verifyBalances,
   type Institution,
@@ -26,11 +29,26 @@ export interface DetectResponse {
   accountRef: string | null;
   confidence: number;
   matchedAccountId: string | null;
-  /** Texto extraído; só para formatos que o preview de extrato aceita (ofx e pdf_statement). */
+  /** Finais de cartão distintos de uma fatura (vazio nos demais formatos). */
+  accountRefs: string[];
+  /** Por final de cartão: id da única conta ativa de cartão de crédito com esse externalId; senão null. */
+  matchedAccounts: Record<string, string | null>;
+  /** Texto extraído (PDF ou arquivo de texto); null quando o formato não foi reconhecido. */
   text: string | null;
 }
 
-const NOT_DETECTED = { institution: null, kind: null, accountRef: null, confidence: 0, matchedAccountId: null, text: null };
+const NOT_DETECTED = {
+  institution: null,
+  kind: null,
+  accountRef: null,
+  confidence: 0,
+  matchedAccountId: null,
+  accountRefs: [],
+  matchedAccounts: {},
+  text: null,
+};
+
+const CARD_INVOICE_NEEDS_CARD = "este arquivo é uma fatura de cartão; escolha uma conta do tipo cartão de crédito";
 
 function looksLikeCsv(fileName: string, text: string): boolean {
   if (/\.csv$/i.test(fileName)) return true;
@@ -66,6 +84,8 @@ export class ImportStatementService {
         accountRef: detected.accountRef,
         confidence: detected.confidence,
         matchedAccountId: await this.matchAccount(workspaceId, detected.accountRef),
+        accountRefs: detected.accountRefs ?? [],
+        matchedAccounts: await this.matchCards(workspaceId, detected.accountRefs ?? []),
         text,
       };
     }
@@ -84,23 +104,72 @@ export class ImportStatementService {
     return accounts.length === 1 ? accounts[0].id : null;
   }
 
+  /** Por final de cartão, a única conta ativa de cartão de crédito com esse externalId; ambíguo ou inexistente vira null. */
+  private async matchCards(workspaceId: string, refs: string[]): Promise<Record<string, string | null>> {
+    if (refs.length === 0) return {};
+    const accounts = await prisma.bankAccount.findMany({
+      where: { workspaceId, archived: false, type: "credit_card", externalId: { in: refs } },
+      select: { id: true, externalId: true },
+    });
+    const out: Record<string, string | null> = {};
+    for (const ref of refs) {
+      const matches = accounts.filter((a) => a.externalId === ref);
+      out[ref] = matches.length === 1 ? matches[0].id : null;
+    }
+    return out;
+  }
+
+  /** Categoria sugerida pela categoria do banco: só despesa, só categoria do workspace que serve à entidade da conta. */
+  private async suggestCategories<T extends { type: "income" | "expense"; bankCategory?: string | null }>(
+    workspaceId: string,
+    entity: "pf" | "pj" | null,
+    rows: T[],
+  ): Promise<Array<T & { categoryId: string | null; bankCategory: string | null }>> {
+    const wanted = rows.some((r) => r.type === "expense" && mapBankCategory(r.bankCategory));
+    const byName = new Map<string, { id: string; type: "income" | "expense"; entity: "pf" | "pj" | "both" }>();
+    if (wanted) {
+      const categories = await prisma.category.findMany({
+        where: { workspaceId, type: "expense" },
+        select: { id: true, name: true, type: true, entity: true },
+        // ordem fixa: com nomes repetidos a sugestão é sempre a mesma categoria
+        orderBy: { id: "asc" }, // Category não tem createdAt; o id (cuid) é monotônico o bastante
+      });
+      for (const c of categories) {
+        const key = foldText(c.name.trim());
+        // nomes iguais (raro): a categoria que serve à entidade da conta vence
+        const prev = byName.get(key);
+        if (!prev || (!categoryFits(prev, { type: "expense" }, entity) && categoryFits(c, { type: "expense" }, entity))) byName.set(key, c);
+      }
+    }
+    return rows.map((r) => {
+      const name = r.type === "expense" ? mapBankCategory(r.bankCategory) : null;
+      const cat = name ? byName.get(foldText(name)) : undefined;
+      const fits = cat && categoryFits(cat, { type: r.type }, entity);
+      return { ...r, bankCategory: r.bankCategory ?? null, categoryId: fits ? cat.id : null };
+    });
+  }
+
   async preview(
     workspaceId: string,
     userId: string,
-    input: { accountId: string; text: string; format: StatementFormat },
+    input: { accountId: string; text: string; format: StatementFormat; cardRef?: string | null },
   ) {
     const account = await prisma.bankAccount.findFirst({
       where: { id: input.accountId, workspaceId },
-      select: { id: true },
+      select: { id: true, type: true, entity: true },
     });
     if (!account) throw new NotFoundException("conta não encontrada");
 
     const hit = detectStatement(input.text);
     if (!hit) throw new UnprocessableEntityException("não reconheci o formato do extrato");
 
+    if (hit.detected.kind === "card_invoice" && account.type !== "credit_card") {
+      throw new BadRequestException(CARD_INVOICE_NEEDS_CARD);
+    }
+
     let parsed;
     try {
-      parsed = hit.parser.parse(input.text, { accountId: account.id });
+      parsed = hit.parser.parse(input.text, { accountId: account.id, cardRef: input.cardRef ?? null });
     } catch (err) {
       // a mensagem pode conter trecho do extrato do usuário: vai na resposta 422, nunca para o log
       if (err instanceof StatementParseError) throw new UnprocessableEntityException(err.message);
@@ -115,7 +184,8 @@ export class ImportStatementService {
       select: { importFingerprint: true },
     });
     const seen = new Set(existing.map((e) => e.importFingerprint));
-    const rows = parsed.rows.map((r) => ({
+    const suggested = await this.suggestCategories(workspaceId, account.entity, parsed.rows);
+    const rows = suggested.map((r) => ({
       ...r,
       accountId: account.id,
       dup: seen.has(r.fingerprint) || (r.fingerprint.endsWith("|0") && seen.has(r.fingerprint.slice(0, -2))),

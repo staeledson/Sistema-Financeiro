@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   foldText, normalizeDescriptionKey, trigramSimilarity, rankBySimilarity, chunk, categoryFits,
   aiBatchResultSchema, decideAiResult, detectTransferPairs, matchRule, applyRules,
-  isCatchAllCategoryName, CATCH_ALL_CATEGORY_NAMES,
+  isCatchAllCategoryName, CATCH_ALL_CATEGORY_NAMES, isCardPaymentText,
   type TransferCandidate,
 } from "../index";
 
@@ -252,5 +252,34 @@ describe("isCatchAllCategoryName", () => {
     expect(isCatchAllCategoryName("Supermercado")).toBe(false);
     expect(isCatchAllCategoryName(null)).toBe(false);
     expect(CATCH_ALL_CATEGORY_NAMES).toEqual(["Outras despesas", "Outras receitas"]);
+  });
+});
+
+describe("isCardPaymentText", () => {
+  it("reconhece pagamento de fatura", () => {
+    expect(isCardPaymentText("PGTO FATURA C6")).toBe(true);
+    expect(isCardPaymentText("Pagamento de fatura")).toBe(true);
+    expect(isCardPaymentText("Pag fatura cartao")).toBe(true);
+  });
+
+  it("reconhece os rótulos de pagamento do C6 ('Pagamento ...' e 'Inclusão de Pagamento')", () => {
+    expect(isCardPaymentText("Pagamento recebido")).toBe(true);
+    expect(isCardPaymentText("Inclusao de Pagamento")).toBe(true);
+    expect(isCardPaymentText("INCLUSÃO DE PAGAMENTO")).toBe(true);
+    expect(isCardPaymentText("Inclusão de compra")).toBe(false);
+  });
+
+  it("qualquer texto que comece com 'pagamento' conta (o contexto é conta de cartão)", () => {
+    expect(isCardPaymentText("Pagamento CDB")).toBe(true);
+    // começa com "pagamento": aceito de propósito, pois só é usado em linhas negativas de conta de cartão
+    expect(isCardPaymentText("Pagamento de salário recebido")).toBe(true);
+  });
+
+  it("não reconhece outros textos", () => {
+    expect(isCardPaymentText("Amazon")).toBe(false);
+    expect(isCardPaymentText("Compra no pagamento")).toBe(false);
+    expect(isCardPaymentText(null)).toBe(false);
+    expect(isCardPaymentText(undefined)).toBe(false);
+    expect(isCardPaymentText("")).toBe(false);
   });
 });

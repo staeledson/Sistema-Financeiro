@@ -9,7 +9,8 @@ const detectBody = z.object({ fileName: z.string().min(1), contentBase64: z.stri
 const previewBody = z.object({
   accountId: z.string().min(1),
   text: z.string().min(1),
-  format: z.enum(["ofx", "pdf_statement"]),
+  format: z.enum(["ofx", "pdf_statement", "csv_invoice"]),
+  cardRef: z.string().min(1).nullish(),
 });
 
 const isoDate = z
