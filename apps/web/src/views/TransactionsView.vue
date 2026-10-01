@@ -83,6 +83,9 @@ async function runAction(key: string, action: () => Promise<unknown>) {
 }
 const desfazerPar = (tx: Transaction) => runAction(`pair:${tx.transferPairId}`, () => api.review.unpair(tx.transferPairId!));
 const reativar = (tx: Transaction) => runAction(`tx:${tx.id}`, () => api.review.unignore([tx.id]));
+const ignorar = (tx: Transaction) => runAction(`tx:${tx.id}`, () => api.review.ignore([tx.id]));
+/** Receita/despesa solta (sem par, não ignorada) pode ser ignorada: devolução, estorno, dinheiro entre os próprios bolsos. */
+const canIgnore = (tx: Transaction) => !tx.ignored && !tx.transferPairId && tx.type !== "transfer";
 const descOf = (tx: Transaction) => tx.description ?? "sem descrição";
 
 const filterCategoryName = computed(() =>
@@ -324,6 +327,15 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
               :disabled="txBusy(tx)"
               @click="reativar(tx)"
             >Reativar</button>
+            <button
+              v-if="canIgnore(tx)"
+              type="button"
+              class="btn-small btn-outline"
+              title="Tira o lançamento das despesas e receitas (saldo da conta não muda)"
+              :aria-label="`Ignorar lançamento: ${descOf(tx)}`"
+              :disabled="txBusy(tx)"
+              @click="ignorar(tx)"
+            >Ignorar</button>
             <span v-if="tx.installmentCurrent && tx.installmentTotal" class="tag">Parcela {{ tx.installmentCurrent }}/{{ tx.installmentTotal }}</span>
             <span v-if="isPendingReview(tx)" class="tag pending">Sem categoria</span>
             <span v-if="sourceLabel(tx)" class="source">Categoria: {{ sourceLabel(tx) }}</span>
