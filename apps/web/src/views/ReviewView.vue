@@ -9,16 +9,15 @@ import {
   ignoreTransactions, markTransfer, recategorize,
   type PendingGroup, type PendingResponse, type TransferCandidate,
 } from "../lib/review-client";
-import RulesPanel from "../components/RulesPanel.vue";
+import { useRouter } from "vue-router";
 
 const finance = useFinanceStore();
+const router = useRouter();
 
 // ───── pendentes de categoria ─────
 const pending = ref<PendingResponse>({ total: 0, groups: [] });
 const entityFilter = ref<EntityFilter>("all");
 const accountFilter = ref("");
-const showRules = ref(false);
-const rulesPanel = ref<InstanceType<typeof RulesPanel> | null>(null);
 const loaded = ref(false);
 const erro = ref("");
 const info = ref("");
@@ -122,7 +121,6 @@ const categorize = (g: PendingGroup) => {
       applyToSimilar: s.applyToSimilar,
     });
     info.value = `${r.updated} lançamento(s) categorizado(s)${r.similarUpdated ? ` (${r.similarUpdated} parecidos)` : ""}${r.ruleCreated ? " e regra criada" : ""}.`;
-    if (r.ruleCreated) void rulesPanel.value?.reload();
   });
 };
 const accept = (g: PendingGroup) =>
@@ -250,14 +248,12 @@ const confidenceColor = (c: number | null) =>
       <h2>Para categorizar <span v-if="loaded" class="counter">{{ pending.total }}</span></h2>
       <div class="head-actions">
         <button type="button" class="btn-secondary" :disabled="busy" @click="recat">Recategorizar pendentes</button>
-        <button type="button" class="btn-secondary" @click="showRules = !showRules">{{ showRules ? "Ocultar regras" : "Regras" }}</button>
+        <button type="button" class="btn-secondary" @click="router.push('/regras')">Regras</button>
       </div>
     </header>
 
     <p v-if="erro" role="alert" class="error">{{ erro }}</p>
     <p v-if="info" role="status" class="info">{{ info }}</p>
-
-    <RulesPanel v-if="showRules" ref="rulesPanel" />
 
     <div class="filters">
       <select v-model="entityFilter" aria-label="Entidade">

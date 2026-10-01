@@ -6,15 +6,15 @@
       <div v-if="status === 'loading'" class="status-msg">Processando imagem…</div>
       <div v-else-if="status === 'success'" class="status-msg success">
         <p>Rascunho criado! Acesse "Para categorizar" para confirmar.</p>
-        <button class="btn-primary" @click="emit('done')">Abrir Para categorizar</button>
+        <button class="btn-primary" @click="router.replace('/categorizar')">Abrir Para categorizar</button>
       </div>
       <div v-else-if="status === 'error'" class="status-msg error">
         <p>{{ errorMsg }}</p>
-        <button class="btn-secondary" @click="emit('done')">Voltar</button>
+        <button class="btn-secondary" @click="router.replace('/')">Voltar</button>
       </div>
       <div v-else class="status-msg">
         <p>Nenhuma imagem recebida.</p>
-        <button class="btn-secondary" @click="emit('done')">Voltar</button>
+        <button class="btn-secondary" @click="router.replace('/')">Voltar</button>
       </div>
     </div>
   </div>
@@ -22,9 +22,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { http } from "../lib/http";
 
-const emit = defineEmits<{ (e: "done"): void }>();
+const router = useRouter();
 
 const status = ref<"idle" | "loading" | "success" | "error">("idle");
 const errorMsg = ref("");

@@ -1,186 +1,191 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { computed, onMounted } from "vue";
+import { RouterLink, RouterView, useRoute, useRouter } from "vue-router";
 import LoginView from "./views/LoginView.vue";
-import DashboardView from "./views/DashboardView.vue";
-import AccountsView from "./views/AccountsView.vue";
-import TransactionsView from "./views/TransactionsView.vue";
-import IngestView from "./views/IngestView.vue";
-import ReviewView from "./views/ReviewView.vue";
-import ImportView from "./views/ImportView.vue";
-import InsightsView from "./views/InsightsView.vue";
-import BudgetsView from "./views/BudgetsView.vue";
-import GoalsView from "./views/GoalsView.vue";
-import MembersView from "./views/MembersView.vue";
 import InviteAcceptView from "./views/InviteAcceptView.vue";
-import ChatView from "./views/ChatView.vue";
-import SharedEntryView from "./views/SharedEntryView.vue";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher.vue";
 import { useAuthStore } from "./stores/auth";
 import { useWorkspaceStore } from "./stores/workspace";
+import { useThemeStore } from "./stores/theme";
 import { canInstall, promptInstall } from "./pwa/install";
 
 const auth = useAuthStore();
 const wsStore = useWorkspaceStore();
+const theme = useThemeStore();
+const route = useRoute();
+const router = useRouter();
 
-type Tab = "dashboard" | "accounts" | "transactions" | "ingest" | "review" | "import" | "insights" | "budgets" | "goals" | "members" | "chat";
-const tab = ref<Tab>("dashboard");
+interface NavItem { to: string; label: string }
+interface NavGroup { title?: string; items: NavItem[] }
 
-const inviteToken = computed(() => new URLSearchParams(window.location.search).get("token"));
-const isSharedEntry = computed(() => window.location.pathname.startsWith("/lancar/compartilhado"));
+const NAV: NavGroup[] = [
+  { title: "Visão", items: [{ to: "/", label: "Início" }, { to: "/painel", label: "Painel" }] },
+  {
+    title: "Lançamentos",
+    items: [
+      { to: "/transacoes", label: "Transações" },
+      { to: "/categorizar", label: "Para categorizar" },
+      { to: "/importar", label: "Importar" },
+      { to: "/lancar", label: "Lançar por IA" },
+    ],
+  },
+  {
+    title: "Planejamento",
+    items: [{ to: "/orcamentos", label: "Orçamentos" }, { to: "/metas", label: "Metas" }, { to: "/insights", label: "Insights" }],
+  },
+  {
+    title: "Cadastros",
+    items: [{ to: "/contas", label: "Contas" }, { to: "/regras", label: "Regras" }, { to: "/membros", label: "Membros" }, { to: "/ajustes", label: "Ajustes" }],
+  },
+  { items: [{ to: "/chat", label: "Chat IA" }] },
+];
+
+const BOTTOM: NavItem[] = [
+  { to: "/", label: "Início" },
+  { to: "/painel", label: "Painel" },
+  { to: "/lancar", label: "Lançar" },
+  { to: "/chat", label: "Chat" },
+];
+const BOTTOM_PATHS = BOTTOM.map((b) => b.to);
+
+const inviteToken = computed(() => {
+  const t = route.query.token;
+  return typeof t === "string" && t ? t : null;
+});
+// Tela fora da casca (ex.: alvo do compartilhamento do PWA).
+const isBare = computed(() => route.meta.bare === true);
+const moreActive = computed(() => !BOTTOM_PATHS.includes(route.path));
+const themeLabel = computed(() => (theme.effective === "dark" ? "Tema claro" : "Tema escuro"));
 
 onMounted(() => {
   if (auth.isAuthenticated) void wsStore.load().catch(() => {});
 });
 
 function onInviteAcceptDone() {
-  history.replaceState(null, "", window.location.pathname);
+  const { token: _token, ...rest } = route.query;
+  void router.replace({ path: route.path, query: rest });
   void wsStore.load().catch(() => {});
-}
-
-function onSharedDone() {
-  history.replaceState(null, "", "/");
-  tab.value = "review";
 }
 </script>
 
 <template>
-  <SharedEntryView v-if="auth.isAuthenticated && isSharedEntry" @done="onSharedDone" />
+  <RouterView v-if="auth.isAuthenticated && isBare" />
   <InviteAcceptView v-else-if="auth.isAuthenticated && inviteToken" @done="onInviteAcceptDone" />
   <LoginView v-else-if="!auth.isAuthenticated" />
 
-  <div v-else class="app-shell">
-    <nav class="app-nav">
-      <span class="app-logo">Finanças</span>
-      <div class="nav-tabs">
-        <button :class="{ active: tab === 'dashboard' }" @click="tab = 'dashboard'">Dashboard</button>
-        <button :class="{ active: tab === 'accounts' }" @click="tab = 'accounts'">Contas</button>
-        <button :class="{ active: tab === 'transactions' }" @click="tab = 'transactions'">Transações</button>
-        <button :class="{ active: tab === 'ingest' }" @click="tab = 'ingest'">Lançar por IA</button>
-        <button :class="{ active: tab === 'review' }" @click="tab = 'review'">Para categorizar</button>
-        <button :class="{ active: tab === 'import' }" @click="tab = 'import'">Importar</button>
-        <button :class="{ active: tab === 'insights' }" @click="tab = 'insights'">Insights</button>
-        <button :class="{ active: tab === 'budgets' }" @click="tab = 'budgets'">Orçamentos</button>
-        <button :class="{ active: tab === 'goals' }" @click="tab = 'goals'">Metas</button>
-        <button :class="{ active: tab === 'members' }" @click="tab = 'members'">Membros</button>
-        <button :class="{ active: tab === 'chat' }" @click="tab = 'chat'">Chat IA</button>
-      </div>
-      <button v-if="canInstall" class="btn-install" @click="promptInstall()">Instalar app</button>
-      <WorkspaceSwitcher />
-      <button class="btn-signout" @click="auth.signOut()">Sair</button>
-    </nav>
+  <div v-else class="shell">
+    <aside class="sidebar">
+      <RouterLink to="/" class="logo">Finanças</RouterLink>
 
-    <main class="app-main">
-      <DashboardView v-if="tab === 'dashboard'" />
-      <AccountsView v-else-if="tab === 'accounts'" />
-      <TransactionsView v-else-if="tab === 'transactions'" />
-      <IngestView v-else-if="tab === 'ingest'" />
-      <ReviewView v-else-if="tab === 'review'" />
-      <ImportView v-else-if="tab === 'import'" />
-      <InsightsView v-else-if="tab === 'insights'" />
-      <BudgetsView v-else-if="tab === 'budgets'" />
-      <GoalsView v-else-if="tab === 'goals'" />
-      <MembersView v-else-if="tab === 'members'" />
-      <ChatView v-else-if="tab === 'chat'" />
+      <nav class="side-nav" aria-label="Navegação principal">
+        <div v-for="(group, i) in NAV" :key="group.title ?? i" class="nav-group">
+          <span v-if="group.title" class="nav-title">{{ group.title }}</span>
+          <RouterLink v-for="item in group.items" :key="item.to" :to="item.to" class="nav-link">{{ item.label }}</RouterLink>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <WorkspaceSwitcher />
+        <button class="foot-btn" type="button" @click="theme.toggle()">{{ themeLabel }}</button>
+        <button v-if="canInstall" class="foot-btn" type="button" @click="promptInstall()">Instalar app</button>
+        <button class="foot-btn" type="button" @click="auth.signOut()">Sair</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <RouterView />
     </main>
 
-    <!-- Mobile bottom navigation -->
-    <nav class="bottom-nav">
-      <button :class="{ active: tab === 'dashboard' }" @click="tab = 'dashboard'">
-        <span class="bn-icon">🏠</span><span class="bn-label">Início</span>
-      </button>
-      <button :class="{ active: tab === 'ingest' }" @click="tab = 'ingest'">
-        <span class="bn-icon">✏️</span><span class="bn-label">Lançar</span>
-      </button>
-      <button :class="{ active: tab === 'insights' }" @click="tab = 'insights'">
-        <span class="bn-icon">💡</span><span class="bn-label">Insights</span>
-      </button>
-      <button :class="{ active: tab === 'chat' }" @click="tab = 'chat'">
-        <span class="bn-icon">💬</span><span class="bn-label">Chat</span>
-      </button>
-      <button :class="{ active: tab === 'transactions' }" @click="tab = 'transactions'">
-        <span class="bn-icon">📋</span><span class="bn-label">Mais</span>
-      </button>
+    <nav class="bottom-nav" aria-label="Navegação rápida">
+      <RouterLink v-for="item in BOTTOM" :key="item.to" :to="item.to" class="bn-link">{{ item.label }}</RouterLink>
+      <RouterLink to="/contas" class="bn-link" :class="{ 'router-link-active': moreActive }">Mais</RouterLink>
     </nav>
   </div>
 </template>
 
 <style scoped>
-.app-shell { display: flex; flex-direction: column; min-height: 100vh; }
-.app-nav {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--space) * 2);
-  padding: calc(var(--space) * 2) calc(var(--space) * 3);
-  background: var(--color-surface);
-  border-bottom: 1px solid #222;
+.shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 232px;
+  flex-shrink: 0;
   position: sticky;
   top: 0;
-  z-index: 10;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 2);
+  padding: calc(var(--space) * 2);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
 }
-.app-logo { font-weight: 700; font-size: 1.1rem; margin-right: auto; }
-.nav-tabs { display: flex; gap: var(--space); flex-wrap: wrap; }
-.nav-tabs button {
-  padding: calc(var(--space)) calc(var(--space) * 2);
-  border: none;
-  border-radius: calc(var(--radius) / 2);
+.logo {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--text);
+  text-decoration: none;
+  padding: var(--space) calc(var(--space) * 1.5);
+}
+
+.side-nav { display: flex; flex-direction: column; gap: calc(var(--space) * 2); flex: 1; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 0 calc(var(--space) * 1.5) calc(var(--space) * 0.5);
+}
+.nav-link {
+  display: block;
+  padding: calc(var(--space) * 0.9) calc(var(--space) * 1.5);
+  border-radius: calc(var(--radius) / 1.5);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+.nav-link:hover { background: var(--surface-2); color: var(--text); }
+.nav-link.router-link-exact-active { background: var(--surface-2); color: var(--accent); font-weight: 600; }
+
+.sidebar-footer { display: flex; flex-direction: column; gap: var(--space); padding-top: calc(var(--space) * 2); border-top: 1px solid var(--border); }
+.sidebar-footer :deep(.ws-switcher) { position: relative; }
+.sidebar-footer :deep(.ws-trigger) { width: 100%; text-align: left; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); }
+.sidebar-footer :deep(.ws-dropdown) { top: auto; bottom: calc(100% + 6px); left: 0; right: auto; min-width: 100%; }
+.foot-btn {
   background: transparent;
-  color: var(--color-text);
-  cursor: pointer;
-  font-size: 0.95rem;
-  opacity: 0.6;
-  transition: opacity .15s, background .15s;
-}
-.nav-tabs button.active, .nav-tabs button:hover { opacity: 1; background: rgba(79,124,255,.15); }
-.nav-tabs button.active { color: var(--color-primary); }
-.btn-install {
-  padding: calc(var(--space)) calc(var(--space) * 2);
-  border: 1px solid var(--color-primary, #4f7cff);
-  border-radius: calc(var(--radius) / 2);
-  background: rgba(79,124,255,.12);
-  color: var(--color-primary, #4f7cff);
-  cursor: pointer;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
   font-size: 0.85rem;
-  white-space: nowrap;
+  text-align: left;
 }
-.btn-signout {
-  padding: calc(var(--space)) calc(var(--space) * 2);
-  border: 1px solid #333;
-  border-radius: calc(var(--radius) / 2);
-  background: transparent;
-  color: var(--color-text);
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-.app-main { flex: 1; padding-bottom: 56px; }
+.foot-btn:hover { background: var(--surface-2); color: var(--text); }
+
+.main { flex: 1; min-width: 0; }
 
 .bottom-nav {
   display: none;
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  background: var(--color-surface, #1a1a2e);
-  border-top: 1px solid #222;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
   z-index: 20;
 }
-.bottom-nav button {
+.bn-link {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 4px;
-  border: none;
-  background: transparent;
-  color: var(--color-text, #fff);
-  cursor: pointer;
-  opacity: 0.55;
-  transition: opacity .15s;
+  text-align: center;
+  padding: calc(var(--space) * 1.5) var(--space);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.78rem;
 }
-.bottom-nav button.active { opacity: 1; color: var(--color-primary, #4f7cff); }
-.bn-icon { font-size: 1.2rem; line-height: 1; }
-.bn-label { font-size: 0.65rem; }
+.bn-link.router-link-exact-active,
+.bn-link.router-link-active:not([href="/"]) { color: var(--accent); font-weight: 600; }
 
 @media (max-width: 768px) {
-  .app-nav .nav-tabs { display: none; }
+  .sidebar { display: none; }
   .bottom-nav { display: flex; }
+  .main { padding-bottom: 56px; }
 }
 </style>

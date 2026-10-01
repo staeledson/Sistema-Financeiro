@@ -42,6 +42,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // SPA com vue-router (history): qualquer navegação cai no index.html, exceto a API.
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
           {
             urlPattern: /^\/api\/(balances|transactions|dashboard)/,
