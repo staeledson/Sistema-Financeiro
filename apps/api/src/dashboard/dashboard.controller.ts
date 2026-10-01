@@ -44,6 +44,10 @@ export class DashboardController {
     return this.cashflow.get(user.workspaceId, { entity, accountId, asOf });
   }
 
+  /**
+   * Resumo do Início. Aceita o filtro global mas só usa `asOf`: entity, accountId e período são ignorados de propósito
+   * (a home é sempre o workspace inteiro, com os gastos do mês de `asOf`).
+   */
   @Get("summary")
   getSummary(@CurrentUser() user: AuthenticatedUser, @Query() query: Record<string, string>) {
     return this.summary.get(user.workspaceId, parseDashboardFilter(query).asOf);

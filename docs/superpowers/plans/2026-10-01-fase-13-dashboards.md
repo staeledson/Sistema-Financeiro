@@ -39,6 +39,7 @@ Copiados da spec `docs/superpowers/specs/2026-09-05-contas-pf-pj-import-ia-dashb
 9. **Linhas esquecidas**: a fila "Para categorizar" também mostra linhas `none/ok` sem categoria com mais de 15 minutos (job que falhou ou nunca foi enfileirado).
 10. **Privacidade do LLM**: CPF, CNPJ e sequências de 6+ dígitos são mascarados antes de ir ao prompt; a chamada ao OpenRouter pede `provider.data_collection = "deny"`.
 11. **Ícones**: a navegação usa rótulos de texto (sem emojis nem biblioteca de ícones).
+12. **Resumo (`GET /dashboard/summary`)**: aceita o filtro global mas só usa `asOf`; `entity`, `accountId` e período são ignorados de propósito (a home é sempre o workspace inteiro, com saldos consolidados, fila de revisão, próximo vencimento e gastos do mês de `asOf`).
 
 ---
 

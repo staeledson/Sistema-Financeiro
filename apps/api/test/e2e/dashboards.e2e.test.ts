@@ -495,8 +495,8 @@ describe("GET /dashboard/cards", () => {
     ]);
   });
 
-  it("installmentsAheadMonthly soma os cartões do escopo em 12 meses fixos", async () => {
-    const { u } = await seedCard("cd10"); // cartão A: 20000 de jul/26 a mar/27
+  it("remainingInstallmentsMonthly: só as parcelas ainda não lançadas, por mês de lançamento, 12 meses fixos", async () => {
+    const { u } = await seedCard("cd10"); // cartão A (fecha 10): 2/10 lançada em 15/06 (ciclo de jul); restam 3..10 em ago/26 a mar/27
     const b = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "B", entity: "pj", closingDay: 25, dueDay: 5 } });
     await prisma.transaction.create({
       data: {
@@ -504,20 +504,25 @@ describe("GET /dashboard/cards", () => {
         date: dayOf("2026-06-15"), description: "LOJA W 02/04", installmentCurrent: 2, installmentTotal: 4,
       } as never,
     });
+    // cartão B (fecha 25): 2/4 lançada no ciclo de jun; restam 3 e 4 em jul e ago
     const service = app.get(CardsService, { strict: false });
-    const all = await service.installmentsAheadMonthly(u.workspaceId, {}, "2026-06-20");
+    const all = await service.remainingInstallmentsMonthly(u.workspaceId, {}, "2026-06-20");
     expect(all).toHaveLength(12);
-    expect(all.slice(0, 5)).toEqual([
-      { month: "2026-07", amountCents: 28000 },
+    expect(all[0].month).toBe("2026-07");
+    expect(all[11].month).toBe("2027-06");
+    expect(all.slice(0, 4)).toEqual([
+      { month: "2026-07", amountCents: 8000 },
       { month: "2026-08", amountCents: 28000 },
-      { month: "2026-09", amountCents: 28000 },
+      { month: "2026-09", amountCents: 20000 },
       { month: "2026-10", amountCents: 20000 },
-      { month: "2026-11", amountCents: 20000 },
     ]);
-    expect(all[11]).toEqual({ month: "2027-06", amountCents: 0 });
-    const pj = await service.installmentsAheadMonthly(u.workspaceId, { entity: "pj" }, "2026-06-20");
+    expect(all.slice(8, 12).map((e) => e.amountCents)).toEqual([20000, 0, 0, 0]); // 2027-03 é a última (parcela 10/10)
+    const pj = await service.remainingInstallmentsMonthly(u.workspaceId, { entity: "pj" }, "2026-06-20");
     expect(pj).toHaveLength(12);
-    expect(pj.slice(0, 4).map((e) => e.amountCents)).toEqual([8000, 8000, 8000, 0]);
+    expect(pj.slice(0, 4).map((e) => e.amountCents)).toEqual([8000, 8000, 0, 0]);
+    // o endpoint do cartão continua incluindo a parcela já lançada, por mês de vencimento
+    const card = (await get(u, `/dashboard/cards?${AS_OF}&entity=pj`)).json().cards[0];
+    expect(card.installmentsAhead.slice(0, 3).map((e: { amountCents: number }) => e.amountCents)).toEqual([8000, 8000, 8000]);
   });
 });
 
@@ -598,7 +603,17 @@ describe("GET /dashboard/cashflow", () => {
     const pf = (await get(u, `/dashboard/cashflow?${AS_OF}&entity=pf`)).json();
     // maio: só o ignorado (-7000): 100000 -> 93000; junho: +200000 -50000 -30000 -400
     expect(pf.monthly[10]).toMatchObject({ month: "2026-05", incomeCents: 0, expenseCents: 0, balanceCents: 93000 });
-    expect(pf.monthly[11]).toMatchObject({ incomeCents: 200000, expenseCents: 50000, transfersNetCents: -30000, balanceCents: 212600 });
+    // transferência manual PF→PJ de 400: -400 para PF, +400 para PJ, 0 no total
+    expect(pf.monthly[11]).toMatchObject({ incomeCents: 200000, expenseCents: 50000, transfersNetCents: -30400, balanceCents: 212600 });
+    const pj = (await get(u, `/dashboard/cashflow?${AS_OF}&entity=pj`)).json();
+    expect(pj.monthly[11]).toMatchObject({ incomeCents: 100000, expenseCents: 20000, transfersNetCents: 30400 });
+    const all = (await get(u, `/dashboard/cashflow?${AS_OF}`)).json();
+    expect(all.monthly[11]).toMatchObject({ incomeCents: 300000, expenseCents: 70000, transfersNetCents: 0 });
+    // a conta isolada vê a transferência cruzando a fronteira; uma transferência entre contas do mesmo escopo vale 0
+    const pj2 = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "checking", name: "PJ2", entity: "pj" } });
+    await tx({ type: "transfer", sourceAccountId: pj1.id, destAccountId: pj2.id, amountCents: 700n, date: dayOf("2026-06-11") });
+    expect((await get(u, `/dashboard/cashflow?${AS_OF}&entity=pj`)).json().monthly[11].transfersNetCents).toBe(30400);
+    expect((await get(u, `/dashboard/cashflow?${AS_OF}&accountId=${pj1.id}`)).json().monthly[11].transfersNetCents).toBe(30400 - 700);
   });
 
   it("movimento anterior à janela de 12 meses entra no saldo de abertura da série", async () => {
@@ -660,11 +675,10 @@ describe("GET /dashboard/cashflow", () => {
       } as never,
     });
     const b = (await get(u, `/dashboard/cashflow?${AS_OF}`)).json();
-    // a 2/4 já lançada vence em jul/26; as parcelas 3 e 4 em ago e set; depois nada
-    expect(b.forecast.map((f: { installmentsCents: number }) => f.installmentsCents)).toEqual([20000, 20000, 20000]);
-    expect(b.forecast.map((f: { expenseCents: number }) => f.expenseCents)).toEqual([20000, 20000, 20000]);
-    // saldo atual do cartão: -20000
-    expect(b.forecast.map((f: { balanceCents: number }) => f.balanceCents)).toEqual([-40000, -60000, -80000]);
+    // a 2/4 já foi lançada (está no saldo atual de -20000): só 3/4 e 4/4 faltam, lançadas em ago e set
+    expect(b.forecast.map((f: { installmentsCents: number }) => f.installmentsCents)).toEqual([0, 20000, 20000]);
+    expect(b.forecast.map((f: { expenseCents: number }) => f.expenseCents)).toEqual([0, 20000, 20000]);
+    expect(b.forecast.map((f: { balanceCents: number }) => f.balanceCents)).toEqual([-20000, -40000, -60000]);
     expect(b.monthly[11]).toMatchObject({ month: "2026-06", expenseCents: 20000, balanceCents: -20000 });
   });
 
@@ -759,6 +773,33 @@ describe("GET /dashboard/summary", () => {
     expect(z).toMatchObject({ balances: { pfCents: 0, pjCents: 0, totalCents: 0 }, pendingCount: 0, nextInvoice: null });
     expect(z.spending).toMatchObject({ totalCents: 0, byCategory: [] });
     expect((await get(empty, "/dashboard/summary?asOf=2026-13-40")).statusCode).toBe(400);
+  });
+
+  it("linha esquecida (sem categoria, fora da fila há 30 min) conta no resumo e aparece em /review/pending", async () => {
+    const { u, pf1, tx } = await seedSummary("sm5");
+    const forgotten = await tx({ type: "expense", accountId: pf1.id, amountCents: 2500n, description: "Esquecida" });
+    await prisma.transaction.update({ where: { id: forgotten.id }, data: { createdAt: new Date(Date.now() - 30 * 60_000) } });
+    const b = (await get(u, `/dashboard/summary?${AS_OF}`)).json();
+    expect(b.pendingCount).toBe(3); // as 2 pendentes + a esquecida; as recém-criadas sem categoria ainda não contam
+    const review = (await get(u, "/review/pending")).json();
+    expect(review.total).toBe(3);
+    expect(review.groups.flatMap((g: { transactionIds: string[] }) => g.transactionIds)).toContain(forgotten.id);
+  });
+
+  it("próxima fatura considera a fatura fechada ainda não paga", async () => {
+    const u = await newUser("sm6");
+    const card = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "Cartão", closingDay: 10, dueDay: 17 } });
+    const tx = (data: Record<string, unknown>) =>
+      prisma.transaction.create({ data: { workspaceId: u.workspaceId, accountId: card.id, source: "manual", createdById: u.userId, ...data } as never });
+    await tx({ type: "expense", amountCents: 40000n, date: dayOf("2026-05-20") }); // fatura de 10/06, vence 17/06
+    await tx({ type: "income", amountCents: 15000n, date: dayOf("2026-06-11"), transferPairId: "pp" }); // paga 15000 dela
+    await tx({ type: "expense", amountCents: 5000n, date: dayOf("2026-06-11") }); // ciclo aberto: fecha 10/07, vence 17/07
+    // asOf 12/06: a fatura fechada (restam 25000, vence 17/06) vem antes da aberta (5000, vence 17/07)
+    const b = (await get(u, "/dashboard/summary?asOf=2026-06-12")).json();
+    expect(b.nextInvoice).toEqual({ accountId: card.id, name: "Cartão", dueDate: "2026-06-17", openInvoiceCents: 25000 });
+    // depois do vencimento da fechada (asOf 18/06) só resta a aberta
+    const depois = (await get(u, "/dashboard/summary?asOf=2026-06-18")).json();
+    expect(depois.nextInvoice).toEqual({ accountId: card.id, name: "Cartão", dueDate: "2026-07-17", openInvoiceCents: 5000 });
   });
 
   it("não vaza dados de outro workspace", async () => {

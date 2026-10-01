@@ -18,6 +18,14 @@ const FORECAST_MONTHS = 3;
 
 type FlowRow = { month: string; income: bigint; expense: bigint; pairedIncome: bigint; pairedExpense: bigint; installments: bigint };
 type NetRow = { month: string; net: bigint };
+type TransferRow = { month: string; net: bigint };
+
+/** A conta (alias `s`/`d` de um LEFT JOIN em bank_accounts) existe e está no escopo (entidade e/ou conta). */
+function inScope(alias: "s" | "d", scope: Scope) {
+  const col = Prisma.raw(`${alias}."id"`);
+  const entity = Prisma.raw(`${alias}."entity"::text`);
+  return Prisma.sql`(${col} IS NOT NULL ${scope.accountId ? Prisma.sql`AND ${col} = ${scope.accountId}` : Prisma.empty} ${scope.entity ? Prisma.sql`AND ${entity} = ${scope.entity}` : Prisma.empty})`;
+}
 
 function consolidate(rows: Pick<AccountBalanceRow, "entity" | "balanceCents">[]): Consolidated {
   const sum = (entity: AccountEntity) => rows.filter((r) => r.entity === entity).reduce((s, r) => s + r.balanceCents, 0);
@@ -59,12 +67,16 @@ export class CashflowService {
    * 12 meses terminando no mês de `asOf`. Receita/despesa seguem a regra de relatório (sem pares e ignorados);
    * `transfersNetCents` = receita pareada − despesa pareada; o saldo do fim do mês reflete o banco (pares, ignorados e
    * transferências contam) e, no último mês, bate com a soma de `accountBalances` do escopo. Movimentos até `asOf`.
+   * `transfersNetCents` também inclui as transferências manuais (`type = 'transfer'`) que cruzam a fronteira do escopo:
+   * + valor se o destino está no escopo e a origem não, − valor no caso inverso, 0 se ambas (ou nenhuma) estão.
+   * Assimetria conhecida: receita/despesa/transferências seguem o `scopeSql` (não excluem contas arquivadas nem tratam
+   * lançamentos sem conta), enquanto os saldos excluem contas arquivadas, como `accountBalances`.
    */
   private async monthly(workspaceId: string, scope: Scope, asOf: string): Promise<Array<CashflowMonth & { installmentsCents: number }>> {
     const months = lastMonths(asOf.slice(0, 7), MONTHS);
     const from = months[0] + "-01";
 
-    const [flows, nets, opening] = await Promise.all([
+    const [flows, nets, opening, transfers] = await Promise.all([
       prisma.$queryRaw<FlowRow[]>`
         SELECT to_char(t."date", 'YYYY-MM') AS "month",
           COALESCE(SUM(t."amountCents") FILTER (WHERE t."type" = 'income' AND t."transferPairId" IS NULL AND t."ignored" = false), 0) AS "income",
@@ -106,10 +118,26 @@ export class CashflowService {
         },
         _sum: { openingBalanceCents: true },
       }),
+      // Transferências manuais que cruzam a fronteira do escopo (origem e destino fora ou dentro dele valem 0).
+      prisma.$queryRaw<TransferRow[]>`
+        SELECT to_char(t."date", 'YYYY-MM') AS "month",
+          COALESCE(SUM(
+            CASE
+              WHEN ${inScope("d", scope)} AND NOT (${inScope("s", scope)}) THEN t."amountCents"
+              WHEN ${inScope("s", scope)} AND NOT (${inScope("d", scope)}) THEN -t."amountCents"
+              ELSE 0
+            END), 0) AS "net"
+        FROM transactions t
+        LEFT JOIN bank_accounts s ON s."id" = t."sourceAccountId" AND s."workspaceId" = t."workspaceId"
+        LEFT JOIN bank_accounts d ON d."id" = t."destAccountId" AND d."workspaceId" = t."workspaceId"
+        WHERE t."workspaceId" = ${workspaceId} AND t."type" = 'transfer' AND t."ignored" = false
+          AND t."date" >= ${from}::date AND t."date" <= ${asOf}::date
+        GROUP BY to_char(t."date", 'YYYY-MM')`,
     ]);
 
     const flowOf = new Map(flows.map((r) => [r.month, r]));
     const netOf = new Map(nets.map((r) => [r.month, Number(r.net)]));
+    const transferOf = new Map(transfers.map((r) => [r.month, Number(r.net)]));
     let balance = Number(opening._sum.openingBalanceCents ?? 0n);
     for (const [month, net] of netOf) if (month < months[0]) balance += net;
 
@@ -120,13 +148,19 @@ export class CashflowService {
         month,
         incomeCents: Number(f?.income ?? 0n),
         expenseCents: Number(f?.expense ?? 0n),
-        transfersNetCents: Number(f?.pairedIncome ?? 0n) - Number(f?.pairedExpense ?? 0n),
+        transfersNetCents: Number(f?.pairedIncome ?? 0n) - Number(f?.pairedExpense ?? 0n) + (transferOf.get(month) ?? 0),
         balanceCents: balance,
         installmentsCents: Number(f?.installments ?? 0n),
       };
     });
   }
 
+  /**
+   * Previsão de 3 meses a partir do mês seguinte a `asOf`: o resto do mês corrente não é projetado (o saldo atual já
+   * reflete o que foi lançado até `asOf`). As contas agendadas (`ScheduledBill`) são do workspace inteiro — o modelo
+   * não tem conta — então a previsão as soma mesmo com filtro de entidade/conta. As parcelas projetadas são só as ainda
+   * não lançadas (o saldo inicial já contém as lançadas).
+   */
   private async forecast(
     workspaceId: string, scope: Scope, asOf: string, asOfYm: string,
     monthly: Array<CashflowMonth & { installmentsCents: number }>, startBalanceCents: number,
@@ -145,7 +179,7 @@ export class CashflowService {
     const [recurring, bills, installments] = await Promise.all([
       this.spending.recurring(workspaceId, asOf, scope),
       prisma.scheduledBill.findMany({ where: { workspaceId, active: true } }),
-      this.cards.installmentsAheadMonthly(workspaceId, scope, asOf),
+      this.cards.remainingInstallmentsMonthly(workspaceId, scope, asOf),
     ]);
 
     return forecastCashflow({

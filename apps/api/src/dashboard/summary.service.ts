@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { prisma } from "../database";
-import { REPORTABLE } from "../common/reportable";
+import { pendingReviewWhere } from "../common/pending-review";
 import { parseDashboardFilter } from "./dashboard-filter";
 import { CardsService } from "./cards.service";
 import { CashflowService } from "./cashflow.service";
@@ -21,20 +21,31 @@ export class SummaryService {
     const { period } = parseDashboardFilter({ month: asOf.slice(0, 7), asOf });
     const [balances, pendingCount, { cards }, spending] = await Promise.all([
       this.cashflow.consolidated(workspaceId, asOf),
-      prisma.transaction.count({ where: { workspaceId, reviewStatus: "pending", ...REPORTABLE } }),
+      prisma.transaction.count({ where: pendingReviewWhere(workspaceId) }),
       this.cards.get(workspaceId, { asOf }),
       this.spending.get(workspaceId, { period, asOf }),
     ]);
 
-    const upcoming = cards
-      .filter((c) => c.configured && c.dueDate != null && c.dueDate >= asOf && (c.openInvoiceCents ?? 0) > 0)
-      .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!));
-    const next = upcoming[0];
+    // Próximo vencimento a pagar: faturas fechadas ainda em aberto/parciais (saldo devedor) e a fatura aberta do ciclo.
+    const candidates: Array<{ accountId: string; name: string; dueDate: string; openInvoiceCents: number }> = [];
+    for (const c of cards) {
+      if (!c.configured) continue;
+      for (const p of c.invoicePayments) {
+        const remaining = p.invoiceCents - p.paidCents;
+        if ((p.status === "open" || p.status === "partial") && p.due >= asOf && remaining > 0) {
+          candidates.push({ accountId: c.accountId, name: c.name, dueDate: p.due, openInvoiceCents: remaining });
+        }
+      }
+      if (c.dueDate != null && c.dueDate >= asOf && (c.openInvoiceCents ?? 0) > 0) {
+        candidates.push({ accountId: c.accountId, name: c.name, dueDate: c.dueDate, openInvoiceCents: c.openInvoiceCents! });
+      }
+    }
+    const next = candidates.sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
 
     return {
       balances,
       pendingCount,
-      nextInvoice: next ? { accountId: next.accountId, name: next.name, dueDate: next.dueDate!, openInvoiceCents: next.openInvoiceCents! } : null,
+      nextInvoice: next ?? null,
       spending: {
         totalCents: spending.totalCents,
         insight: spending.insight,

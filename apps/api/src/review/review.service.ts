@@ -3,12 +3,12 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { categoryFits, normalizeDescriptionKey, type AccountEntity } from "@app/shared";
 import { prisma } from "../database";
 import { findSimilarUncategorizedIds } from "../common/similar-transactions";
+import { pendingReviewWhere } from "../common/pending-review";
 import { CategoryRulesService } from "../category-rules/category-rules.service";
 import { TransactionsService } from "../transactions/transactions.service";
 
 const CANDIDATE_WINDOW_DAYS = 7;
 const NO_DESCRIPTION_KEY = "(sem descrição)";
-const FORGOTTEN_AFTER_MS = 15 * 60_000;
 
 const textOf = (t: { counterparty: string | null; description: string | null }) =>
   [t.counterparty, t.description].filter(Boolean).join(" ");
@@ -24,19 +24,7 @@ export class ReviewService {
 
   async pending(workspaceId: string, filters: { entity?: AccountEntity; accountId?: string }) {
     const rows = await prisma.transaction.findMany({
-      where: {
-        workspaceId,
-        // Pendentes + "esquecidas": sem categoria nenhuma e fora da fila há mais de 15 min (ex.: job de IA que morreu no meio).
-        OR: [
-          { reviewStatus: "pending" },
-          { reviewStatus: "ok", categorySource: "none", categoryId: null, createdAt: { lt: new Date(Date.now() - FORGOTTEN_AFTER_MS) } },
-        ],
-        ignored: false,
-        transferPairId: null,
-        type: { in: ["income", "expense"] },
-        ...(filters.accountId ? { accountId: filters.accountId } : {}),
-        ...(filters.entity ? { account: { entity: filters.entity } } : {}),
-      },
+      where: pendingReviewWhere(workspaceId, filters),
       orderBy: [{ date: "desc" }, { id: "asc" }],
       select: {
         id: true, type: true, amountCents: true, counterparty: true, description: true,

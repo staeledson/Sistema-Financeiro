@@ -82,15 +82,20 @@ export class CardsService {
     return { cards };
   }
 
-  /** Soma das parcelas dos cartões do escopo por mês de vencimento: 12 meses a partir do mês seguinte a `asOf` (usado pela previsão). */
-  async installmentsAheadMonthly(workspaceId: string, scope: Scope, asOf: string): Promise<Array<{ month: string; amountCents: number }>> {
+  /**
+   * Parcelas AINDA NÃO LANÇADAS dos cartões do escopo (usado pela previsão): 12 meses a partir do mês seguinte a `asOf`,
+   * por mês de lançamento (mês de fechamento do ciclo da última parcela lançada + k). As já lançadas ficam de fora porque
+   * o saldo atual (ponto de partida da previsão) já as contém; diferente de `installmentsAhead` do cartão, que inclui as
+   * lançadas por mês de vencimento. Sempre 12 entradas, zeros incluídos.
+   */
+  async remainingInstallmentsMonthly(workspaceId: string, scope: Scope, asOf: string): Promise<Array<{ month: string; amountCents: number }>> {
     await assertScopeAccount(workspaceId, scope.accountId);
     const accounts = (await this.cardAccounts(workspaceId, scope)).filter((a) => a.closingDay != null && a.dueDay != null);
-    const perCard = await Promise.all(accounts.map((a) => this.installmentsFor(workspaceId, a, asOf)));
-    return Array.from({ length: AHEAD_MONTHS }, (_, i) => {
-      const month = addMonths(asOf.slice(0, 7), i + 1);
-      return { month, amountCents: perCard.reduce((s, list) => s + list[i].amountCents, 0) };
-    });
+    const perCard = await Promise.all(accounts.map((a) => this.remainingFor(workspaceId, a, asOf)));
+    return Array.from({ length: AHEAD_MONTHS }, (_, i) => ({
+      month: addMonths(asOf.slice(0, 7), i + 1),
+      amountCents: perCard.reduce((s, list) => s + list[i], 0),
+    }));
   }
 
   private cardAccounts(workspaceId: string, scope: Scope): Promise<CardAccount[]> {
@@ -204,10 +209,33 @@ export class CardsService {
     }));
   }
 
-  private async installmentsFor(workspaceId: string, a: CardAccount, asOf: string) {
+  private async remainingFor(workspaceId: string, a: CardAccount, asOf: string): Promise<number[]> {
     const { closed } = recentCycles(asOf, a.closingDay!, a.dueDay!, CLOSED_CYCLES);
     const rows = await this.movements(workspaceId, a.id, closed[0].start, asOf);
-    return this.installmentsAhead(rows, asOf, a.closingDay!, a.dueDay!);
+    const months = Array.from({ length: AHEAD_MONTHS }, (_, i) => addMonths(asOf.slice(0, 7), i + 1));
+    const out = new Array<number>(AHEAD_MONTHS).fill(0);
+    for (const m of this.latestInstallments(rows, a.closingDay!, a.dueDay!).values()) {
+      const rowYm = cycleOf(m.date, a.closingDay!, a.dueDay!).ym;
+      for (let k = 1; k <= m.installmentTotal! - m.installmentCurrent!; k++) {
+        const idx = months.indexOf(addMonths(rowYm, k));
+        if (idx >= 0) out[idx] += m.cents;
+      }
+    }
+    return out;
+  }
+
+  /** Última parcela lançada de cada compra parcelada (maior parcela; empate, a mais recente). */
+  private latestInstallments(rows: Movement[], closingDay: number, dueDay: number) {
+    const latest = new Map<string, Movement>();
+    for (const m of rows) {
+      if (m.type !== "expense" || m.installmentCurrent == null || m.installmentTotal == null) continue;
+      const key = this.installmentKey(m, closingDay, dueDay);
+      const prev = latest.get(key);
+      if (!prev || m.installmentCurrent > prev.installmentCurrent! || (m.installmentCurrent === prev.installmentCurrent && m.date > prev.date)) {
+        latest.set(key, m);
+      }
+    }
+    return latest;
   }
 
   /** Identidade da compra parcelada: descrição normalizada (ou contraparte, se a parcela veio dela), total e mês de origem. */
@@ -235,16 +263,11 @@ export class CardsService {
       if (slot) { slot.amountCents += cents; slot.count += 1; }
     };
 
-    const latest = new Map<string, Movement>();
     for (const m of rows) {
       if (m.type !== "expense" || m.installmentCurrent == null || m.installmentTotal == null) continue;
       add(cycleOf(m.date, closingDay, dueDay).due.slice(0, 7), m.cents); // já lançada: paga no vencimento da fatura dela
-      const key = this.installmentKey(m, closingDay, dueDay);
-      const prev = latest.get(key);
-      if (!prev || m.installmentCurrent > prev.installmentCurrent! || (m.installmentCurrent === prev.installmentCurrent && m.date > prev.date)) {
-        latest.set(key, m);
-      }
     }
+    const latest = this.latestInstallments(rows, closingDay, dueDay);
     for (const m of latest.values()) {
       const rowYm = cycleOf(m.date, closingDay, dueDay).ym;
       for (let k = 1; k <= m.installmentTotal! - m.installmentCurrent!; k++) {
