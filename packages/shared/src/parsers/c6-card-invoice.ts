@@ -1,6 +1,5 @@
 import { foldText } from "../categorization";
 import { importFingerprint, ordinalFingerprints } from "../import";
-import { normalizeAmount } from "../ofx";
 import { readCsvLines, type CsvLine } from "./csv-lite";
 import { toISODate } from "./text";
 import {
@@ -32,7 +31,10 @@ function headerMatches(cells: string[]): boolean {
 }
 
 const DATE_BR = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-const DECIMAL = /^-?\d+(\.\d+)?$/;
+// Formatos aceitos para dinheiro: "-1234.56" / "7" (ponto decimal, até 2 casas) ou BR ("1.234,56", "1234,5").
+// Qualquer outro ("1.234" sem vírgula, "1,234.56") é ambíguo e vira erro, em vez de virar centavos errados.
+const MONEY_DOT = /^-?\d+(\.\d{1,2})?$/;
+const MONEY_BR = /^-?(\d{1,3}(\.\d{3})*|\d+),\d{1,2}$/;
 const INSTALLMENT_COL = /^(\d{1,3})\s*(?:\/|de)\s*(\d{1,3})$/i;
 
 /** Linhas de dados (sem o cabeçalho) quando o texto é uma fatura do C6; senão null. */
@@ -48,10 +50,11 @@ function columnIndex(header: string[], name: string): number {
   return idx;
 }
 
-/** Centavos inteiros (com sinal) de um valor com ponto ou vírgula decimal; null se não for numérico. */
+/** Centavos inteiros (com sinal) de um valor com ponto ou vírgula decimal; null se fora dos formatos aceitos. */
 function toCents(raw: string): number | null {
-  const s = normalizeAmount(raw.trim());
-  if (!DECIMAL.test(s)) return null;
+  const t = raw.trim();
+  if (!MONEY_DOT.test(t) && !MONEY_BR.test(t)) return null;
+  const s = t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t;
   const cents = Math.round(Number(s) * 100);
   return Object.is(cents, -0) ? 0 : cents;
 }
@@ -114,6 +117,7 @@ export const c6CardInvoiceParser: StatementParser = {
 
     const raw: Array<{ date: string; signed: number; description: string; bankCategory: string | null }> = [];
     for (const row of invoice.rows) {
+      // por desenho, linha com "Final do Cartão" vazio não pertence a nenhum cartão e é ignorada (não é erro)
       if ((row.cells[col.card] ?? "").trim() !== card) continue;
       if (row.cells.length !== header.length) {
         throw new StatementParseError(

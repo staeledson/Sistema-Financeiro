@@ -41,6 +41,19 @@ describe("mapBankCategory", () => {
     expect(mapBankCategory("Elétrico")).toBeNull();
   });
 
+  it("palavras inteiras: trechos dentro de outras palavras não casam", () => {
+    expect(mapBankCategory("Automóveis")).toBeNull(); // contém "moveis"
+    expect(mapBankCategory("Móveis e decoração")).toBe("Compras");
+    expect(mapBankCategory("Radiologia")).toBeNull(); // contém "radio"
+    expect(mapBankCategory("Serviços de rádio")).toBe("Assinaturas");
+    expect(mapBankCategory("Comércio pela internet")).toBeNull(); // compra online não é conta de internet
+    expect(mapBankCategory("Provedor de acesso à internet")).toBe("Contas e utilidades");
+    expect(mapBankCategory("Recursos humanos")).toBeNull(); // contém "curso"
+    expect(mapBankCategory("Cursos")).toBe("Educação");
+    expect(mapBankCategory("Taxas governamentais")).toBe("Impostos e taxas");
+    expect(mapBankCategory("Governo")).toBe("Impostos e taxas");
+  });
+
   it("vazio, hífen, null e desconhecida dão null", () => {
     expect(mapBankCategory("-")).toBeNull();
     expect(mapBankCategory("")).toBeNull();

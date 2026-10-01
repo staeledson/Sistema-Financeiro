@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { detectStatement, readCsv, verifyBalances, type ParsedStatement } from "@app/shared";
+import { detectStatement, isCardPaymentText, readCsv, verifyBalances, type ParsedStatement } from "@app/shared";
 import { decodeText, extractPdfText } from "../../src/import/pdf-text";
 
 const FILES = {
@@ -59,6 +59,7 @@ describe("fatura de cartão C6 real (CSV)", () => {
     const nonZero = body.filter((cols) => Number(cols[8].replace(",", ".")) !== 0).length;
 
     const all: ParsedStatement["rows"] = [];
+    const perCard: ParsedStatement["rows"][] = [];
     for (const ref of refs) {
       // o erro do parser não traz conteúdo de linha, mas por garantia a mensagem não chega ao vitest
       let result: ParsedStatement | null;
@@ -71,9 +72,30 @@ describe("fatura de cartão C6 real (CSV)", () => {
       expect(result!.rows.length > 0).toBe(true);
       expect(new Set(result!.rows.map((r) => r.fingerprint)).size === result!.rows.length).toBe(true);
       all.push(...result!.rows);
+      perCard.push(result!.rows);
     }
     expect(all.length === nonZero).toBe(true);
     expect(all.some((r) => r.type === "income")).toBe(true); // o pagamento da fatura
+    // o rótulo do pagamento muda de mês a mês ("Pagamento ...", "Inclusão de Pagamento"): o reconhecido tem de casar
+    expect(all.some((r) => r.type === "income" && isCardPaymentText(r.description))).toBe(true);
+    // coluna Parcela: "Única" ou o padrão n/m | n de m que o parser entende
+    const parcelaIdx = table[0].findIndex((h) => /^parcela$/i.test(h.trim()));
+    const unica = (v: string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() === "unica";
+    const parcelaOk = (v: string) => unica(v) || /^(\d{1,3})\s*(?:\/|de)\s*(\d{1,3})$/i.test(v.trim());
+    expect(parcelaIdx >= 0 && body.every((cols) => parcelaOk(cols[parcelaIdx]))).toBe(true);
+
+    // Parcelas n>1: a data da linha tem de cair na janela (mín/máx) das compras à vista do mesmo cartão, o que protege
+    // contra a linha parcelada trazer a data da compra original. Sem linhas parceladas no arquivo atual isto passa
+    // trivialmente: a semântica da data das parcelas segue NÃO verificada até importar uma fatura com parcelas.
+    const suffix = /\s(\d{1,3})\/\d{1,3}(?: \(US\$ [\d.]+ @ [\d.]+\))?$/;
+    for (const rows of perCard) {
+      const dates = rows.filter((r) => !suffix.test(r.description ?? "")).map((r) => r.date).sort();
+      const outside = rows.filter((r) => {
+        const m = suffix.exec(r.description ?? "");
+        return m !== null && Number(m[1]) > 1 && (r.date < dates[0] || r.date > dates[dates.length - 1]);
+      });
+      expect(outside.length === 0).toBe(true);
+    }
     expect(all.some((r) => /\(US\$ [\d.]+ @ [\d.]+\)$/.test(r.description ?? ""))).toBe(true); // compra em dólar
   });
 });

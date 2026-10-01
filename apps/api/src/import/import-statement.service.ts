@@ -33,7 +33,7 @@ export interface DetectResponse {
   accountRefs: string[];
   /** Por final de cartão: id da única conta ativa de cartão de crédito com esse externalId; senão null. */
   matchedAccounts: Record<string, string | null>;
-  /** Texto extraído; só para formatos que o preview de extrato aceita (ofx e pdf_statement). */
+  /** Texto extraído (PDF ou arquivo de texto); null quando o formato não foi reconhecido. */
   text: string | null;
 }
 
@@ -131,6 +131,8 @@ export class ImportStatementService {
       const categories = await prisma.category.findMany({
         where: { workspaceId, type: "expense" },
         select: { id: true, name: true, type: true, entity: true },
+        // ordem fixa: com nomes repetidos a sugestão é sempre a mesma categoria
+        orderBy: { id: "asc" }, // Category não tem createdAt; o id (cuid) é monotônico o bastante
       });
       for (const c of categories) {
         const key = foldText(c.name.trim());

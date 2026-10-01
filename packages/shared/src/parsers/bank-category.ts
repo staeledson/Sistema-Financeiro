@@ -10,15 +10,15 @@ const BANK_CATEGORY_MAP: Array<[RegExp, string]> = [
   [/supermercado|mercearia|hipermercado/, "Supermercado"],
   [/farmaci|drogari/, "Farmácia"],
   [/assistencia medica|odontolog|hospital|clinica|laboratorio|medic/, "Saúde"],
-  [/telecomunica|telefon|internet|energia|agua e esgoto|gas encanado/, "Contas e utilidades"],
-  [/tv por assinatura|radio|streaming|assinatura/, "Assinaturas"],
-  [/educa|escola|curso|universidade|faculdade|livraria/, "Educação"],
+  [/telecomunica|telefon|provedor|acesso a internet|energia|agua e esgoto|gas encanado/, "Contas e utilidades"],
+  [/tv por assinatura|\bradio\b|streaming|assinatura/, "Assinaturas"],
+  [/educa|escola|\bcursos?\b|universidade|faculdade|livraria/, "Educação"],
   [/combustiv|\bpostos?\b/, "Combustível"],
   [/taxi|transporte|pedagio|estacionamento|onibus|metro|aplicativo de transporte/, "Transporte"],
-  [/vestuario|loja de departamento|lojas de departamento|eletronic|calcado|moveis|utilidades domesticas|joalheria/, "Compras"],
+  [/vestuario|loja de departamento|lojas de departamento|eletronic|calcado|\bmoveis\b|utilidades domesticas|joalheria/, "Compras"],
   [/entretenimento|cinema|teatro|hotel|hotei|companhia aerea|companhias aereas|agencia de viagem|agencias de viagem|turismo|recreacao|clube/, "Lazer"],
   [/veterinari|pet ?shop|\bpet\b|animais/, "Pets"],
-  [/imposto|taxa governamental|governo/, "Impostos e taxas"],
+  [/imposto|governo|governament/, "Impostos e taxas"],
 ];
 
 export function mapBankCategory(bankCategory: string | null | undefined): string | null {

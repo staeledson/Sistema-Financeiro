@@ -159,6 +159,19 @@ describe("POST /import/preview com fatura CSV", () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it("com duas categorias de mesmo nome a sugestão é sempre a mesma (a de menor id)", async () => {
+    const u = await newUser("fat-pre7");
+    const c = await card(u, { externalId: "1111" });
+    await prisma.category.create({ data: { workspaceId: u.workspaceId, name: "Restaurantes e delivery", type: "expense" } });
+    const same = await prisma.category.findMany({ where: { workspaceId: u.workspaceId, name: "Restaurantes e delivery", type: "expense" } });
+    expect(same).toHaveLength(2);
+    const expected = same.map((x) => x.id).sort()[0];
+    for (let i = 0; i < 3; i++) {
+      const rows = (await preview(u, c.id, "1111")).json().rows as PreviewRow[];
+      expect(rows.find((r) => r.description.startsWith("CAFE CENTRAL"))!.categoryId).toBe(expected);
+    }
+  });
+
   it("cartão PJ não recebe sugestão de categoria exclusiva de PF; both continua valendo", async () => {
     const u = await newUser("fat-pre6");
     const pj = await card(u, { entity: "pj", externalId: "2222" });

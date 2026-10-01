@@ -174,7 +174,7 @@ describe("c6CardInvoiceParser.parse: erros sem conteúdo de linha", () => {
   it("data inválida cita só o número da linha", () => {
     const err = catchErr([`31/02/2026;${NAME};1111;-;SEGREDO COMERCIANTE;Única;0;0;10.00`]);
     expect(err).toBeInstanceOf(StatementParseError);
-    expect(err?.message).toContain("2");
+    expect(err?.message).toContain("linha 2");
     expect(err?.message).not.toContain("SEGREDO");
     expect(err?.message).not.toContain("31/02/2026");
   });
@@ -185,11 +185,40 @@ describe("c6CardInvoiceParser.parse: erros sem conteúdo de linha", () => {
       `02/09/2026;${NAME};1111;-;SEGREDO COMERCIANTE;Única;0;0;abc`,
     ]);
     expect(err).toBeInstanceOf(StatementParseError);
-    expect(err?.message).toContain("3");
+    expect(err?.message).toContain("linha 3");
     expect(err?.message).not.toContain("SEGREDO");
     expect(err?.message).not.toContain("abc");
   });
 
+  it.each(["1.234", "1,234.56", "12.345,6.7", "R$ 10.00", "1e3", "10.123", "--5.00", ""])(
+    "valor ambíguo ou fora do formato (%j) é erro que cita só a linha",
+    (bad) => {
+      const err = catchErr([`02/09/2026;${NAME};1111;-;SEGREDO COMERCIANTE;Única;0;0;${bad}`]);
+      expect(err).toBeInstanceOf(StatementParseError);
+      expect(err?.message).toContain("linha 2");
+      expect(err?.message).not.toContain("SEGREDO");
+    },
+  );
+
+  it.each([
+    ["1234.56", 123456], ["10.5", 1050], ["0.31", 31], ["-500.00", 50000], ["1.234,56", 123456],
+    ["1234,5", 123450], ["12,00", 1200], ["999.999,99", 99999999], ["7", 700],
+  ])("valor %s é aceito (%i centavos em módulo)", (ok, cents) => {
+    const p = c6CardInvoiceParser.parse(
+      c6InvoiceText({ rows: [`02/09/2026;${NAME};1111;-;COMPRA;Única;0;0;${ok}`] }),
+      { accountId: "a" },
+    );
+    expect(p.rows[0].amountCents).toBe(cents);
+  });
+
+  it("linha com 'Final do Cartão' vazio é ignorada por desenho (não é erro e não entra em nenhum cartão)", () => {
+    const rows = [...C6_INVOICE_ROWS, `20/09/2026;${NAME};;-;SEM CARTAO;Única;0;0;99.00`];
+    const text = c6InvoiceText({ rows });
+    expect(c6CardInvoiceParser.detect(text)?.accountRefs).toEqual(["1111", "2222"]);
+    const p = parse("1111", text);
+    expect(p.rows.map((r) => r.description)).not.toContain("SEM CARTAO");
+    expect(p.rows).toHaveLength(7);
+  });
   it("linha com número de colunas errado não vaza conteúdo", () => {
     const err = catchErr([`01/09/2026;${NAME};1111;SEGREDO`]);
     expect(err).toBeInstanceOf(StatementParseError);

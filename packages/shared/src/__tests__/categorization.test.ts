@@ -262,6 +262,13 @@ describe("isCardPaymentText", () => {
     expect(isCardPaymentText("Pag fatura cartao")).toBe(true);
   });
 
+  it("reconhece os rótulos de pagamento do C6 ('Pagamento ...' e 'Inclusão de Pagamento')", () => {
+    expect(isCardPaymentText("Pagamento recebido")).toBe(true);
+    expect(isCardPaymentText("Inclusao de Pagamento")).toBe(true);
+    expect(isCardPaymentText("INCLUSÃO DE PAGAMENTO")).toBe(true);
+    expect(isCardPaymentText("Inclusão de compra")).toBe(false);
+  });
+
   it("qualquer texto que comece com 'pagamento' conta (o contexto é conta de cartão)", () => {
     expect(isCardPaymentText("Pagamento CDB")).toBe(true);
     // começa com "pagamento": aceito de propósito, pois só é usado em linhas negativas de conta de cartão
