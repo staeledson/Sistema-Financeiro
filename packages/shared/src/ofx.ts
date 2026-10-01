@@ -7,7 +7,7 @@ export type OfxTxn = {
 };
 
 /** "1.234,56" (BR) e "1,234.56" (US) viram número; sem vírgula o ponto é decimal ("1234.56"). */
-function normalizeAmount(raw: string): string {
+export function normalizeAmount(raw: string): string {
   if (!raw.includes(",")) return raw;
   if (raw.lastIndexOf(".") > raw.lastIndexOf(",")) return raw.replace(/,/g, "");
   return raw.replace(/\./g, "").replace(",", ".");

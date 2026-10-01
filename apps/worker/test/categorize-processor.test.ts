@@ -277,19 +277,19 @@ describe("processCategorize", () => {
     ]);
   });
 
-  it("linhas além do teto de IA viram pendentes pelo mesmo updateMany guardado e o job registra deferred", async () => {
+  it("linhas além do teto de IA viram pendentes num único updateMany guardado (sem tocar na sugestão) e o job registra deferred", async () => {
     const rows = Array.from({ length: MAX_AI_ROWS_PER_JOB + 2 }, (_, i) =>
       row(`t${i}`, { description: "Coisa estranha", date: new Date(i < 2 ? "2026-01-05" : "2026-06-10") }));
     const ai = setup(rows);
     await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
 
     const all = ops();
-    const guard = (id: string) => ({ id, workspaceId: "w1", categoryId: null, ignored: false, transferPairId: null });
-    for (const id of ["t0", "t1"]) {
-      const o = all.find((x) => x.op === "transaction.updateMany" && (x.args.where as Row).id === id)!;
-      expect(o.args.where).toEqual(guard(id));
-      expect(o.args.data).toEqual({ reviewStatus: "pending", suggestedCategoryId: null, categoryConfidence: null });
-    }
+    const deferredOps = all.filter((x) => x.op === "transaction.updateMany" && typeof (x.args.where as Row).id === "object");
+    expect(deferredOps).toHaveLength(1);
+    const where = deferredOps[0].args.where as { id: { in: string[] } };
+    expect(where).toEqual({ id: { in: expect.any(Array) }, workspaceId: "w1", categoryId: null, ignored: false, transferPairId: null });
+    expect(where.id.in.slice().sort()).toEqual(["t0", "t1"]);
+    expect(deferredOps[0].args.data).toEqual({ reviewStatus: "pending" });
     const sent = (ai.categorizeBatch.mock.calls as unknown as Array<[{ user: string }]>).flatMap(([c]) => (JSON.parse(c.user).transactions as Array<{ id: string }>).map((t) => t.id));
     expect(sent).toHaveLength(MAX_AI_ROWS_PER_JOB);
     expect(sent).not.toContain("t0");

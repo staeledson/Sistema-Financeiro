@@ -214,6 +214,15 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
         pending += r.count;
       }
 
+      // Excedente do teto de IA: um único updateMany guardado; só marca como pendente (sugestão/confiança existentes ficam).
+      if (plan.deferredIds.length > 0) {
+        const r = await db.transaction.updateMany({
+          where: { id: { in: plan.deferredIds }, workspaceId, categoryId: null, ignored: false, transferPairId: null },
+          data: { reviewStatus: "pending" },
+        });
+        pending += r.count;
+      }
+
       await db.aiJob.update({
         where: { id: jobId },
         data: {

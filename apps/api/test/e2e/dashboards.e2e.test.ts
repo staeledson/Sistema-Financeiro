@@ -60,6 +60,16 @@ describe("parcelas (n/m) em lançamentos de cartão", () => {
     expect(row).toMatchObject({ installmentCurrent: 3, installmentTotal: 10 });
   });
 
+  it("parcela escrita só na contraparte também é extraída (descrição sem parcela)", async () => {
+    const u = await newUser("parc3");
+    const card = await account(u, "credit_card");
+    const res = await post(u, "/transactions", {
+      type: "expense", amountCents: 1000, date: "2026-06-10", accountId: card.id, description: "Compra online", counterparty: "LOJA Z 02/06",
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json()).toMatchObject({ installmentCurrent: 2, installmentTotal: 6 });
+  });
+
   it("GET /transactions devolve os campos de revisão e de parcela em cada linha", async () => {
     const u = await newUser("parc2");
     const card = await account(u, "credit_card");

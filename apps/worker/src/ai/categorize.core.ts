@@ -51,12 +51,13 @@ export interface CategorizePlan {
   costTokens: number;
   /** Lotes em que o gateway de IA falhou (as linhas do lote ficam pendentes). */
   aiFailures: number;
-  /** Linhas que passaram do teto de IA do job e ficaram pendentes sem sugestão. */
+  /** Linhas que passaram do teto de IA do job: só ganham reviewStatus pending (sem tocar na sugestão existente). */
   deferred: number;
+  deferredIds: string[];
 }
 
 const MAX_EXAMPLES = 30;
-/** Teto de linhas enviadas à IA por job (as mais recentes); o excedente vira pendência. */
+/** Teto de linhas enviadas à IA por job (as mais recentes); o excedente só vira pendência (deferredIds). */
 export const MAX_AI_ROWS_PER_JOB = 500;
 
 export const CATEGORIZE_SYSTEM =
@@ -101,7 +102,7 @@ export async function planCategorization(
   ai: CategorizeAi,
 ): Promise<CategorizePlan> {
   const { scope, categories, rules, examples, settings } = input;
-  const plan: CategorizePlan = { transferPairs: [], byRule: [], byAi: [], pending: [], costTokens: 0, aiFailures: 0, deferred: 0 };
+  const plan: CategorizePlan = { transferPairs: [], byRule: [], byAi: [], pending: [], costTokens: 0, aiFailures: 0, deferred: 0, deferredIds: [] };
   if (scope.length === 0) return plan;
 
   const scopeIds = new Set(scope.map((t) => t.id));
@@ -176,7 +177,7 @@ export async function planCategorization(
     }
   }
 
-  for (const tx of deferred) plan.pending.push({ txId: tx.id, suggestedCategoryId: null, confidence: null });
+  plan.deferredIds = deferred.map((t) => t.id);
   plan.deferred = deferred.length;
 
   return plan;

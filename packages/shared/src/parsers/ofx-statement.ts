@@ -1,6 +1,6 @@
 import type { Institution } from "../enums";
 import { importFingerprint, ordinalFingerprints } from "../import";
-import { parseOfx } from "../ofx";
+import { normalizeAmount, parseOfx } from "../ofx";
 import { toISODate } from "./text";
 import {
   StatementParseError,
@@ -71,7 +71,7 @@ export const ofxStatementParser: StatementParser = {
     const balances: BalancePoint[] = [];
     const ledger = text.match(/<LEDGERBAL>[\s\S]*?<BALAMT>\s*([^<\r\n]+)[\s\S]*?<DTASOF>\s*(\d{8})/i);
     if (ledger) {
-      const cents = Math.round(parseFloat(ledger[1].replace(",", ".")) * 100);
+      const cents = Math.round(parseFloat(normalizeAmount(ledger[1].trim())) * 100);
       const d = ledger[2];
       if (!Number.isNaN(cents)) balances.push({ dateISO: `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`, balanceCents: cents });
     }

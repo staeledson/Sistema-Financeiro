@@ -246,6 +246,19 @@ describe("ofxStatementParser", () => {
     expect(verifyBalances(parsed.rows, parsed.balances)).toBeNull();
   });
 
+  it("saldo em formato BR (1.234,56) vira 123456 centavos e passa na conferência", () => {
+    const br = `<OFX><BANKID>077<ACCTID>1<BANKTRANLIST>
+<STMTTRN><DTPOSTED>20260605<TRNAMT>-1.000,00<FITID>B1<MEMO>Aluguel</STMTTRN>
+<STMTTRN><DTPOSTED>20260610<TRNAMT>500,00<FITID>B2<MEMO>Pix</STMTTRN>
+</BANKTRANLIST><LEDGERBAL><BALAMT>1.234,56<DTASOF>20260630</LEDGERBAL></OFX>`;
+    const parsed = ofxStatementParser.parse(br, { accountId: "acc1" });
+    expect(parsed.rows.map((r) => r.amountCents)).toEqual([100000, 50000]);
+    expect(parsed.balances).toEqual([{ dateISO: "2026-06-30", balanceCents: 123456 }]);
+    // saldo de abertura: 1.234,56 + 1.000,00 - 500,00
+    const check = verifyBalances(parsed.rows, [{ dateISO: "2026-06-01", balanceCents: 173456 }, ...parsed.balances]);
+    expect(check?.ok).toBe(true);
+  });
+
   it("parseOfx deixa fitid nulo quando o arquivo não traz FITID", () => {
     expect(parseOfx(OFX_SAMPLE).map((t) => t.fitid)).toEqual(["A1", "A2", null, null]);
   });

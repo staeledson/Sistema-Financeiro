@@ -77,7 +77,7 @@ export class TransactionsService {
       accountType = accs.find((a) => a.id === dto.accountId)?.type ?? null;
     }
     // parcela "n/m" só faz sentido em despesa lançada no cartão de crédito
-    const inst = dto.type === "expense" && accountType === "credit_card" ? parseInstallment(dto.description ?? dto.counterparty) : null;
+    const inst = dto.type === "expense" && accountType === "credit_card" ? (parseInstallment(dto.description) ?? parseInstallment(dto.counterparty)) : null;
 
     if (dto.categoryId) {
       const cat = await prisma.category.findFirst({ where: { id: dto.categoryId, workspaceId }, select: { type: true } });

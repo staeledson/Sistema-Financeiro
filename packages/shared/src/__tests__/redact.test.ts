@@ -23,6 +23,17 @@ describe("redactForLlm", () => {
     expect(redactForLlm("Supermercado Extra 123")).toBe("Supermercado Extra 123");
   });
 
+  it("mascara documento colado em letras", () => {
+    expect(redactForLlm("JOAO123.456.789-00")).toBe("JOAO###");
+    expect(redactForLlm("CNPJ12.345.678/0001-95")).toBe("CNPJ###");
+  });
+
+  it("não mascara valores, datas e parcelas", () => {
+    expect(redactForLlm("PAGTO 1.234.567,89")).toBe("PAGTO 1.234.567,89");
+    expect(redactForLlm("COMPRA 01/10/2026")).toBe("COMPRA 01/10/2026");
+    expect(redactForLlm("LOJA X 03/10")).toBe("LOJA X 03/10");
+  });
+
   it("vazio ou nulo vira string vazia", () => {
     expect(redactForLlm("")).toBe("");
     expect(redactForLlm(null)).toBe("");

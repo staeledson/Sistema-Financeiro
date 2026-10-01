@@ -3,14 +3,34 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
-import { OpenRouterGateway } from "../src/ai/openrouter";
+import { OpenRouterGateway, providerPrefs } from "../src/ai/openrouter";
 
 const ok = (content: string, tokens = 50) => ({
   ok: true,
   json: async () => ({ choices: [{ message: { content } }], usage: { total_tokens: tokens } }),
 });
 
-beforeEach(() => fetchMock.mockReset());
+beforeEach(() => {
+  fetchMock.mockReset();
+  vi.unstubAllEnvs();
+});
+
+describe("providerPrefs (OPENROUTER_DATA_COLLECTION)", () => {
+  it("padrão e valores desconhecidos viram deny; allow é aceito", () => {
+    expect(providerPrefs()).toEqual({ data_collection: "deny" });
+    for (const v of ["deny", "", "talvez", "ALLOW "]) {
+      vi.stubEnv("OPENROUTER_DATA_COLLECTION", v);
+      expect(providerPrefs()).toEqual({ data_collection: v.trim().toLowerCase() === "allow" ? "allow" : "deny" });
+    }
+  });
+
+  it("o corpo enviado respeita a variável", async () => {
+    vi.stubEnv("OPENROUTER_DATA_COLLECTION", "allow");
+    fetchMock.mockResolvedValue(ok(JSON.stringify({ results: [] })));
+    await new OpenRouterGateway("k", "v", "t").categorizeBatch({ system: "s", user: "u" });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string).provider).toEqual({ data_collection: "allow" });
+  });
+});
 
 describe("OpenRouterGateway.categorizeBatch", () => {
   it("envia o schema de resposta, valida e devolve os resultados e o custo", async () => {

@@ -193,7 +193,7 @@ describe("planCategorization", () => {
 
   it("escopo vazio não chama a IA", async () => {
     const plan = await planCategorization({ scope: [], pairPool: [], categories: CATS, rules: [], examples: [], settings: SETTINGS }, noAi);
-    expect(plan).toEqual({ transferPairs: [], byRule: [], byAi: [], pending: [], costTokens: 0, aiFailures: 0, deferred: 0 });
+    expect(plan).toEqual({ transferPairs: [], byRule: [], byAi: [], pending: [], costTokens: 0, aiFailures: 0, deferred: 0, deferredIds: [] });
   });
 
   it("tamanho de lote inválido (0 ou NaN) não lança e ainda categoriza", async () => {
@@ -259,7 +259,7 @@ describe("planCategorization", () => {
     expect(plan.byAi.map((h) => h.txId)).toEqual([txs[2].id, txs[3].id]);
   });
 
-  it("teto por job: só as MAX_AI_ROWS_PER_JOB mais recentes vão à IA; o excedente vira pendente sem sugestão", async () => {
+  it("teto por job: só as MAX_AI_ROWS_PER_JOB mais recentes vão à IA; o excedente vai para deferredIds", async () => {
     expect(MAX_AI_ROWS_PER_JOB).toBe(500);
     // 503 linhas; as 3 mais antigas (jan) ficam de fora, mesmo vindo primeiro no escopo.
     const old = [1, 2, 3].map((d) => tx({ date: `2026-01-0${d}`, description: `antiga ${d}` }));
@@ -276,8 +276,8 @@ describe("planCategorization", () => {
     expect(sentIds).not.toContain(old[0].id);
     expect(plan.deferred).toBe(3);
     expect(plan.byAi).toHaveLength(MAX_AI_ROWS_PER_JOB);
-    expect(plan.pending.map((p) => p.txId).sort()).toEqual(old.map((t) => t.id).sort());
-    expect(plan.pending.every((p) => p.suggestedCategoryId === null && p.confidence === null)).toBe(true);
+    expect(plan.deferredIds.slice().sort()).toEqual(old.map((t) => t.id).sort());
+    expect(plan.pending).toEqual([]);
     expect(plan.aiFailures).toBe(0);
   });
 

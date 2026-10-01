@@ -2,8 +2,13 @@ import { aiBatchResultSchema, type AiBatchResult } from "@app/shared";
 import { extractedDraftSchema, type ExtractedDraft, DRAFT_JSON_SCHEMA, invoiceLineSchema, type InvoiceLine, INVOICE_JSON_SCHEMA, CATEGORIZE_JSON_SCHEMA } from "./draft-schema";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-/** Dados financeiros: só provedores que não retêm nem treinam com o conteúdo. */
-const PROVIDER_PREFS = { data_collection: "deny" } as const;
+/**
+ * Dados financeiros: por padrão só provedores que não retêm nem treinam com o conteúdo ("deny").
+ * OPENROUTER_DATA_COLLECTION=allow libera; qualquer outro valor volta a "deny".
+ */
+export function providerPrefs(): { data_collection: "deny" | "allow" } {
+  return { data_collection: process.env["OPENROUTER_DATA_COLLECTION"]?.trim().toLowerCase() === "allow" ? "allow" : "deny" };
+}
 const SYSTEM =
   "Você extrai UMA transação financeira do input do usuário em pt-BR. " +
   "amountCents é inteiro em centavos. date em YYYY-MM-DD (assuma o ano atual se ausente). " +
@@ -25,7 +30,7 @@ export class OpenRouterGateway {
       },
       body: JSON.stringify({
         model,
-        provider: PROVIDER_PREFS,
+        provider: providerPrefs(),
         messages: [
           { role: "system", content: SYSTEM },
           { role: "user", content },
@@ -68,7 +73,7 @@ export class OpenRouterGateway {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.apiKey}` },
       body: JSON.stringify({
         model: this.textModel,
-        provider: PROVIDER_PREFS,
+        provider: providerPrefs(),
         messages: [
           { role: "system", content: "Você é um assistente financeiro. Responda em pt-BR, de forma breve e amigável." },
           { role: "user", content: prompt },
@@ -89,7 +94,7 @@ export class OpenRouterGateway {
       },
       body: JSON.stringify({
         model: this.textModel,
-        provider: PROVIDER_PREFS,
+        provider: providerPrefs(),
         messages: [
           {
             role: "system",
@@ -118,7 +123,7 @@ export class OpenRouterGateway {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.apiKey}` },
       body: JSON.stringify({
         model: this.textModel,
-        provider: PROVIDER_PREFS,
+        provider: providerPrefs(),
         messages: [
           { role: "system", content: input.system },
           { role: "user", content: input.user },
