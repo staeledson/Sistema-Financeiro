@@ -8,3 +8,9 @@ export function formatDateOnly(iso: string): string {
   if (m) return `${m[3]}/${m[2]}/${m[1]}`;
   return new Date(iso).toLocaleDateString("pt-BR");
 }
+
+/** Hoje no fuso local como "YYYY-MM-DD" (toISOString daria o dia seguinte à noite no Brasil). */
+export function localTodayISO(now: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+}

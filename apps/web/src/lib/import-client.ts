@@ -64,6 +64,8 @@ export interface StatementPreview {
   dupCount: number;
   balanceCheck: BalanceCheck | null;
   statementBalance?: StatementBalance | null;
+  /** A conta tem lançamento depois da data de `statementBalance`: o saldo do extrato já não é o de hoje. */
+  laterActivity?: boolean;
 }
 
 export interface BatchSummary {

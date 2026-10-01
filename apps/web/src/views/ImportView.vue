@@ -31,7 +31,7 @@ const preview = ref<StatementPreview | null>(null);
 const previewRows = ref<SelectableRow[]>([]);
 const batchId = ref("");
 // Saldo do extrato x saldo do sistema (passo "done", só extrato de conta com saldo corrente declarado)
-const reconcileInfo = ref<{ accountId: string; statementCents: number; systemCents: number } | null>(null);
+const reconcileInfo = ref<{ accountId: string; accountName: string; dateISO: string; statementCents: number; systemCents: number; later: boolean } | null>(null);
 const reconcileNotice = ref("");
 const batches = ref<BatchSummary[]>([]);
 
@@ -307,7 +307,12 @@ async function loadReconcileInfo(p: StatementPreview | null) {
   try {
     await finance.loadBalances();
     const system = finance.balances?.accounts.find((b) => b.accountId === account.id);
-    if (system) reconcileInfo.value = { accountId: account.id, statementCents: declared.balanceCents, systemCents: system.balanceCents };
+    if (system) {
+      reconcileInfo.value = {
+        accountId: account.id, accountName: account.name, dateISO: declared.dateISO,
+        statementCents: declared.balanceCents, systemCents: system.balanceCents, later: p?.laterActivity === true,
+      };
+    }
   } catch {
     /* a comparação é um extra: a importação já foi concluída */
   }
@@ -315,7 +320,13 @@ async function loadReconcileInfo(p: StatementPreview | null) {
 
 async function adjustOpeningBalance() {
   const info = reconcileInfo.value;
-  if (!info || busy.value) return;
+  if (!info || info.later || busy.value) return;
+  const diff = info.statementCents - info.systemCents;
+  const ok = window.confirm(
+    `Ajustar o saldo inicial da conta "${info.accountName}" para que o saldo de hoje seja ${formatBRL(info.statementCents)} `
+      + `(saldo do extrato em ${formatDate(info.dateISO)})?\nAjuste de saldo inicial: ${formatAdjustment(diff)}.`,
+  );
+  if (!ok) return;
   erro.value = "";
   busy.value = true;
   try {
@@ -444,6 +455,9 @@ async function enqueuePdf() {
 async function undo(b: BatchSummary) {
   if (!window.confirm(`Desfazer esta importação? ${b.inserted} lançamento(s) serão apagados.`)) return;
   erro.value = "";
+  // o saldo do sistema muda com o desfazer: a comparação do passo concluído ficaria velha
+  reconcileInfo.value = null;
+  reconcileNotice.value = "";
   busy.value = true;
   try {
     const { removed } = await undoBatch(b.id);
@@ -706,9 +720,12 @@ function reset() {
       <p>{{ status }}</p>
       <div v-if="reconcileInfo" class="reconcile-info">
         <p data-test="statement-balance-line">
-          Saldo do extrato: {{ formatBRL(reconcileInfo.statementCents) }}; saldo no sistema: {{ formatBRL(reconcileInfo.systemCents) }}
+          Saldo do extrato em {{ formatDate(reconcileInfo.dateISO) }}: {{ formatBRL(reconcileInfo.statementCents) }} · saldo no sistema hoje: {{ formatBRL(reconcileInfo.systemCents) }}
         </p>
-        <template v-if="reconcileInfo.statementCents !== reconcileInfo.systemCents">
+        <p v-if="reconcileInfo.later && reconcileInfo.statementCents !== reconcileInfo.systemCents" class="hint">
+          Há lançamentos posteriores à data deste extrato; use Contas → Conciliar saldo com o saldo real de hoje.
+        </p>
+        <template v-else-if="reconcileInfo.statementCents !== reconcileInfo.systemCents">
           <p class="hint">
             O extrato cobre só um período; o saldo anterior a ele pode nunca ter sido informado.
             O ajuste muda o saldo inicial da conta em {{ formatAdjustment(reconcileInfo.statementCents - reconcileInfo.systemCents) }}.

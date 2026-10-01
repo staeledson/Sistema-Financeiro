@@ -6,6 +6,8 @@ const { httpMock } = vi.hoisted(() => ({ httpMock: vi.fn() }));
 vi.mock("../../lib/http", async (orig) => ({ ...(await orig<typeof import("../../lib/http")>()), http: httpMock }));
 
 import AccountsView from "../AccountsView.vue";
+import { useFinanceStore } from "../../stores/finance";
+import { localTodayISO } from "../../lib/date";
 
 const account = (over: Record<string, unknown>) => ({
   id: "a1", type: "checking", name: "Conta C6", entity: "pf", institution: "c6", externalId: null,
@@ -17,7 +19,9 @@ let state: { accounts: ReturnType<typeof account>[]; balances: Record<string, nu
 function route(method: string, path: string, body?: unknown) {
   if (method === "GET" && path.startsWith("/accounts")) return state.accounts;
   if (method === "GET" && path === "/balances") {
-    const accounts = state.accounts.map((a) => ({ accountId: a.id, name: a.name, type: a.type, balanceCents: state.balances[a.id] }));
+    const accounts = state.accounts
+      .filter((a) => state.balances[a.id] !== undefined)
+      .map((a) => ({ accountId: a.id, name: a.name, type: a.type, balanceCents: state.balances[a.id] }));
     return { accounts, consolidatedCents: accounts.reduce((s, b) => s + b.balanceCents, 0) };
   }
   const m = /^\/accounts\/([^/]+)\/reconcile$/.exec(path);
@@ -30,8 +34,9 @@ function route(method: string, path: string, body?: unknown) {
   throw new Error(`rota inesperada ${method} ${path}`);
 }
 
-async function mountView() {
+async function mountView(preload?: (store: ReturnType<typeof useFinanceStore>) => void) {
   setActivePinia(createPinia());
+  if (preload) preload(useFinanceStore());
   const w = mount(AccountsView);
   await flushPromises();
   return w;
@@ -110,7 +115,58 @@ describe("AccountsView: Conciliar saldo", () => {
     const w = await mountView();
     await buttonByText(w, "Conciliar saldo")[1].trigger("click");
     expect(plain(w.text())).toContain("Saldo no sistema: -R$ 250,00");
-    expect(w.text()).toContain("Para cartão, informe o valor devido como negativo");
+    expect(w.text()).toContain("Informe o total devido hoje (fatura aberta + parcelas), como valor negativo");
+  });
+
+  it("cartão: valor positivo mostra aviso (sem bloquear); negativo não mostra", async () => {
+    const w = await mountView();
+    await buttonByText(w, "Conciliar saldo")[1].trigger("click");
+    await w.find("#reconcile-c1").setValue("500,00");
+    expect(w.find("[data-test=reconcile-card-warning]").text()).toContain("em cartão, o valor devido é negativo");
+    expect(buttonByText(w, "Confirmar conciliação")[0].attributes("disabled")).toBeUndefined();
+    await w.find("#reconcile-c1").setValue("-500,00");
+    expect(w.find("[data-test=reconcile-card-warning]").exists()).toBe(false);
+    // conta corrente nunca mostra o aviso
+    await buttonByText(w, "Cancelar")[0].trigger("click");
+    await buttonByText(w, "Conciliar saldo")[0].trigger("click");
+    await w.find("#reconcile-a1").setValue("500,00");
+    expect(w.find("[data-test=reconcile-card-warning]").exists()).toBe(false);
+  });
+
+  it("mostra o saldo informado ao lado do ajuste, em região aria-live educada", async () => {
+    const w = await mountView();
+    await buttonByText(w, "Conciliar saldo")[0].trigger("click");
+    await w.find("#reconcile-a1").setValue("6.508,80");
+    expect(plain(w.find("[data-test=reconcile-informed]").text())).toBe("Saldo informado: R$ 6.508,80");
+    expect(w.find("[data-test=reconcile-preview]").element.closest("[aria-live=polite]")).not.toBeNull();
+  });
+
+  it("sem o saldo da conta carregado: formulário desabilitado e nada é enviado (não usa o saldo inicial)", async () => {
+    delete state.balances.a1;
+    const w = await mountView();
+    await buttonByText(w, "Conciliar saldo")[0].trigger("click");
+    expect(w.text()).toContain("Os saldos ainda não foram carregados");
+    expect(w.text()).not.toContain("Saldo no sistema");
+    const input = w.find("#reconcile-a1");
+    expect(input.attributes("disabled")).toBeDefined();
+    expect(buttonByText(w, "Confirmar conciliação")[0].attributes("disabled")).toBeDefined();
+    await w.find("form.reconcile-form").trigger("submit");
+    await flushPromises();
+    expect(httpMock.mock.calls.some((c) => c[0] === "POST")).toBe(false);
+  });
+
+  it("lançamentos futuros já carregados no store viram uma nota; sem transações carregadas não há nota", async () => {
+    const future = "2999-01-01";
+    const tx = (over: Record<string, unknown>) => ({ type: "expense", amountCents: 1000, date: future, accountId: "a1", sourceAccountId: null, destAccountId: null, ...over });
+    const w = await mountView((store) => {
+      store.transactions = [tx({}), tx({ type: "income", amountCents: 300 }), tx({ date: localTodayISO() }), tx({ accountId: "c1" })] as never;
+    });
+    await buttonByText(w, "Conciliar saldo")[0].trigger("click");
+    expect(plain(w.find("[data-test=reconcile-future]").text())).toBe("Há 2 lançamentos com data futura (total -R$ 7,00); eles entram no saldo de hoje.");
+
+    const w2 = await mountView();
+    await buttonByText(w2, "Conciliar saldo")[0].trigger("click");
+    expect(w2.find("[data-test=reconcile-future]").exists()).toBe(false);
   });
 
   it("erro da API aparece como alerta e o formulário continua aberto", async () => {

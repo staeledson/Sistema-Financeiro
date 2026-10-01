@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 
@@ -26,7 +26,7 @@ let systemBalances: Record<string, number>;
 
 const row = { type: "expense", amountCents: 1000, date: "2026-09-01", postedDate: null, description: "Compra", fingerprint: "fp1", dup: false, categoryId: null, bankCategory: null };
 const statement = (over: Record<string, unknown> = {}) => ({
-  batchId: "b1", rows: [row], balanceCheck: null, statementBalance: { dateISO: "2026-09-30", balanceCents: 1659, current: true }, ...over,
+  batchId: "b1", rows: [row], balanceCheck: null, laterActivity: false, statementBalance: { dateISO: "2026-09-30", balanceCents: 1659, current: true }, ...over,
 });
 const detect = (over: Record<string, unknown> = {}) => ({
   format: "ofx", institution: "c6", kind: "statement", accountRef: "999", confidence: 1,
@@ -53,7 +53,10 @@ async function runImport(preview: unknown, detected = detect()) {
   return w;
 }
 
+let confirmMock: MockInstance<(message?: string) => boolean>;
+
 beforeEach(() => {
+  confirmMock = vi.spyOn(window, "confirm").mockReturnValue(true);
   systemBalances = { ck1: 1301, cc1: -5000 };
   detectMock.mockReset();
   previewMock.mockReset();
@@ -66,6 +69,7 @@ beforeEach(() => {
       return { accounts, consolidatedCents: 0 };
     }
     if (method === "POST" && path === "/import/b1/commit") return { inserted: 1, skipped: 0 };
+    if (method === "POST" && path === "/import/h1/undo") return { removed: 1 };
     const m = /^\/accounts\/([^/]+)\/reconcile$/.exec(path);
     if (method === "POST" && m) {
       const target = (body as { balanceCents: number }).balanceCents;
@@ -81,24 +85,29 @@ describe("ImportView: saldo do extrato x saldo do sistema", () => {
   it("mostra os dois saldos depois do commit e o botão de ajuste quando divergem; ajustar chama reconcile", async () => {
     const w = await runImport(statement());
     expect(w.text()).toContain("Concluído");
-    expect(plain(w.find("[data-test=statement-balance-line]").text())).toBe("Saldo do extrato: R$ 16,59; saldo no sistema: R$ 13,01");
+    expect(plain(w.find("[data-test=statement-balance-line]").text())).toBe("Saldo do extrato em 30/09/2026: R$ 16,59 · saldo no sistema hoje: R$ 13,01");
 
     const adjust = btn(w, "Ajustar saldo inicial da conta");
     expect(adjust).toBeDefined();
     httpMock.mockClear();
     await adjust!.trigger("click");
     await flushPromises();
+    // pede confirmação dizendo o saldo alvo, a data do extrato e o ajuste
+    const asked = plain(String(confirmMock.mock.calls[0][0]));
+    expect(asked).toContain("R$ 16,59");
+    expect(asked).toContain("30/09/2026");
+    expect(asked).toContain("+R$ 3,58");
 
     expect(httpMock.mock.calls.find((c) => c[0] === "POST")).toEqual(["POST", "/accounts/ck1/reconcile", { balanceCents: 1659 }]);
     expect(plain(w.text())).toContain("Saldo conciliado: R$ 16,59");
-    expect(plain(w.find("[data-test=statement-balance-line]").text())).toBe("Saldo do extrato: R$ 16,59; saldo no sistema: R$ 16,59");
+    expect(plain(w.find("[data-test=statement-balance-line]").text())).toBe("Saldo do extrato em 30/09/2026: R$ 16,59 · saldo no sistema hoje: R$ 16,59");
     expect(btn(w, "Ajustar saldo inicial da conta")).toBeUndefined();
   });
 
   it("saldos iguais: mostra a linha e nenhum botão", async () => {
     systemBalances.ck1 = 1659;
     const w = await runImport(statement());
-    expect(plain(w.find("[data-test=statement-balance-line]").text())).toBe("Saldo do extrato: R$ 16,59; saldo no sistema: R$ 16,59");
+    expect(plain(w.find("[data-test=statement-balance-line]").text())).toBe("Saldo do extrato em 30/09/2026: R$ 16,59 · saldo no sistema hoje: R$ 16,59");
     expect(btn(w, "Ajustar saldo inicial da conta")).toBeUndefined();
   });
 
@@ -127,5 +136,45 @@ describe("ImportView: saldo do extrato x saldo do sistema", () => {
     expect(w.text()).toContain("Concluído");
     expect(w.text()).toContain("1 transações importadas");
     expect(w.find("[data-test=statement-balance-line]").exists()).toBe(false);
+  });
+
+  it("cancelar a confirmação não chama a API nem muda a tela", async () => {
+    const w = await runImport(statement());
+    confirmMock.mockReturnValue(false);
+    httpMock.mockClear();
+    await btn(w, "Ajustar saldo inicial da conta")!.trigger("click");
+    await flushPromises();
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+    expect(httpMock.mock.calls.some((c) => c[0] === "POST")).toBe(false);
+    expect(btn(w, "Ajustar saldo inicial da conta")).toBeDefined();
+    expect(w.text()).not.toContain("Saldo conciliado");
+  });
+
+  it("com lançamentos posteriores à data do extrato: sem botão, com orientação para conciliar em Contas", async () => {
+    const w = await runImport(statement({ laterActivity: true }));
+    expect(w.find("[data-test=statement-balance-line]").exists()).toBe(true);
+    expect(btn(w, "Ajustar saldo inicial da conta")).toBeUndefined();
+    expect(plain(w.text())).toContain(
+      "Há lançamentos posteriores à data deste extrato; use Contas → Conciliar saldo com o saldo real de hoje.",
+    );
+  });
+
+  it("com lançamentos posteriores e saldos iguais não mostra a orientação", async () => {
+    systemBalances.ck1 = 1659;
+    const w = await runImport(statement({ laterActivity: true }));
+    expect(w.text()).not.toContain("Há lançamentos posteriores");
+  });
+
+  it("desfazer uma importação limpa a comparação (não dá para aplicar um saldo velho)", async () => {
+    listBatchesMock.mockResolvedValue([
+      { id: "h1", format: "ofx", institution: "c6", accountName: "Conta C6", rowCount: 1, dupCount: 0, inserted: 1, balanceOk: null, createdAt: "2026-09-30T12:00:00Z", undoneAt: null },
+    ]);
+    const w = await runImport(statement());
+    expect(w.find("[data-test=statement-balance-line]").exists()).toBe(true);
+    await btn(w, "Desfazer")!.trigger("click");
+    await flushPromises();
+    expect(httpMock.mock.calls.some((c) => c[1] === "/import/h1/undo")).toBe(true);
+    expect(w.find("[data-test=statement-balance-line]").exists()).toBe(false);
+    expect(btn(w, "Ajustar saldo inicial da conta")).toBeUndefined();
   });
 });
