@@ -186,9 +186,9 @@ export class ImportService {
   }
 
   /**
-   * Conta de reserva de cada conta de origem: a única conta de poupança ativa da mesma entidade (PF/PJ) e da mesma
-   * instituição. Zero ou mais de uma candidata → sem reserva (o movimento segue como despesa/receita). Nunca decide
-   * por nome, para não depender de como o usuário batizou a conta.
+   * Conta de reserva de cada conta de origem: a única conta de poupança ativa da mesma entidade (PF/PJ) e do Mercado
+   * Pago (os textos de reserva são do extrato dele). Zero ou mais de uma candidata → sem reserva (o movimento segue
+   * como despesa/receita). Nunca decide por nome, para não depender de como o usuário batizou a conta.
    */
   private async reserveAccounts(
     workspaceId: string,
@@ -196,11 +196,11 @@ export class ImportService {
   ): Promise<Map<string, string>> {
     const out = new Map<string, string>();
     const savings = await prisma.bankAccount.findMany({
-      where: { workspaceId, type: "savings", archived: false },
+      where: { workspaceId, type: "savings", archived: false, institution: "mercado_pago" },
       select: { id: true, entity: true, institution: true },
     });
     for (const src of sources) {
-      if (src.type === "savings" || src.type === "credit_card") continue;
+      if (src.type === "savings" || src.type === "credit_card" || src.institution !== "mercado_pago") continue;
       const candidates = savings.filter((a) => a.entity === src.entity && a.institution === src.institution);
       if (candidates.length === 1) out.set(src.id, candidates[0].id);
     }

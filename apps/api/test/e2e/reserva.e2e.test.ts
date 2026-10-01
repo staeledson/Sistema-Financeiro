@@ -107,6 +107,14 @@ describe("Reserva como conta: movimentos viram transferência na importação", 
     expect((await prisma.transaction.findFirstOrThrow({ where: { workspaceId: other.ws.id } })).type).toBe("expense");
   });
 
+  it("conta que não é do Mercado Pago não usa poupança de outro banco como reserva", async () => {
+    const ctx = await setup("rsv7");
+    await prisma.bankAccount.update({ where: { id: ctx.mp.id }, data: { institution: "other" } });
+    await prisma.bankAccount.create({ data: { workspaceId: ctx.ws.id, type: "savings", name: "Poupança Itaú", entity: "pf", institution: "other" } });
+    await commit(ctx, [row(ctx.mp.id, 1, "expense", 350, "Reserva por gastos Reserva Emergência")]);
+    expect((await prisma.transaction.findFirstOrThrow({ where: { workspaceId: ctx.ws.id } })).type).toBe("expense");
+  });
+
   it("transferência de reserva não entra nas despesas do painel", async () => {
     const ctx = await setup("rsv6");
     await prisma.bankAccount.create({
@@ -166,5 +174,27 @@ describe("script de backfill da Reserva (produção)", () => {
     const after = await new BalancesService().accountBalances(ctx.ws.id);
     expect(after.find((b) => b.accountId === ctx.mp.id)!.balanceCents).toBe(-350 - 1000 + 700 - 4200);
     expect(after.find((b) => b.accountId === reservas[0].id)!.balanceCents).toBe(350 + 1000 - 700);
+  });
+
+  it("não cria Reserva onde não há movimento de reserva e converte também os já ignorados", async () => {
+    const vazio = await setup("bkf2");
+    await prisma.transaction.create({
+      data: {
+        workspaceId: vazio.ws.id, type: "expense", amountCents: 500, date: new Date("2026-09-10"), accountId: vazio.mp.id,
+        description: "Pix enviado para ASSAI", source: "import", importFingerprint: "bk2-1", createdById: vazio.ws.createdById,
+      },
+    });
+    const com = await setup("bkf3");
+    await prisma.transaction.create({
+      data: {
+        workspaceId: com.ws.id, type: "expense", amountCents: 350, date: new Date("2026-09-10"), accountId: com.mp.id, ignored: true,
+        description: "Reserva por gastos Reserva Emergência", source: "import", importFingerprint: "bk3-1", createdById: com.ws.createdById,
+      },
+    });
+    await runScript();
+    expect(await prisma.bankAccount.count({ where: { workspaceId: vazio.ws.id, type: "savings" } })).toBe(0);
+    const reserva = await prisma.bankAccount.findFirstOrThrow({ where: { workspaceId: com.ws.id, type: "savings" } });
+    const tx = await prisma.transaction.findFirstOrThrow({ where: { workspaceId: com.ws.id } });
+    expect(tx).toMatchObject({ type: "transfer", ignored: false, destAccountId: reserva.id });
   });
 });
