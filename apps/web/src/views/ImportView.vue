@@ -257,7 +257,7 @@ async function handleFile(f: File) {
     } else if (d.format === "pdf") {
       step.value = "ai";
     } else {
-      erro.value = "Não reconheci este arquivo. Use um extrato OFX, PDF do C6, CSV ou a fatura do cartão C6 em CSV.";
+      erro.value = "Não reconheci este arquivo. Use um extrato OFX, PDF do C6 ou do Mercado Pago, CSV ou a fatura do cartão C6 em CSV.";
     }
   } catch (e) {
     erro.value = (e as Error).message;
