@@ -5,6 +5,17 @@ export function foldText(text: string): string {
   return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
+/** Categorias "pega-tudo" de fábrica: a IA pode sugeri-las, mas nunca as aplica sozinha. */
+export const CATCH_ALL_EXPENSE_NAME = "Outras despesas";
+export const CATCH_ALL_INCOME_NAME = "Outras receitas";
+export const CATCH_ALL_CATEGORY_NAMES: readonly string[] = [CATCH_ALL_EXPENSE_NAME, CATCH_ALL_INCOME_NAME];
+
+/** Compara o nome por `foldText` (sem acento nem caixa, espaços aparados). */
+export function isCatchAllCategoryName(name: string | null | undefined): boolean {
+  const folded = foldText((name ?? "").trim());
+  return CATCH_ALL_CATEGORY_NAMES.some((n) => foldText(n) === folded);
+}
+
 /**
  * Chave de agrupamento de descrições: minúsculas, sem acentos, sem dígitos nem pontuação, espaços colapsados.
  * Descrições feitas só de dígitos/pontuação resultam em chave vazia; quem chama deve tratar a chave vazia como

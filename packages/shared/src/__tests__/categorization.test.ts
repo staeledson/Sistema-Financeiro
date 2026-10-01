@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   foldText, normalizeDescriptionKey, trigramSimilarity, rankBySimilarity, chunk, categoryFits,
   aiBatchResultSchema, decideAiResult, detectTransferPairs, matchRule, applyRules,
+  isCatchAllCategoryName, CATCH_ALL_CATEGORY_NAMES,
   type TransferCandidate,
 } from "../index";
 
@@ -241,5 +242,15 @@ describe("matchRule", () => {
   it("applyRules continua devolvendo só o id da categoria", () => {
     expect(applyRules("iFood Club", rules)).toBe("c-assin");
     expect(applyRules("Uber", rules)).toBeNull();
+  });
+});
+
+describe("isCatchAllCategoryName", () => {
+  it("reconhece só Outras despesas/Outras receitas, sem acento nem caixa", () => {
+    expect(isCatchAllCategoryName("Outras despesas")).toBe(true);
+    expect(isCatchAllCategoryName("  OUTRAS RECEITAS ")).toBe(true);
+    expect(isCatchAllCategoryName("Supermercado")).toBe(false);
+    expect(isCatchAllCategoryName(null)).toBe(false);
+    expect(CATCH_ALL_CATEGORY_NAMES).toEqual(["Outras despesas", "Outras receitas"]);
   });
 });

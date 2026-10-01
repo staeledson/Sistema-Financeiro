@@ -53,7 +53,11 @@ const row = (id: string, over: Row = {}): Row => ({
 
 function setup(scope: Row[], opts: { pool?: Row[]; examples?: Row[]; aiFails?: boolean; lowConfidenceIds?: string[]; settings?: Row } = {}) {
   db.settings.mockResolvedValue(opts.settings ?? null);
-  db.categories.mockResolvedValue([{ id: "c-merc", name: "Supermercado", type: "expense", entity: "both" }]);
+  // Espelha o seed real: todas as categorias de fábrica são isSystem.
+  db.categories.mockResolvedValue([
+    { id: "c-merc", name: "Supermercado", type: "expense", entity: "both", isSystem: true },
+    { id: "c-outras", name: "Outras despesas", type: "expense", entity: "both", isSystem: true },
+  ]);
   db.rules.mockResolvedValue([{ id: "r1", matchType: "contains", pattern: "supermercado", categoryId: "c-merc", priority: 100 }]);
   db.txFindMany.mockImplementation(async (args: { where: Row }) => {
     if ("categorySource" in args.where && typeof args.where["categorySource"] === "object") return opts.examples ?? [];
@@ -108,10 +112,24 @@ describe("processCategorize", () => {
     expect(job.args.data).toMatchObject({ status: "done", costTokens: 7, result: { total: 3, transfers: 0, byRule: 1, byAi: 1, pending: 1 } });
   });
 
-  it("carrega isSystem das categorias para o plano", async () => {
-    const ai = setup([row("t1", { description: "Coisa estranha" })]);
+  it("categoria de fábrica (isSystem) é aplicada pela IA, mas Outras despesas fica pendente com sugestão", async () => {
+    setup([row("t-merc", { description: "Coisa A" }), row("t-outras", { description: "Coisa B" })]);
+    const ai = {
+      categorizeBatch: vi.fn(async () => ({
+        results: [
+          { transactionId: "t-merc", categoryId: "c-merc", confidence: 0.95 },
+          { transactionId: "t-outras", categoryId: "c-outras", confidence: 0.95 },
+        ],
+        costTokens: 1,
+      })),
+    };
     await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
-    expect(db.categories.mock.calls[0][0].select).toMatchObject({ isSystem: true });
+    const all = ops();
+    const merc = all.find((o) => (o.args.where as Row).id === "t-merc")!;
+    expect(merc.args.data).toMatchObject({ categoryId: "c-merc", categorySource: "ai", reviewStatus: "ok" });
+    const outras = all.find((o) => (o.args.where as Row).id === "t-outras")!;
+    expect(outras.args.data).toEqual({ reviewStatus: "pending", suggestedCategoryId: "c-outras", categoryConfidence: 0.95 });
+    expect(all.find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({ result: { byAi: 1, pending: 1 } });
   });
 
   it("falha da IA deixa pendente, sem sugestão, e o job termina done", async () => {

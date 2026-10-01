@@ -1,5 +1,5 @@
 import {
-  categoryFits, chunk, decideAiResult, detectTransferPairs, matchRule, rankBySimilarity,
+  categoryFits, chunk, decideAiResult, detectTransferPairs, isCatchAllCategoryName, matchRule, rankBySimilarity,
   type AccountEntity, type AccountType, type AiBatchResult, type CategoryEntity, type Rule, type TransferCandidate,
 } from "@app/shared";
 
@@ -20,8 +20,6 @@ export interface CatCategory {
   name: string;
   type: "income" | "expense";
   entity: CategoryEntity;
-  /** Categoria do sistema (ex.: "Outras despesas"): a IA pode sugeri-la, mas nunca a aplica sozinha. */
-  isSystem?: boolean;
 }
 
 export interface CatRule extends Rule {
@@ -153,8 +151,8 @@ export async function planCategorization(
       const byId = new Map((results ?? []).map((r) => [r.transactionId, r]));
       for (const tx of batch) {
         const decision = decideAiResult(byId.get(tx.id), (id) => fits(id, tx), settings.aiConfidenceThreshold);
-        if (decision.status === "ok" && catById.get(decision.categoryId)?.isSystem) {
-          // Categoria genérica nunca é aplicada pela IA: vira pendência com a sugestão registrada.
+        if (decision.status === "ok" && isCatchAllCategoryName(catById.get(decision.categoryId)?.name)) {
+          // Categoria "pega-tudo" (por nome; todas as de fábrica são isSystem) nunca é aplicada pela IA: vira pendência com a sugestão registrada.
           plan.pending.push({ txId: tx.id, suggestedCategoryId: decision.categoryId, confidence: decision.confidence });
         } else if (decision.status === "ok") {
           plan.byAi.push({ txId: tx.id, categoryId: decision.categoryId, confidence: decision.confidence });

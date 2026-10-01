@@ -98,19 +98,37 @@ describe("planCategorization", () => {
     ]);
   });
 
-  it("categoria isSystem (catch-all) com confiança 0.95 vira pendência com sugestão; normal com 0.95 é aplicada", async () => {
+  it("categoria de fábrica comum é aplicada; Outras despesas/Outras receitas (pega-tudo) viram pendência com sugestão", async () => {
     const generica = tx({ description: "QXZ 0099 KWRT" });
+    const genericaRec = tx({ type: "income", description: "ZZZ crédito" });
     const normal = tx({ description: "Mercado Bom" });
-    const cats: CatCategory[] = [...CATS, { id: "c-outras", name: "Outras despesas", type: "expense", entity: "both", isSystem: true }];
+    const cats: CatCategory[] = [
+      ...CATS,
+      { id: "c-outras", name: "Outras despesas", type: "expense", entity: "both" },
+      { id: "c-outras-rec", name: "Outras receitas", type: "income", entity: "both" },
+    ];
     const ai = fakeAi(() => [
       { transactionId: generica.id, categoryId: "c-outras", confidence: 0.95 },
+      { transactionId: genericaRec.id, categoryId: "c-outras-rec", confidence: 0.95 },
       { transactionId: normal.id, categoryId: "c-merc", confidence: 0.95 },
     ]);
     const plan = await planCategorization(
-      { scope: [generica, normal], pairPool: [], categories: cats, rules: [], examples: [], settings: SETTINGS }, ai,
+      { scope: [generica, genericaRec, normal], pairPool: [], categories: cats, rules: [], examples: [], settings: SETTINGS }, ai,
     );
     expect(plan.byAi).toEqual([{ txId: normal.id, categoryId: "c-merc", confidence: 0.95 }]);
-    expect(plan.pending).toEqual([{ txId: generica.id, suggestedCategoryId: "c-outras", confidence: 0.95 }]);
+    expect(plan.pending).toEqual([
+      { txId: generica.id, suggestedCategoryId: "c-outras", confidence: 0.95 },
+      { txId: genericaRec.id, suggestedCategoryId: "c-outras-rec", confidence: 0.95 },
+    ]);
+  });
+
+  it("o pega-tudo é reconhecido pelo nome sem acento/caixa", async () => {
+    const t = tx({ description: "Algo" });
+    const cats: CatCategory[] = [{ id: "c-o", name: "  OUTRAS DESPESAS ", type: "expense", entity: "both" }];
+    const ai = fakeAi((u) => u.transactions.map((x) => ({ transactionId: x.id, categoryId: "c-o", confidence: 0.99 })));
+    const plan = await planCategorization({ scope: [t], pairPool: [], categories: cats, rules: [], examples: [], settings: SETTINGS }, ai);
+    expect(plan.byAi).toEqual([]);
+    expect(plan.pending).toEqual([{ txId: t.id, suggestedCategoryId: "c-o", confidence: 0.99 }]);
   });
 
   it("o prompt orienta preferir categoryId null a uma categoria genérica", () => {
