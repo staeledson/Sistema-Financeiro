@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { createMemoryHistory, createRouter } from "vue-router";
-import { defineComponent } from "vue";
+import { defineComponent, nextTick } from "vue";
 
 const { summaryMock } = vi.hoisted(() => ({ summaryMock: vi.fn() }));
 
@@ -19,6 +19,14 @@ const summary = {
     pfCents: 150000, pjCents: -20000, totalCents: 130000,
     cards: { pfCents: -63113, pjCents: -1000, totalCents: -64113 },
   },
+  accounts: [
+    { accountId: "a-pf1", name: "Conta Inter", type: "checking", entity: "pf", institution: "inter", balanceCents: 160000, closingDay: null, dueDay: null },
+    { accountId: "a-pf2", name: "Poupança BB", type: "savings", entity: "pf", institution: "bb", balanceCents: 0, closingDay: null, dueDay: null },
+    { accountId: "a-pf3", name: "Carteira", type: "cash", entity: "pf", institution: "other", balanceCents: -10000, closingDay: null, dueDay: null },
+    { accountId: "a-pj1", name: "Conta PJ C6", type: "checking", entity: "pj", institution: "c6", balanceCents: -20000, closingDay: null, dueDay: null },
+    { accountId: "k1", name: "Cartão C6", type: "credit_card", entity: "pf", institution: "c6", balanceCents: -63113, closingDay: 10, dueDay: 17 },
+    { accountId: "k2", name: "Cartão PJ", type: "credit_card", entity: "pj", institution: "other", balanceCents: -1000, closingDay: null, dueDay: null },
+  ],
   pendingCount: 7,
   nextInvoice: { accountId: "k1", name: "Cartão C6", dueDate: "2026-10-10", openInvoiceCents: 123456, estimated: false },
   cardsConfigured: true,
@@ -44,6 +52,7 @@ async function mountInicio() {
       { path: "/painel", component: { template: "<div />" } },
       { path: "/categorizar", component: { template: "<div />" } },
       { path: "/transacoes", component: { template: "<div />" } },
+      { path: "/contas", component: { template: "<div />" } },
     ],
   });
   await router.push("/");
@@ -173,5 +182,145 @@ describe("InicioView", () => {
     expect(summaryMock).toHaveBeenCalledTimes(2);
     expect(w.find('[role="alert"]').exists()).toBe(false);
     expect(w.text()).toContain("Cartão C6");
+  });
+
+  describe("detalhe dos saldos", () => {
+    const nb = (t: string) => t.replace(/\u00a0/g, " ");
+    const btn = (w: Awaited<ReturnType<typeof mountInicio>>["w"], kind: string) => w.find(`button[data-kind="${kind}"]`);
+    const panel = (w: Awaited<ReturnType<typeof mountInicio>>["w"]) => w.find("#inicio-detalhe");
+
+    it("os quatro cartões de saldo são botões fechados, ligados ao painel e com a dica 'ver detalhe'", async () => {
+      const { w } = await mountInicio();
+      for (const kind of ["pf", "pj", "total", "cards"]) {
+        const b = btn(w, kind);
+        expect(b.exists()).toBe(true);
+        expect(b.attributes("type")).toBe("button");
+        expect(b.attributes("aria-expanded")).toBe("false");
+        expect(b.attributes("aria-controls")).toBe("inicio-detalhe");
+        expect(b.text()).toContain("ver detalhe");
+      }
+      expect(panel(w).exists()).toBe(false);
+    });
+
+    it("clicar em Pessoa Física abre o painel só com as contas de caixa da PF e o total certo", async () => {
+      const { w } = await mountInicio();
+      await btn(w, "pf").trigger("click");
+      expect(btn(w, "pf").attributes("aria-expanded")).toBe("true");
+      const p = panel(w);
+      expect(p.exists()).toBe(true);
+      const text = nb(p.text());
+      expect(text).toContain("Detalhe — Pessoa Física: R$ 1.500,00");
+      expect(text).toContain("Conta Inter");
+      expect(text).toContain("Poupança BB");
+      expect(text).toContain("Carteira");
+      expect(text).not.toContain("Conta PJ C6");
+      expect(text).not.toContain("Cartão C6");
+      expect(text).toContain("Conta corrente");
+      expect(text).toContain("Inter");
+      expect(text).toContain("R$ 1.600,00");
+      expect(text).toContain("Cartões não entram no saldo em contas; veja Cartões a pagar.");
+      // ordem: maior valor absoluto primeiro, zerada por último e esmaecida
+      const rows = p.findAll("tbody tr");
+      expect(rows.map((r) => r.find("th, td").text())).toEqual([expect.stringContaining("Conta Inter"), expect.stringContaining("Carteira"), expect.stringContaining("Poupança BB")]);
+      expect(rows[2].classes()).toContain("zero");
+      // tabela semântica
+      expect(p.find("table caption").exists()).toBe(true);
+      expect(p.findAll('th[scope="col"]').map((th) => th.text())).toEqual(expect.arrayContaining(["Conta", "Instituição", "Saldo"]));
+      expect(p.find("tfoot").text()).toContain("Subtotal");
+      expect(nb(p.find("tfoot").text())).toContain("R$ 1.500,00");
+    });
+
+    it("clicar de novo no mesmo cartão fecha; Escape fecha; Fechar fecha; aria-expanded acompanha", async () => {
+      const { w } = await mountInicio();
+      await btn(w, "pf").trigger("click");
+      await btn(w, "pf").trigger("click");
+      expect(panel(w).exists()).toBe(false);
+      expect(btn(w, "pf").attributes("aria-expanded")).toBe("false");
+
+      await btn(w, "pj").trigger("click");
+      expect(panel(w).exists()).toBe(true);
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      await nextTick();
+      expect(panel(w).exists()).toBe(false);
+      expect(btn(w, "pj").attributes("aria-expanded")).toBe("false");
+
+      await btn(w, "total").trigger("click");
+      const close = panel(w).findAll("button").find((b) => b.text() === "Fechar");
+      expect(close).toBeDefined();
+      await close!.trigger("click");
+      expect(panel(w).exists()).toBe(false);
+      w.unmount();
+    });
+
+    it("um painel por vez: abrir outro cartão troca o conteúdo e o aria-expanded", async () => {
+      const { w } = await mountInicio();
+      await btn(w, "pf").trigger("click");
+      await btn(w, "pj").trigger("click");
+      expect(w.findAll("#inicio-detalhe")).toHaveLength(1);
+      expect(btn(w, "pf").attributes("aria-expanded")).toBe("false");
+      expect(btn(w, "pj").attributes("aria-expanded")).toBe("true");
+      const text = nb(panel(w).text());
+      expect(text).toContain("Detalhe — Pessoa Jurídica: -R$ 200,00");
+      expect(text).toContain("Conta PJ C6");
+      expect(text).not.toContain("Conta Inter");
+    });
+
+    it("Saldo total em contas mostra os grupos PF e PJ com subtotais e o total, sem cartões", async () => {
+      const { w } = await mountInicio();
+      await btn(w, "total").trigger("click");
+      const p = panel(w);
+      const text = nb(p.text());
+      expect(text).toContain("Detalhe — Saldo total em contas: R$ 1.300,00");
+      expect(p.findAll("table:not(.total-table) caption").map((c) => c.text())).toEqual([expect.stringContaining("Pessoa Física"), expect.stringContaining("Pessoa Jurídica")]);
+      expect(text).toContain("Conta Inter");
+      expect(text).toContain("Conta PJ C6");
+      expect(text).not.toContain("Cartão C6");
+      expect(text).toContain("Total");
+      expect(text).toContain("R$ 1.500,00"); // subtotal PF
+      expect(text).toContain("-R$ 200,00"); // subtotal PJ
+    });
+
+    it("Cartões a pagar mostra os cartões com valores negativos, dias configurados e o link para o Painel", async () => {
+      const { w } = await mountInicio();
+      await btn(w, "cards").trigger("click");
+      expect(btn(w, "cards").attributes("aria-expanded")).toBe("true");
+      const p = panel(w);
+      const text = nb(p.text());
+      expect(text).toContain("Detalhe — Cartões a pagar: -R$ 641,13");
+      expect(text).toContain("Cartão C6");
+      expect(text).toContain("-R$ 631,13");
+      expect(text).toContain("Cartão PJ");
+      expect(text).toContain("-R$ 10,00");
+      expect(text).toContain("fecha dia 10 · vence dia 17");
+      expect(text).not.toContain("fecha dia undefined");
+      expect(text).not.toContain("Conta Inter");
+      expect(text).toContain("Valor devido de cada cartão (fatura aberta + parcelas lançadas); detalhes da fatura no Painel.");
+      expect(p.find('a[href="/painel#sec-cartoes"]').exists()).toBe(true);
+      expect(text).not.toContain("Cartões não entram no saldo em contas");
+    });
+
+    it("cada linha tem os links Ver lançamentos (/transacoes?accountId=) e Conciliar saldo (/contas)", async () => {
+      const { w } = await mountInicio();
+      await btn(w, "pf").trigger("click");
+      const links = panel(w).findAll("a");
+      const tx = links.filter((a) => a.text() === "Ver lançamentos").map((a) => a.attributes("href"));
+      expect(tx).toEqual(["/transacoes?accountId=a-pf1", "/transacoes?accountId=a-pf3", "/transacoes?accountId=a-pf2"]);
+      const rec = links.filter((a) => a.text() === "Conciliar saldo").map((a) => a.attributes("href"));
+      expect(rec).toEqual(["/contas", "/contas", "/contas"]);
+    });
+
+    it("sem contas no grupo: mostra o estado vazio em vez de tabela", async () => {
+      summaryMock.mockResolvedValue({ ...summary, accounts: [] });
+      const { w } = await mountInicio();
+      await btn(w, "pf").trigger("click");
+      expect(panel(w).find("table").exists()).toBe(false);
+      expect(panel(w).text()).toContain("Nenhuma conta para detalhar");
+    });
+
+    it("sem dívida de cartão o cartão 'Cartões a pagar' não existe, então não há como abrir seu detalhe", async () => {
+      summaryMock.mockResolvedValue({ ...summary, balances: { ...summary.balances, cards: { pfCents: 0, pjCents: 0, totalCents: 0 } } });
+      const { w } = await mountInicio();
+      expect(btn(w, "cards").exists()).toBe(false);
+    });
   });
 });

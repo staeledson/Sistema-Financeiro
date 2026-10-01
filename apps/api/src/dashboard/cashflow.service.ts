@@ -55,9 +55,11 @@ export class CashflowService {
   /**
    * PF, PJ e total do workspace inteiro (ignora entidade e conta do filtro): `consolidated` é o saldo em contas
    * (caixa, sem cartões de crédito) e `cards` a dívida dos cartões (negativo = a pagar).
+   * `accounts` são os saldos por conta (todas as não arquivadas) de onde os totais saem.
    */
-  async consolidated(workspaceId: string, asOf: string): Promise<BalanceGroups> {
-    return balanceGroups(await this.balances.accountBalances(workspaceId, {}, asOf));
+  async consolidated(workspaceId: string, asOf: string): Promise<BalanceGroups & { accounts: AccountBalanceRow[] }> {
+    const accounts = await this.balances.accountBalances(workspaceId, {}, asOf);
+    return { ...balanceGroups(accounts), accounts };
   }
 
   async get(workspaceId: string, filter: CashflowFilter) {

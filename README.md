@@ -121,7 +121,7 @@ sistema-financeiro/
 │   │   │   ├── push/       notificações push (VAPID)
 │   │   │   ├── transactions/
 │   │   │   └── workspaces/ multi-tenant
-│   │   └── test/e2e/       335 testes de integração
+│   │   └── test/e2e/       337 testes de integração
 │   │
 │   ├── worker/             BullMQ job processors
 │   │   └── src/
@@ -201,9 +201,9 @@ pnpm test
 
 # por app
 pnpm --filter @app/shared test   # 302 testes unitários
-pnpm --filter @app/api    test   # 335 testes (e2e e unitários)
+pnpm --filter @app/api    test   # 337 testes (e2e e unitários)
 pnpm --filter @app/worker test   # 64 testes unitários
-pnpm --filter @app/web    test   # 373 testes unitários
+pnpm --filter @app/web    test   # 388 testes unitários
 ```
 
 O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `turbo typecheck` e as quatro suítes de teste a cada push.

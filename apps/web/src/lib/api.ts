@@ -261,9 +261,24 @@ export interface CashflowDashboard {
   forecast: ForecastMonth[];
 }
 
+/** Conta do workspace (caixa ou cartão) com o saldo de hoje, para o detalhe dos saldos do Início. */
+export interface SummaryAccount {
+  accountId: string;
+  name: string;
+  type: AccountType;
+  entity: AccountEntity;
+  institution: Institution;
+  /** Cartão de crédito: negativo = dívida. */
+  balanceCents: number;
+  closingDay: number | null;
+  dueDay: number | null;
+}
+
 export interface SummaryDashboard {
   /** pf/pj/total = saldo em contas (caixa, sem cartões); `cards` = dívida dos cartões (negativo = a pagar). */
   balances: ConsolidatedBalance & { cards: ConsolidatedBalance };
+  /** Todas as contas não arquivadas (caixa e cartões), por entidade e nome: o que compõe os saldos acima. */
+  accounts: SummaryAccount[];
   pendingCount: number;
   /** `estimated`: sem lançamentos importados na fatura; o valor é o saldo devedor do cartão. */
   nextInvoice: { accountId: string; name: string; dueDate: string; openInvoiceCents: number; estimated: boolean } | null;
