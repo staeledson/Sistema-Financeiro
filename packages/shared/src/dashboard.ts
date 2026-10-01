@@ -3,6 +3,8 @@ import { z } from "zod";
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 const isRealDate = (s: string) => {
   if (!YMD.test(s)) return false;
+  const year = Number(s.slice(0, 4));
+  if (year < 1900 || year > 2099) return false;
   const d = new Date(`${s}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 };

@@ -155,6 +155,27 @@ describe("TransactionsView selos, ações e filtro rápido", () => {
     expect(listMock.mock.calls.length).toBe(before);
   });
 
+  it("data da lista vem do texto: meia-noite UTC não vira o dia anterior", async () => {
+    listMock.mockResolvedValue([row("d1", { date: "2026-09-01T00:00:00.000Z" })]);
+    const { w } = await mountAt("/transacoes");
+    expect(w.find(".tx-date").text()).toBe("01/09/2026");
+  });
+
+  it("selo Sem categoria segue a fila: pendente entra; pareada, transferência e ignorada não; esquecida entra", async () => {
+    const none = { categoryId: null, categorySource: "none" };
+    listMock.mockResolvedValue([
+      row("p1", { ...none, reviewStatus: "pending" }),
+      row("p2", { ...none, reviewStatus: "pending", transferPairId: "x" }),
+      row("p3", { ...none, reviewStatus: "pending", type: "transfer" }),
+      row("p4", { ...none, reviewStatus: "pending", ignored: true }),
+      row("p5", { ...none, createdAt: "2020-01-01T00:00:00.000Z" }),
+      row("p6", { ...none }),
+    ]);
+    const { w } = await mountAt("/transacoes");
+    const has = (i: number) => w.findAll(".tx-item")[i].text().includes("Sem categoria");
+    expect([0, 1, 2, 3, 4, 5].map(has)).toEqual([true, false, false, false, true, false]);
+  });
+
   it("botões têm aria-label com a descrição; desfazer par explica que afeta os dois lançamentos", async () => {
     listMock.mockResolvedValue(rows());
     const { w } = await mountAt("/transacoes");

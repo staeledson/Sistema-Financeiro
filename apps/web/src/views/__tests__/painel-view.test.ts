@@ -86,9 +86,9 @@ describe("PainelView", () => {
     const { w } = await mountAt("/painel?month=2026-06&entity=pj");
     const titles = w.findAll("h3.block-title").map((h) => h.text());
     expect(titles).toEqual(["Para onde vai o dinheiro", "Cartões e faturas", "Fluxo de caixa"]);
-    expect(spendingMock.mock.calls[0][0].toString()).toBe("entity=pj&month=2026-06");
-    expect(cardsMock.mock.calls[0][0].toString()).toBe("entity=pj");
-    expect(cashflowMock.mock.calls[0][0].toString()).toBe("entity=pj");
+    expect(spendingMock.mock.calls[0][0].toString()).toMatch(/^entity=pj&month=2026-06&asOf=\d{4}-\d{2}-\d{2}$/);
+    expect(cardsMock.mock.calls[0][0].toString()).toMatch(/^entity=pj&asOf=\d{4}-\d{2}-\d{2}$/);
+    expect(cashflowMock.mock.calls[0][0].toString()).toMatch(/^entity=pj&asOf=\d{4}-\d{2}-\d{2}$/);
     expect(w.text()).toContain("Mercado subiu 150%");
     expect(w.text()).toContain("Transferências internas no mês");
   });
@@ -118,7 +118,7 @@ describe("PainelView", () => {
     const { w } = await mountAt("/painel");
     expect(w.text()).toContain("falhou cartões");
     expect(w.text()).toContain("Mercado subiu 150%");
-    expect(w.text()).toContain("Saldo consolidado");
+    expect(w.text()).toContain("Saldo consolidado (todas as contas)");
   });
 
   it("mudar a entidade atualiza a URL e recarrega as seções", async () => {

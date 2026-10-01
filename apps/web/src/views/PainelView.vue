@@ -465,7 +465,7 @@ const balanceColumns = [
       <p v-else-if="!cashflow.data.value" class="state" role="status">Carregando…</p>
       <div v-else class="grid" :class="{ stale: cashflow.loading.value }">
         <Card
-          title="Saldo consolidado"
+          title="Saldo consolidado (todas as contas)"
           :value="formatBRL(cashflow.data.value.balances.consolidated.totalCents)"
           :insight="consolidatedInsight"
         />

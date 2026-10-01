@@ -62,6 +62,7 @@ describe("InicioView", () => {
     expect(text).toContain("Mercado subiu 18%");
     expect(w.findAll(".echart-stub")).toHaveLength(2); // sem orçamento: pizza e empilhado
     expect(w.find('a[href="/categorizar"]').exists()).toBe(true);
+    expect(w.find('a[href="/painel#sec-cartoes"]').text()).toContain("Cartão C6");
     expect(w.findAll('a[href="/painel"]').map((a) => a.text())).toContain("Abrir o painel");
   });
 

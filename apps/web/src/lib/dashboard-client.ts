@@ -102,14 +102,19 @@ export function filterToQuery(f: PainelFilter): Record<string, string> {
   return out;
 }
 
-/** Parâmetros dos endpoints `/dashboard/*` (mesmos nomes da API; nunca valores vazios, um único tipo de período). */
-export function filterToParams(f: PainelFilter): URLSearchParams {
-  return new URLSearchParams(filterToQuery(f));
+/**
+ * Parâmetros dos endpoints `/dashboard/*` (mesmos nomes da API; nunca valores vazios, um único tipo de período).
+ * `asOf` leva o "hoje" do navegador, para o servidor (UTC) não virar o dia antes do fuso local.
+ */
+export function filterToParams(f: PainelFilter, today: string = localToday()): URLSearchParams {
+  const params = new URLSearchParams(filterToQuery(f));
+  params.set("asOf", today);
+  return params;
 }
 
-/** Só entidade e conta: `cards` e `cashflow` ignoram o período. */
-export function scopeToParams(f: PainelFilter): URLSearchParams {
-  return filterToParams({ entity: f.entity, accountId: f.accountId });
+/** Só entidade e conta (mais `asOf`): `cards` e `cashflow` ignoram o período. */
+export function scopeToParams(f: PainelFilter, today: string = localToday()): URLSearchParams {
+  return filterToParams({ entity: f.entity, accountId: f.accountId }, today);
 }
 
 /** Primeiro e último dia do período do filtro. */

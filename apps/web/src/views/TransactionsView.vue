@@ -8,6 +8,8 @@ import EmptyState from "../components/ui/EmptyState.vue";
 import Money from "../components/ui/Money.vue";
 import { HttpError } from "../lib/http";
 import { isPendingReview } from "../lib/review-queue";
+import { formatDateOnly } from "../lib/date";
+import { localToday } from "../lib/dashboard-client";
 import { ENTITY_SHORT, accountsForEntity, categoriesForEntity, type EntityFilter } from "../lib/entity";
 
 const store = useFinanceStore();
@@ -111,7 +113,7 @@ function applyRouteQuery() {
 // new transaction form
 const txType = ref<TransactionType>("expense");
 const txAmount = ref(0);
-const txDate = ref(new Date().toISOString().slice(0, 10));
+const txDate = ref(localToday());
 const txAccountId = ref("");
 const txSrcId = ref("");
 const txDstId = ref("");
@@ -203,10 +205,6 @@ async function registrar() {
   } catch (e) {
     txErro.value = (e as Error).message;
   }
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR");
 }
 
 const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expense: "Despesa", transfer: "Transferência" };
@@ -304,7 +302,7 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
             <span class="tx-type">{{ txTypeLabel[tx.type] }}</span>
             <EntityBadge v-if="entityOf(tx)" :entity="entityOf(tx)!" />
             <span class="tx-desc">{{ tx.description ?? "—" }}</span>
-            <span class="tx-date">{{ formatDate(tx.date) }}</span>
+            <span class="tx-date">{{ formatDateOnly(tx.date) }}</span>
           </div>
           <div class="tx-tags">
             <span v-if="tx.transferPairId" class="tag paired">Transferência pareada</span>
@@ -327,7 +325,7 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
               @click="reativar(tx)"
             >Reativar</button>
             <span v-if="tx.installmentCurrent && tx.installmentTotal" class="tag">Parcela {{ tx.installmentCurrent }}/{{ tx.installmentTotal }}</span>
-            <span v-if="tx.reviewStatus === 'pending' && !tx.ignored" class="tag pending">Sem categoria</span>
+            <span v-if="isPendingReview(tx)" class="tag pending">Sem categoria</span>
             <span v-if="sourceLabel(tx)" class="source">Categoria: {{ sourceLabel(tx) }}</span>
           </div>
         </div>

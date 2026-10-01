@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import { createRouter, createWebHistory, type RouteRecordRaw, type RouterScrollBehavior } from "vue-router";
 
 /**
  * Rotas do app. `meta.bare` renderiza a tela fora da casca (sem barra lateral).
@@ -23,4 +23,29 @@ export const routes: RouteRecordRaw[] = [
   { path: "/:pathMatch(.*)*", redirect: "/" },
 ];
 
-export const router = createRouter({ history: createWebHistory(), routes });
+/**
+ * Rola até o alvo do hash (ex.: `/painel#sec-cartoes`). As seções do Painel entram na página depois de carregar, então
+ * tenta de novo por um instante; nunca lança. Sem hash, mantém a posição salva (voltar) ou vai ao topo.
+ */
+export const scrollBehavior: RouterScrollBehavior = (to, _from, saved) => {
+  if (saved) return saved;
+  if (!to.hash) return { top: 0 };
+  const selector = to.hash;
+  return new Promise((resolve) => {
+    let tries = 0;
+    const attempt = () => {
+      let el: Element | null = null;
+      try {
+        el = document.querySelector(selector);
+      } catch {
+        /* hash que não é seletor válido: sem alvo */
+      }
+      if (el) return resolve({ el, top: 8, behavior: "smooth" });
+      if (++tries >= 20) return resolve(false);
+      setTimeout(attempt, 100);
+    };
+    attempt();
+  });
+};
+
+export const router = createRouter({ history: createWebHistory(), routes, scrollBehavior });

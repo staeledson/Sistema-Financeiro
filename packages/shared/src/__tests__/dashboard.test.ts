@@ -14,6 +14,15 @@ describe("dashboardFilterSchema", () => {
     expect(dashboardFilterSchema.parse({ year: "1999" }).year).toBe("1999");
     expect(dashboardFilterSchema.parse({ year: "2099" }).year).toBe("2099");
   });
+  it("asOf, from e to fora de 1900-2099 viram erro de validação (400), não exceção de data", () => {
+    expect(() => dashboardFilterSchema.parse({ asOf: "0001-01-01" })).toThrow();
+    expect(() => dashboardFilterSchema.parse({ asOf: "1899-12-31" })).toThrow();
+    expect(() => dashboardFilterSchema.parse({ asOf: "2100-01-01" })).toThrow();
+    expect(() => dashboardFilterSchema.parse({ from: "0001-01-01", to: "0001-02-01" })).toThrow();
+    expect(() => dashboardFilterSchema.parse({ from: "2099-12-01", to: "2100-01-01" })).toThrow();
+    expect(dashboardFilterSchema.parse({ asOf: "1900-01-01" }).asOf).toBe("1900-01-01");
+    expect(dashboardFilterSchema.parse({ asOf: "2099-12-31" }).asOf).toBe("2099-12-31");
+  });
   it("aceita só um tipo de período e entity padrão all", () => {
     expect(dashboardFilterSchema.parse({}).entity).toBe("all");
     expect(dashboardFilterSchema.parse({ month: "2026-06", entity: "pj" })).toMatchObject({ month: "2026-06", entity: "pj" });

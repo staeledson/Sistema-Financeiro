@@ -45,13 +45,7 @@ export default defineConfig({
         // SPA com vue-router (history): qualquer navegação cai no index.html, exceto a API.
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/],
-        runtimeCaching: [
-          {
-            urlPattern: /^\/api\/(balances|transactions|dashboard)/,
-            handler: "StaleWhileRevalidate",
-            options: { cacheName: "api-reads", expiration: { maxAgeSeconds: 60 * 60 * 24 } },
-          },
-        ],
+        // Sem runtimeCaching de /api: o cache por URL ignoraria Authorization e workspace e vazaria dados entre usuários.
       },
     }),
   ],

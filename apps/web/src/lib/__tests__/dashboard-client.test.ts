@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  cardCycleLink, categoryLink, cycleStart, expensesMonthLink, filterFromQuery, filterToParams, filterToQuery, isValidRange,
+  cardCycleLink, categoryLink, cycleStart, expensesMonthLink, filterFromQuery, filterToParams, filterToQuery, isValidRange, localToday,
   monthLink, monthRange, periodRange, rangeError, scopeToParams, transactionsLink, type PainelFilter,
 } from "../dashboard-client";
 
@@ -60,20 +60,28 @@ describe("filterToQuery / filterToParams", () => {
     expect(filterToQuery(f)).toEqual({ month: "2026-06" });
     const range = filterToQuery({ entity: "all", accountId: "", from: "2026-01-01", to: "2026-02-01" });
     expect(range).toEqual({ from: "2026-01-01", to: "2026-02-01" });
-    expect(filterToParams({ entity: "all", accountId: "", from: "", to: "" }).toString()).toBe("");
+    expect(filterToParams({ entity: "all", accountId: "", from: "", to: "" }, "2026-09-15").toString()).toBe("asOf=2026-09-15");
   });
 
   it("serializa com os nomes de parâmetro da API", () => {
-    const p = filterToParams({ entity: "pj", accountId: "a1", quarter: "2026-Q2" });
+    const p = filterToParams({ entity: "pj", accountId: "a1", quarter: "2026-Q2" }, "2026-09-15");
     expect(p.get("entity")).toBe("pj");
     expect(p.get("accountId")).toBe("a1");
     expect(p.get("quarter")).toBe("2026-Q2");
-    expect(p.has("asOf")).toBe(false);
+    expect(p.get("asOf")).toBe("2026-09-15");
+    expect(p.toString()).toBe("entity=pj&accountId=a1&quarter=2026-Q2&asOf=2026-09-15");
   });
 
-  it("scopeToParams leva só entidade e conta", () => {
-    expect(scopeToParams({ entity: "pf", accountId: "a1", month: "2026-06" }).toString()).toBe("entity=pf&accountId=a1");
-    expect(scopeToParams(base).toString()).toBe("");
+  it("scopeToParams leva só entidade, conta e asOf", () => {
+    expect(scopeToParams({ entity: "pf", accountId: "a1", month: "2026-06" }, "2026-09-15").toString()).toBe("entity=pf&accountId=a1&asOf=2026-09-15");
+    expect(scopeToParams(base, "2026-09-15").toString()).toBe("asOf=2026-09-15");
+  });
+
+  it("asOf padrão é a data local do navegador, não a UTC", () => {
+    expect(filterToParams(base).get("asOf")).toBe(localToday());
+    expect(scopeToParams(base).get("asOf")).toBe(localToday());
+    // 23:30 do dia 15 no fuso local, mesmo que em UTC já seja dia 16
+    expect(localToday(new Date(2026, 8, 15, 23, 30))).toBe("2026-09-15");
   });
 });
 

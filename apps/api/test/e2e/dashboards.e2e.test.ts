@@ -719,7 +719,7 @@ describe("GET /dashboard/cashflow", () => {
     expect(b.forecast.map((f: { balanceCents: number }) => f.balanceCents)).toEqual([284000, 307000, 330000]);
   });
 
-  it("previsão: parcela futura do cartão entra em installmentsCents do mês de vencimento", async () => {
+  it("previsão: parcela futura do cartão entra em installmentsCents do mês da data", async () => {
     const u = await newUser("cf7");
     await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "checking", name: "Corrente" } });
     const card = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "Cartão", closingDay: 10, dueDay: 17 } });

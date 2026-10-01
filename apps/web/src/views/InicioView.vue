@@ -108,7 +108,7 @@ const pendingText = computed(() => {
           <p class="big">{{ data.pendingCount }}</p>
           <p class="note">{{ pendingText }}</p>
         </Card>
-        <Card title="Próxima fatura" to="/painel">
+        <Card title="Próxima fatura" :to="{ path: '/painel', hash: '#sec-cartoes' }">
           <template v-if="data.nextInvoice">
             <p class="big"><Money :cents="data.nextInvoice.openInvoiceCents" /></p>
             <p class="note">{{ data.nextInvoice.name }} · vence em {{ formatDate(data.nextInvoice.dueDate) }}</p>
