@@ -415,6 +415,9 @@ const balanceColumns = [
               <EntityBadge :entity="c.entity" />
               <RouterLink :to="cardLink(c)" class="card-link">Ver transações</RouterLink>
             </template>
+            <p v-if="(c.openInvoiceCents ?? 0) === 0 && c.usedCents > 0" class="debt-hint">
+              Saldo devedor do cartão: {{ formatBRL(c.usedCents) }} (importe a fatura atual para detalhar)
+            </p>
             <div class="limit">
               <div
                 v-if="c.limitUsedPct != null"
@@ -542,6 +545,7 @@ const balanceColumns = [
 .bar { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
 .bar span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
 .bar span.high { background: var(--danger); }
+.debt-hint { margin: 0 0 calc(var(--space) * 0.5); font-size: 0.85rem; color: var(--text-muted); }
 .limit-text { margin-top: calc(var(--space) * 0.5); font-size: 0.85rem; color: var(--text-muted); }
 .cards-owed { font-size: 0.9rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .debt-hint { margin-left: calc(var(--space) * 0.5); font-size: 0.75rem; color: var(--text-muted); }

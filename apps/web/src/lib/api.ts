@@ -265,7 +265,10 @@ export interface SummaryDashboard {
   /** pf/pj/total = saldo em contas (caixa, sem cartões); `cards` = dívida dos cartões (negativo = a pagar). */
   balances: ConsolidatedBalance & { cards: ConsolidatedBalance };
   pendingCount: number;
-  nextInvoice: { accountId: string; name: string; dueDate: string; openInvoiceCents: number } | null;
+  /** `estimated`: sem lançamentos importados na fatura; o valor é o saldo devedor do cartão. */
+  nextInvoice: { accountId: string; name: string; dueDate: string; openInvoiceCents: number; estimated: boolean } | null;
+  /** Há ao menos um cartão com dias de fechamento e vencimento. */
+  cardsConfigured: boolean;
   spending: {
     totalCents: number;
     insight: string | null;

@@ -120,7 +120,9 @@ const pendingText = computed(() => {
           <template v-if="data.nextInvoice">
             <p class="big"><Money :cents="data.nextInvoice.openInvoiceCents" /></p>
             <p class="note">{{ data.nextInvoice.name }} · vence em {{ formatDate(data.nextInvoice.dueDate) }}</p>
+            <p v-if="data.nextInvoice.estimated" class="note">Saldo devedor do cartão (a fatura ainda não tem lançamentos importados)</p>
           </template>
+          <p v-else-if="data.cardsConfigured" class="note">Nenhuma fatura a vencer.</p>
           <p v-else class="note">Nenhuma fatura a vencer. Cartões precisam de dias de fechamento e vencimento em Contas.</p>
         </Card>
       </section>
