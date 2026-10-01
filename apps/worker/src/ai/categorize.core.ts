@@ -125,6 +125,7 @@ export async function planCategorization(
   }
 
   // 3. IA em lote, uma entidade por vez
+  const batchSize = Math.max(1, Math.floor(Number.isFinite(settings.aiBatchSize) ? settings.aiBatchSize : 40));
   const byEntity = new Map<AccountEntity | null, CatTx[]>();
   for (const tx of remaining) {
     const group = byEntity.get(tx.accountEntity);
@@ -135,7 +136,7 @@ export async function planCategorization(
   for (const [entity, txs] of byEntity) {
     const offered = categories.filter((c) => !entity || c.entity === "both" || c.entity === entity);
     const sameEntityExamples = examples.filter((e) => !entity || e.entity === entity);
-    for (const batch of chunk(txs, settings.aiBatchSize)) {
+    for (const batch of chunk(txs, batchSize)) {
       const target = batch.map(txText).join(" ");
       const shots = rankBySimilarity(sameEntityExamples, (e) => e.text, target, MAX_EXAMPLES);
       let results: AiBatchResult[] | null = null;

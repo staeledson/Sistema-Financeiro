@@ -83,12 +83,18 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
     return;
   }
 
-  const times = scope.map((t) => Date.parse(`${t.date}T00:00:00Z`));
+  let minTime = Infinity;
+  let maxTime = -Infinity;
+  for (const t of scope) {
+    const time = Date.parse(`${t.date}T00:00:00Z`);
+    if (time < minTime) minTime = time;
+    if (time > maxTime) maxTime = time;
+  }
   const windowMs = settings.transferMatchWindowDays * DAY_MS;
   const poolRows = (await prisma.transaction.findMany({
     where: {
       ...base,
-      date: { gte: new Date(Math.min(...times) - windowMs), lte: new Date(Math.max(...times) + windowMs) },
+      date: { gte: new Date(minTime - windowMs), lte: new Date(maxTime + windowMs) },
     },
     select: TX_SELECT,
   })) as unknown as TxRow[];
@@ -113,14 +119,19 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
     }),
   ]);
 
+  // Com lançamentos sem conta no escopo, uma consulta sem filtro de entidade já cobre todas as entidades.
   const entities = new Set<AccountEntity | null>(scope.map((t) => t.accountEntity));
+  const exampleScopes: Array<AccountEntity | null> = entities.has(null) ? [null] : [...entities];
   const examples: CatExample[] = [];
-  for (const entity of entities) {
+  const seenExamples = new Set<string>();
+  for (const entity of exampleScopes) {
     const rows = await prisma.transaction.findMany({
       where: {
         workspaceId,
         categorySource: { in: ["manual", "rule"] },
         categoryId: { not: null },
+        ignored: false,
+        transferPairId: null,
         ...(entity ? { account: { entity } } : {}),
       },
       orderBy: { createdAt: "desc" },
@@ -128,7 +139,11 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
       select: { counterparty: true, description: true, category: { select: { name: true } }, account: { select: { entity: true } } },
     });
     for (const r of rows) {
-      examples.push({ text: txText(r), categoryName: r.category?.name ?? "", entity: r.account?.entity ?? null });
+      const example: CatExample = { text: txText(r), categoryName: r.category?.name ?? "", entity: r.account?.entity ?? null };
+      const key = `${example.text}|${example.categoryName}|${example.entity}`;
+      if (seenExamples.has(key)) continue;
+      seenExamples.add(key);
+      examples.push(example);
     }
   }
 
@@ -150,26 +165,26 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
   await prisma.$transaction([
     ...plan.transferPairs.map((p) =>
       prisma.transaction.updateMany({
-        where: { id: { in: [p.expenseId, p.incomeId] }, workspaceId },
-        data: { transferPairId: randomUUID(), reviewStatus: "ok" },
+        where: { id: { in: [p.expenseId, p.incomeId] }, workspaceId, transferPairId: null, ignored: false },
+        data: { transferPairId: randomUUID(), reviewStatus: "ok", suggestedCategoryId: null, categoryConfidence: null },
       }),
     ),
     ...plan.byRule.map((h) =>
-      prisma.transaction.update({
-        where: { id: h.txId },
+      prisma.transaction.updateMany({
+        where: { id: h.txId, workspaceId, categoryId: null, ignored: false, transferPairId: null },
         data: { categoryId: h.categoryId, categorySource: "rule", categoryConfidence: 1, reviewStatus: "ok", suggestedCategoryId: null },
       }),
     ),
     ...[...ruleHits].map(([id, n]) => prisma.categoryRule.update({ where: { id }, data: { hitCount: { increment: n } } })),
     ...plan.byAi.map((h) =>
-      prisma.transaction.update({
-        where: { id: h.txId },
+      prisma.transaction.updateMany({
+        where: { id: h.txId, workspaceId, categoryId: null, ignored: false, transferPairId: null },
         data: { categoryId: h.categoryId, categorySource: "ai", categoryConfidence: h.confidence, reviewStatus: "ok", suggestedCategoryId: null },
       }),
     ),
     ...plan.pending.map((p) =>
-      prisma.transaction.update({
-        where: { id: p.txId },
+      prisma.transaction.updateMany({
+        where: { id: p.txId, workspaceId, categoryId: null, ignored: false, transferPairId: null },
         data: { reviewStatus: "pending", suggestedCategoryId: p.suggestedCategoryId, categoryConfidence: p.confidence },
       }),
     ),

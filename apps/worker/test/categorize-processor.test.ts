@@ -34,8 +34,8 @@ const row = (id: string, over: Row = {}): Row => ({
   accountId: "a-pf", account: { type: "checking", entity: "pf" }, ...over,
 });
 
-function setup(scope: Row[], opts: { pool?: Row[]; examples?: Row[]; aiFails?: boolean } = {}) {
-  db.settings.mockResolvedValue(null);
+function setup(scope: Row[], opts: { pool?: Row[]; examples?: Row[]; aiFails?: boolean; lowConfidenceIds?: string[]; settings?: Row } = {}) {
+  db.settings.mockResolvedValue(opts.settings ?? null);
   db.categories.mockResolvedValue([{ id: "c-merc", name: "Supermercado", type: "expense", entity: "both" }]);
   db.rules.mockResolvedValue([{ id: "r1", matchType: "contains", pattern: "supermercado", categoryId: "c-merc", priority: 100 }]);
   db.txFindMany.mockImplementation(async (args: { where: Row }) => {
@@ -47,7 +47,7 @@ function setup(scope: Row[], opts: { pool?: Row[]; examples?: Row[]; aiFails?: b
     categorizeBatch: opts.aiFails
       ? vi.fn(async () => { throw new Error("sem rede"); })
       : vi.fn(async ({ user }: { user: string }) => ({
-          results: (JSON.parse(user).transactions as Array<{ id: string }>).map((t) => ({ transactionId: t.id, categoryId: "c-merc", confidence: 0.95 })),
+          results: (JSON.parse(user).transactions as Array<{ id: string }>).map((t) => ({ transactionId: t.id, categoryId: "c-merc", confidence: (opts.lowConfidenceIds ?? []).includes(t.id) ? 0.5 : 0.95 })),
           costTokens: 7,
         })),
   };
@@ -59,43 +59,56 @@ beforeEach(() => Object.values(db).forEach((m) => "mockClear" in m && (m as { mo
 const ops = () => (db.transaction.mock.calls[0][0] as Array<{ op: string; args: Row }>);
 
 describe("processCategorize", () => {
-  it("aplica regra, IA e pendência em uma transação e grava o resultado no job", async () => {
-    const ai = setup([
-      row("t-regra", { description: "Supermercado Extra" }),
-      row("t-ia", { description: "Coisa estranha" }),
-    ]);
+  it("aplica regra, IA e pendência em uma transação, só em linhas ainda livres, e grava o resultado no job", async () => {
+    const ai = setup(
+      [
+        row("t-regra", { description: "Supermercado Extra" }),
+        row("t-ia", { description: "Coisa estranha" }),
+        row("t-pend", { description: "Outra coisa" }),
+      ],
+      { lowConfidenceIds: ["t-pend"] },
+    );
     await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
 
     const all = ops();
-    const rule = all.find((o) => o.op === "transaction.update" && (o.args.where as Row).id === "t-regra")!;
+    const guard = (id: string) => ({ id, workspaceId: "w1", categoryId: null, ignored: false, transferPairId: null });
+    const rule = all.find((o) => o.op === "transaction.updateMany" && (o.args.where as Row).id === "t-regra")!;
+    expect(rule.args.where).toEqual(guard("t-regra"));
     expect(rule.args.data).toMatchObject({ categoryId: "c-merc", categorySource: "rule", categoryConfidence: 1, reviewStatus: "ok", suggestedCategoryId: null });
-    const aiHit = all.find((o) => o.op === "transaction.update" && (o.args.where as Row).id === "t-ia")!;
+    const aiHit = all.find((o) => o.op === "transaction.updateMany" && (o.args.where as Row).id === "t-ia")!;
+    expect(aiHit.args.where).toEqual(guard("t-ia"));
     expect(aiHit.args.data).toMatchObject({ categoryId: "c-merc", categorySource: "ai", categoryConfidence: 0.95, reviewStatus: "ok" });
+    const pend = all.find((o) => o.op === "transaction.updateMany" && (o.args.where as Row).id === "t-pend")!;
+    expect(pend.args.where).toEqual(guard("t-pend"));
+    expect(pend.args.data).toEqual({ reviewStatus: "pending", suggestedCategoryId: "c-merc", categoryConfidence: 0.5 });
+    expect(all.some((o) => o.op === "transaction.update")).toBe(false);
     expect(all.find((o) => o.op === "categoryRule.update")!.args).toEqual({ where: { id: "r1" }, data: { hitCount: { increment: 1 } } });
     const job = all.find((o) => o.op === "aiJob.update")!;
-    expect(job.args.data).toMatchObject({ status: "done", costTokens: 7, result: { total: 2, transfers: 0, byRule: 1, byAi: 1, pending: 0 } });
+    expect(job.args.data).toMatchObject({ status: "done", costTokens: 7, result: { total: 3, transfers: 0, byRule: 1, byAi: 1, pending: 1 } });
   });
 
   it("falha da IA deixa pendente, sem sugestão, e o job termina done", async () => {
     const ai = setup([row("t1", { description: "Coisa estranha" })], { aiFails: true });
     await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
-    const pending = ops().find((o) => o.op === "transaction.update")!;
+    const pending = ops().find((o) => o.op === "transaction.updateMany")!;
+    expect(pending.args.where).toEqual({ id: "t1", workspaceId: "w1", categoryId: null, ignored: false, transferPairId: null });
+    expect(ops().some((o) => o.op === "transaction.update")).toBe(false);
     expect(pending.args.data).toEqual({ reviewStatus: "pending", suggestedCategoryId: null, categoryConfidence: null });
     expect(ops().find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({ status: "done", result: { pending: 1 } });
   });
 
   it("pareia transferência usando os nomes do titular configurados", async () => {
-    db.settings.mockResolvedValue({ aiConfidenceThreshold: 0.8, aiBatchSize: 40, transferMatchWindowDays: 2, ownerNames: ["Stael Edson"] });
     const saida = row("s", { description: "Pix para STAEL EDSON", accountId: "a-pj", account: { type: "checking", entity: "pj" } });
     const entrada = row("e", { type: "income", description: "Pix recebido", accountId: "a-pf" });
-    const ai = setup([saida, entrada]);
-    db.settings.mockResolvedValue({ aiConfidenceThreshold: 0.8, aiBatchSize: 40, transferMatchWindowDays: 2, ownerNames: ["Stael Edson"] });
+    const ai = setup([saida, entrada], {
+      settings: { aiConfidenceThreshold: 0.8, aiBatchSize: 40, transferMatchWindowDays: 2, ownerNames: ["Stael Edson"] },
+    });
     await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
 
     const pair = ops().find((o) => o.op === "transaction.updateMany")!;
-    expect((pair.args.where as { id: { in: string[] } }).id.in.sort()).toEqual(["e", "s"]);
-    expect(pair.args.data).toMatchObject({ reviewStatus: "ok" });
-    expect(typeof (pair.args.data as Row).transferPairId).toBe("string");
+    expect(pair.args.where).toEqual({ id: { in: ["s", "e"] }, workspaceId: "w1", transferPairId: null, ignored: false });
+    expect(pair.args.data).toEqual({ transferPairId: expect.any(String), reviewStatus: "ok", suggestedCategoryId: null, categoryConfidence: null });
+    expect(ops().some((o) => o.op === "transaction.update")).toBe(false);
     expect(ops().find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({ result: { transfers: 1 } });
     expect(ai.categorizeBatch).not.toHaveBeenCalled();
   });
@@ -117,5 +130,58 @@ describe("processCategorize", () => {
     expect(ops().find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({
       status: "done", result: { total: 0, transfers: 0, byRule: 0, byAi: 0, pending: 0 },
     });
+  });
+
+  it("a consulta do pool usa a janela min/max das datas do escopo mais/menos a tolerância configurada", async () => {
+    const ai = setup(
+      [row("t1", { date: new Date("2026-06-10") }), row("t2", { date: new Date("2026-06-20") })],
+      { settings: { aiConfidenceThreshold: 0.8, aiBatchSize: 40, transferMatchWindowDays: 3, ownerNames: [] } },
+    );
+    await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
+    const poolCall = db.txFindMany.mock.calls.map((c) => c[0] as { where: Row }).find((a) => "date" in a.where)!;
+    const win = poolCall.where["date"] as { gte: Date; lte: Date };
+    expect(win.gte.toISOString()).toBe("2026-06-07T00:00:00.000Z");
+    expect(win.lte.toISOString()).toBe("2026-06-23T00:00:00.000Z");
+  });
+
+  it("exemplos: ignora lançamentos ignorados/pareados, faz uma consulta sem filtro de entidade quando há conta nula e deduplica", async () => {
+    const dup = { counterparty: null, description: "padaria do zé", category: { name: "Supermercado" }, account: { entity: "pf" } };
+    const ai = setup(
+      [row("t-pf", { description: "Coisa A" }), row("t-null", { description: "Coisa B", accountId: null, account: null })],
+      {
+        examples: [
+          dup, dup,
+          { counterparty: null, description: "nota fiscal cliente", category: { name: "Fornecedores" }, account: { entity: "pj" } },
+        ],
+      },
+    );
+    await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
+
+    const exampleCalls = db.txFindMany.mock.calls
+      .map((c) => c[0] as { where: Row })
+      .filter((a) => typeof a.where["categorySource"] === "object");
+    expect(exampleCalls).toHaveLength(1);
+    expect(exampleCalls[0].where).not.toHaveProperty("account");
+    expect(exampleCalls[0].where).toMatchObject({ ignored: false, transferPairId: null });
+
+    const prompts = (ai.categorizeBatch.mock.calls as unknown as Array<[{ user: string }]>).map((c) => JSON.parse(c[0].user) as { examples: Array<{ descricao: string }>; transactions: Array<{ id: string }> });
+    const pfPrompt = prompts.find((p) => p.transactions[0].id === "t-pf")!;
+    const nullPrompt = prompts.find((p) => p.transactions[0].id === "t-null")!;
+    expect(pfPrompt.examples.map((e) => e.descricao)).toEqual(["padaria do zé"]);
+    expect(nullPrompt.examples.map((e) => e.descricao).sort()).toEqual(["nota fiscal cliente", "padaria do zé"]);
+  });
+
+  it("exemplos: sem conta nula faz uma consulta por entidade, filtrada pela entidade", async () => {
+    const ai = setup([
+      row("t-pf", { description: "Coisa A" }),
+      row("t-pj", { description: "Coisa B", accountId: "a-pj", account: { type: "checking", entity: "pj" } }),
+    ]);
+    await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
+    const exampleCalls = db.txFindMany.mock.calls
+      .map((c) => c[0] as { where: Row })
+      .filter((a) => typeof a.where["categorySource"] === "object");
+    expect(exampleCalls.map((a) => a.where["account"]).sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y)))).toEqual([
+      { entity: "pf" }, { entity: "pj" },
+    ]);
   });
 });

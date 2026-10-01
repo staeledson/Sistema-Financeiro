@@ -156,4 +156,50 @@ describe("planCategorization", () => {
     const plan = await planCategorization({ scope: [], pairPool: [], categories: CATS, rules: [], examples: [], settings: SETTINGS }, noAi);
     expect(plan).toEqual({ transferPairs: [], byRule: [], byAi: [], pending: [], costTokens: 0 });
   });
+
+  it("tamanho de lote inválido (0 ou NaN) não lança e ainda categoriza", async () => {
+    for (const size of [0, NaN]) {
+      const a = tx();
+      const b = tx();
+      const ai = fakeAi((u) => u.transactions.map((x) => ({ transactionId: x.id, categoryId: "c-merc", confidence: 0.9 })));
+      const plan = await planCategorization(
+        { scope: [a, b], pairPool: [], categories: CATS, rules: [], examples: [], settings: { ...SETTINGS, aiBatchSize: size } }, ai,
+      );
+      expect(plan.byAi.map((h) => h.txId)).toEqual([a.id, b.id]);
+    }
+  });
+
+  it("lançamentos sem conta (entidade nula) ficam no mesmo grupo, recebem todas as categorias e exemplos de qualquer entidade", async () => {
+    const a = tx({ accountId: null, accountType: null, accountEntity: null, description: "padaria" });
+    const b = tx({ accountId: null, accountType: null, accountEntity: null, description: "mercado" });
+    const seen: string[] = [];
+    const ai: CategorizeAi = { categorizeBatch: vi.fn(async ({ user }) => { seen.push(user); return { results: [], costTokens: null }; }) };
+    await planCategorization(
+      {
+        scope: [a, b], pairPool: [], categories: CATS, rules: [],
+        examples: [
+          { text: "padaria do zé", categoryName: "Supermercado", entity: "pf" },
+          { text: "nota fiscal cliente", categoryName: "Fornecedores", entity: "pj" },
+        ],
+        settings: SETTINGS,
+      }, ai,
+    );
+    expect(seen).toHaveLength(1);
+    const sent = JSON.parse(seen[0]) as { categories: Array<{ id: string }>; examples: Array<{ descricao: string }>; transactions: Array<{ id: string }> };
+    expect(sent.transactions.map((t) => t.id)).toEqual([a.id, b.id]);
+    expect(sent.categories.map((c) => c.id).sort()).toEqual(["c-forn", "c-merc", "c-sal"]);
+    expect(sent.examples.map((e) => e.descricao).sort()).toEqual(["nota fiscal cliente", "padaria do zé"]);
+  });
+
+  it("ids duplicados na resposta da IA: o último resultado vence; ids desconhecidos são ignorados", async () => {
+    const t = tx({ description: "a" });
+    const ai = fakeAi(() => [
+      { transactionId: t.id, categoryId: "c-merc", confidence: 0.3 },
+      { transactionId: "id-que-nao-existe", categoryId: "c-merc", confidence: 0.99 },
+      { transactionId: t.id, categoryId: "c-merc", confidence: 0.95 },
+    ]);
+    const plan = await planCategorization({ scope: [t], pairPool: [], categories: CATS, rules: [], examples: [], settings: SETTINGS }, ai);
+    expect(plan.byAi).toEqual([{ txId: t.id, categoryId: "c-merc", confidence: 0.95 }]);
+    expect(plan.pending).toEqual([]);
+  });
 });
