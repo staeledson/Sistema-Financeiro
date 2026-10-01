@@ -117,3 +117,157 @@ CHARSET:1252
     expect(padaria).toMatchObject({ installmentCurrent: null, installmentTotal: null });
   });
 });
+
+const dayOf = (iso: string) => new Date(`${iso}T00:00:00Z`);
+
+async function seedSpending(tag: string) {
+  const u = await newUser(tag);
+  const pf1 = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "checking", name: "PF1", entity: "pf" } });
+  const pj1 = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "checking", name: "PJ1", entity: "pj" } });
+  const mercado = await prisma.category.create({ data: { workspaceId: u.workspaceId, type: "expense", name: "Mercado", entity: "both" } });
+  const software = await prisma.category.create({ data: { workspaceId: u.workspaceId, type: "expense", name: "Software", entity: "pj" } });
+  await prisma.budget.create({ data: { workspaceId: u.workspaceId, method: "fixed", categoryId: mercado.id, limitCents: 20000n } });
+  const tx = (data: Record<string, unknown>) =>
+    prisma.transaction.create({
+      data: { workspaceId: u.workspaceId, type: "expense", source: "manual", createdById: u.userId, ...data } as never,
+    });
+  await tx({ accountId: pf1.id, categoryId: mercado.id, amountCents: 10000n, date: dayOf("2026-06-05") });
+  await tx({ accountId: pf1.id, categoryId: mercado.id, amountCents: 5000n, date: dayOf("2026-06-12") });
+  await tx({ accountId: pj1.id, categoryId: software.id, amountCents: 30000n, date: dayOf("2026-06-08"), counterparty: "Software SA" });
+  await tx({ accountId: pf1.id, categoryId: mercado.id, amountCents: 99999n, date: dayOf("2026-06-09"), transferPairId: "p" });
+  await tx({ accountId: pf1.id, categoryId: mercado.id, amountCents: 8000n, date: dayOf("2026-06-10"), ignored: true });
+  await tx({ accountId: pf1.id, categoryId: mercado.id, amountCents: 6000n, date: dayOf("2026-05-07") });
+  await tx({ accountId: pj1.id, categoryId: software.id, amountCents: 30000n, date: dayOf("2026-05-08"), counterparty: "Software SA" });
+  return { u, pf1, pj1, mercado, software };
+}
+
+describe("GET /dashboard/spending", () => {
+  it("sem entity: total, categorias, insight, orçamento, contrapartes e série mensal", async () => {
+    const { u } = await seedSpending("sp1");
+    const res = await get(u, "/dashboard/spending?month=2026-06&asOf=2026-06-20");
+    expect(res.statusCode).toBe(200);
+    const b = res.json();
+    expect(b.period).toMatchObject({ kind: "month", from: "2026-06-01", to: "2026-06-30" });
+    expect(b.previousPeriod).toMatchObject({ from: "2026-05-01", to: "2026-05-31" });
+    expect(b.totalCents).toBe(45000);
+    expect(b.previousTotalCents).toBe(36000);
+    expect(b.byCategory).toEqual([
+      expect.objectContaining({ name: "Software", totalCents: 30000, pct: 67, count: 1, previousCents: 30000 }),
+      expect.objectContaining({ name: "Mercado", totalCents: 15000, pct: 33, count: 2, previousCents: 6000 }),
+    ]);
+    expect(b.insight).toBe("Mercado subiu 150% vs. período anterior");
+    expect(b.vsBudget).toEqual([expect.objectContaining({ name: "Mercado", limitCents: 20000, spentCents: 15000, pct: 75 })]);
+    expect(b.topCounterparties[0]).toEqual({ name: "Software SA", totalCents: 30000, count: 1 });
+    expect(b.byMonth.months).toHaveLength(12);
+    expect(b.byMonth.months[11]).toBe("2026-06");
+    const serie = (name: string) => b.byMonth.series.find((s: { name: string }) => s.name === name).totalsCents as number[];
+    expect(serie("Software").slice(-2)).toEqual([30000, 30000]);
+    expect(serie("Mercado").slice(-2)).toEqual([6000, 15000]);
+    expect(b.recurring).toEqual([]);
+  });
+
+  it("entity=pf, entity=pj e accountId filtram; conta de outro workspace dá 400", async () => {
+    const { u, pf1 } = await seedSpending("sp2");
+    const other = await seedSpending("sp2b");
+    const pf = (await get(u, "/dashboard/spending?month=2026-06&entity=pf")).json();
+    expect(pf.totalCents).toBe(15000);
+    expect(pf.byCategory.map((c: { name: string; totalCents: number }) => [c.name, c.totalCents])).toEqual([["Mercado", 15000]]);
+    const pj = (await get(u, "/dashboard/spending?month=2026-06&entity=pj")).json();
+    expect(pj.byCategory.map((c: { name: string }) => c.name)).toEqual(["Software"]);
+    const acc = (await get(u, `/dashboard/spending?month=2026-06&accountId=${pf1.id}`)).json();
+    expect(acc.byCategory).toEqual(pf.byCategory);
+    expect(acc.totalCents).toBe(pf.totalCents);
+    const foreign = await get(u, `/dashboard/spending?month=2026-06&accountId=${other.pf1.id}`);
+    expect(foreign.statusCode).toBe(400);
+  });
+
+  it("trimestre: soma abril-junho, trimestre anterior vazio e limite do orçamento x3", async () => {
+    const { u } = await seedSpending("sp3");
+    const b = (await get(u, "/dashboard/spending?quarter=2026-Q2&asOf=2026-06-20")).json();
+    expect(b.totalCents).toBe(81000);
+    expect(b.previousTotalCents).toBe(0);
+    expect(b.insight).toBeNull();
+    expect(b.vsBudget[0]).toMatchObject({ limitCents: 60000, spentCents: 21000, pct: 35 });
+  });
+
+  it("recorrência: assinatura mensal detectada; parcelada não entra", async () => {
+    const u = await newUser("sp4");
+    const acc = await account(u, "checking");
+    const tx = (data: Record<string, unknown>) =>
+      prisma.transaction.create({
+        data: { workspaceId: u.workspaceId, type: "expense", accountId: acc.id, source: "manual", createdById: u.userId, ...data } as never,
+      });
+    for (const [desc, date] of [["NETFLIX 04/2026", "2026-04-10"], ["NETFLIX 05/2026", "2026-05-10"], ["NETFLIX 06/2026", "2026-06-10"]]) {
+      await tx({ description: desc, amountCents: 5590n, date: dayOf(date) });
+    }
+    for (const date of ["2026-04-12", "2026-05-12", "2026-06-12"]) {
+      await tx({ description: "LOJA PARC", amountCents: 3000n, date: dayOf(date), installmentCurrent: 1, installmentTotal: 10 });
+    }
+    const b = (await get(u, "/dashboard/spending?month=2026-06&asOf=2026-06-20")).json();
+    expect(b.recurring).toHaveLength(1);
+    expect(b.recurring[0]).toMatchObject({ key: "netflix", frequency: "monthly", monthlyEstimateCents: 5590 });
+  });
+
+  it("filtros inválidos viram 400", async () => {
+    const u = await newUser("sp5");
+    expect((await get(u, "/dashboard/spending?month=2026-13")).statusCode).toBe(400);
+    expect((await get(u, "/dashboard/spending?month=2026-06&year=2026")).statusCode).toBe(400);
+  });
+
+  it("parâmetros vazios são ignorados", async () => {
+    const u = await newUser("sp6");
+    const res = await get(u, "/dashboard/spending?month=2026-06&entity=&accountId=");
+    expect(res.statusCode).toBe(200);
+    expect(res.json().totalCents).toBe(0);
+  });
+});
+
+describe("GET /balances (SQL, com entidade)", () => {
+  async function seedBalances(tag: string) {
+    const u = await newUser(tag);
+    const pf1 = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "checking", name: "PF1", entity: "pf", openingBalanceCents: 100000n } });
+    const pj1 = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "checking", name: "PJ1", entity: "pj", openingBalanceCents: 50000n } });
+    const tx = (data: Record<string, unknown>) =>
+      prisma.transaction.create({ data: { workspaceId: u.workspaceId, source: "manual", createdById: u.userId, date: dayOf("2026-06-05"), ...data } as never });
+    await tx({ type: "income", accountId: pf1.id, amountCents: 200000n });
+    await tx({ type: "expense", accountId: pf1.id, amountCents: 50000n });
+    await tx({ type: "expense", accountId: pf1.id, amountCents: 30000n, transferPairId: "par" });
+    await tx({ type: "income", accountId: pj1.id, amountCents: 30000n, transferPairId: "par" });
+    await tx({ type: "transfer", sourceAccountId: pf1.id, destAccountId: pj1.id, amountCents: 400n, date: dayOf("2026-07-01") });
+    return { u, pf1, pj1 };
+  }
+
+  it("mantém o contrato e inclui pares e ignorados no saldo", async () => {
+    const { u, pf1, pj1 } = await seedBalances("bal1");
+    const body = (await get(u, "/balances")).json();
+    expect(body.accounts).toEqual([
+      { accountId: pf1.id, name: "PF1", type: "checking", balanceCents: 219600 },
+      { accountId: pj1.id, name: "PJ1", type: "checking", balanceCents: 80400 },
+    ]);
+    expect(body.consolidatedCents).toBe(300000);
+  });
+
+  it("entity, accountId e asOf restringem o resultado", async () => {
+    const { u, pf1 } = await seedBalances("bal2");
+    const pf = (await get(u, "/balances?entity=pf")).json();
+    expect(pf.accounts.map((a: { name: string }) => a.name)).toEqual(["PF1"]);
+    expect(pf.consolidatedCents).toBe(219600);
+    const pj = (await get(u, "/balances?entity=pj")).json();
+    expect(pj.consolidatedCents).toBe(80400);
+    const one = (await get(u, `/balances?accountId=${pf1.id}`)).json();
+    expect(one.consolidatedCents).toBe(219600);
+    // a transferência de 400 é de julho: antes dela PF1 = 100000 + 200000 - 50000 - 30000 = 220000
+    const antes = (await get(u, "/balances?entity=pf&asOf=2026-06-30")).json();
+    expect(antes.consolidatedCents).toBe(220000);
+    expect((await get(u, "/balances?entity=xx")).statusCode).toBe(400);
+  });
+
+  it("conta arquivada fica de fora e conta de outro workspace dá 400", async () => {
+    const { u, pj1 } = await seedBalances("bal3");
+    const other = await seedBalances("bal3b");
+    await prisma.bankAccount.update({ where: { id: pj1.id }, data: { archived: true } });
+    const body = (await get(u, "/balances")).json();
+    expect(body.accounts).toHaveLength(1);
+    expect((await get(u, `/balances?accountId=${other.pf1.id}`)).statusCode).toBe(400);
+  });
+});
