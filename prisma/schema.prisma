@@ -328,6 +328,8 @@ model Transaction {
   suggestedCategory   Category?      @relation("TransactionSuggestedCategory", fields: [suggestedCategoryId], references: [id], onDelete: SetNull)
   transferPairId      String?
   ignored             Boolean        @default(false)
+  installmentCurrent  Int?
+  installmentTotal    Int?
   costCenter        String?
   createdById       String
   createdBy         User            @relation("TransactionCreator", fields: [createdById], references: [id])

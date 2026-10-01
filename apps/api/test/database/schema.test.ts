@@ -58,6 +58,13 @@ describe("schema base", () => {
     expect(await cols("category_rules")).toContain("hitCount");
   });
 
+  it("transactions tem as colunas de parcela da fase 13", async () => {
+    const cols = (await prisma.$queryRaw<{ column_name: string }[]>`
+      select column_name from information_schema.columns where table_name = 'transactions'`).map((r) => r.column_name);
+    expect(cols).toContain("installmentCurrent");
+    expect(cols).toContain("installmentTotal");
+  });
+
   it("enums CategorySource e ReviewStatus têm os valores da spec", async () => {
     const values = async (type: "CategorySource" | "ReviewStatus") =>
       (await prisma.$queryRawUnsafe<{ v: string }[]>(`select unnest(enum_range(null::"${type}"))::text as v`)).map((r) => r.v);
