@@ -66,9 +66,14 @@ export interface Transaction {
   ignored: boolean;
   categorySource: CategorySource;
   reviewStatus: ReviewStatus;
+  /** ISO; a fila "Para categorizar" usa para achar linhas esquecidas. */
+  createdAt: string;
   installmentCurrent: number | null;
   installmentTotal: number | null;
 }
+
+/** O que `POST /transactions` devolve: sem os campos de par, revisão e criação (recarregue a lista para tê-los). */
+export type CreatedTransaction = Omit<Transaction, "transferPairId" | "ignored" | "categorySource" | "reviewStatus" | "createdAt">;
 
 export interface AccountBalance {
   accountId: string;
@@ -305,7 +310,7 @@ export const api = {
       destAccountId?: string | null;
       categoryId?: string | null;
       description?: string | null;
-    }) => req<Transaction>("POST", "/transactions", body),
+    }) => req<CreatedTransaction>("POST", "/transactions", body),
   },
   balances: {
     get: () => req<Balances>("GET", "/balances"),

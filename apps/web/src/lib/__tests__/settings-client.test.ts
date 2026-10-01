@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatOwnerNames, parseOwnerNames, validateSettingsForm } from "../settings-client";
+import { FORBIDDEN_SETTINGS_MESSAGE, formatOwnerNames, parseOwnerNames, settingsErrorMessage, validateSettingsForm } from "../settings-client";
 
 describe("parseOwnerNames", () => {
   it("separa por vírgula e quebra de linha, sem vazios nem repetidos (maiúsculas ignoradas)", () => {
@@ -55,5 +55,19 @@ describe("validateSettingsForm", () => {
     const r = validateSettingsForm({ ...ok, aiBatchSize: 2.5, transferMatchWindowDays: Number.NaN, aiConfidenceThreshold: -0.1 });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(["aiBatchSize", "aiConfidenceThreshold", "transferMatchWindowDays"]);
+  });
+});
+
+describe("settingsErrorMessage", () => {
+  it("403 vira a mensagem em português, independente do texto da API", () => {
+    const e = Object.assign(new Error("apenas owner ou admin alteram as configurações"), { status: 403 });
+    expect(settingsErrorMessage(e)).toBe(FORBIDDEN_SETTINGS_MESSAGE);
+    expect(FORBIDDEN_SETTINGS_MESSAGE).toBe("Somente o dono ou administradores do workspace podem alterar os ajustes.");
+  });
+
+  it("outros erros mantêm a mensagem; sem mensagem usa o texto padrão", () => {
+    expect(settingsErrorMessage(Object.assign(new Error("campo inválido"), { status: 400 }))).toBe("campo inválido");
+    expect(settingsErrorMessage(new Error(""))).toBe("Não foi possível salvar.");
+    expect(settingsErrorMessage(null)).toBe("Não foi possível salvar.");
   });
 });

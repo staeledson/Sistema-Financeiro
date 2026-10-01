@@ -323,6 +323,18 @@ describe("transferências e ignorar", () => {
     expect(pending.groups.flatMap((g: { transactionIds: string[] }) => g.transactionIds)).toEqual([semCat.id]);
   });
 
+  it("reativar: linha ainda pareada ou transferência sem categoria não entra na fila", async () => {
+    const u = await newUser("unign4");
+    const acc = await account(u, "PF", "pf");
+    const pareada = await tx(u, acc.id, { ignored: true, reviewStatus: "ok", categorySource: "none", transferPairId: "pair-ign" });
+    const transf = await tx(u, acc.id, { ignored: true, reviewStatus: "ok", categorySource: "none", type: "transfer" });
+    const res = await post(u, "/review/unignore", { transactionIds: [pareada.id, transf.id] });
+    expect(res.json()).toEqual({ unignored: 2 });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: pareada.id } })).toMatchObject({ ignored: false, reviewStatus: "ok", transferPairId: "pair-ign", categoryId: null });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: transf.id } })).toMatchObject({ ignored: false, reviewStatus: "ok" });
+    expect((await get(u, "/review/pending")).json().total).toBe(0);
+  });
+
   it("reativar: linha não ignorada ou de outro workspace retorna 404; corpo vazio retorna 400", async () => {
     const u = await newUser("unign2");
     const other = await newUser("unign3");

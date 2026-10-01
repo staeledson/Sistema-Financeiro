@@ -35,6 +35,7 @@ describe("AjustesView", () => {
     expect((w.find("#window").element as HTMLInputElement).value).toBe("2");
     expect(w.text()).toContain("Abaixo disso o lançamento vai para Para categorizar");
     expect(w.text()).toContain("Pix entre as suas contas não é");
+    expect(w.text()).toContain("menos de 3 caracteres são ignorados");
   });
 
   it("salva os valores convertidos e mostra confirmação", async () => {
@@ -68,11 +69,11 @@ describe("AjustesView", () => {
   });
 
   it("mostra a mensagem da API quando o usuário não pode alterar", async () => {
-    updateMock.mockRejectedValue(new Error("apenas owner ou admin alteram as configurações"));
+    updateMock.mockRejectedValue(Object.assign(new Error("apenas owner ou admin alteram as configurações"), { status: 403 }));
     const w = await mountView();
     await w.find("form").trigger("submit");
     await flushPromises();
-    expect(w.find('[role="alert"]').text()).toContain("apenas owner ou admin");
+    expect(w.find('[role="alert"]').text()).toBe("Somente o dono ou administradores do workspace podem alterar os ajustes.");
     expect(w.text()).not.toContain("Ajustes salvos");
   });
 

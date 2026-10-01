@@ -104,6 +104,7 @@ function detalheCartao(acc: BankAccount): string | null {
         :key="f.value"
         type="button"
         :class="{ active: filtro === f.value }"
+        :aria-pressed="filtro === f.value"
         @click="filtro = f.value"
       >{{ f.label }}</button>
     </div>

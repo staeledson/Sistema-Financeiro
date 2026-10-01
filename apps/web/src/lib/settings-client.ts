@@ -72,3 +72,11 @@ export function validateSettingsForm(form: SettingsForm): SettingsValidation {
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return { ok: true, value: { ...form, ownerNames: [...form.ownerNames] } };
 }
+
+export const FORBIDDEN_SETTINGS_MESSAGE = "Somente o dono ou administradores do workspace podem alterar os ajustes.";
+
+/** Mensagem do erro ao salvar: o 403 da API vem em inglês técnico, então é trocado por texto pt-BR. */
+export function settingsErrorMessage(e: unknown): string {
+  if ((e as { status?: unknown } | null)?.status === 403) return FORBIDDEN_SETTINGS_MESSAGE;
+  return e instanceof Error && e.message ? e.message : "Não foi possível salvar.";
+}

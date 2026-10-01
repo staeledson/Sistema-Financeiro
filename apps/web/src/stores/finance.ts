@@ -41,9 +41,8 @@ export const useFinanceStore = defineStore("finance", () => {
   }
 
   async function createTransaction(data: Parameters<typeof api.transactions.create>[0]) {
-    const tx = await api.transactions.create(data);
-    transactions.value.unshift(tx);
-    return tx;
+    // Não entra em `transactions`: a resposta é parcial; quem lança recarrega a lista com os filtros atuais.
+    return api.transactions.create(data);
   }
 
   async function loadBalances() {

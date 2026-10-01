@@ -6,6 +6,8 @@ import { api, type CategorySource, type Transaction, type TransactionType } from
 import EntityBadge from "../components/ui/EntityBadge.vue";
 import EmptyState from "../components/ui/EmptyState.vue";
 import Money from "../components/ui/Money.vue";
+import { HttpError } from "../lib/http";
+import { isPendingReview } from "../lib/review-queue";
 import { ENTITY_SHORT, accountsForEntity, categoriesForEntity, type EntityFilter } from "../lib/entity";
 
 const store = useFinanceStore();
@@ -30,36 +32,56 @@ const SHOW_OPTIONS: { value: ShowFilter; label: string }[] = [
   { value: "pending", label: "Pendentes" },
 ];
 const showFilter = ref<ShowFilter>("all");
-const visibleTransactions = computed(() =>
-  store.transactions.filter((t) => {
+const visibleTransactions = computed(() => {
+  const now = Date.now();
+  return store.transactions.filter((t) => {
     if (showFilter.value === "paired") return !!t.transferPairId;
     if (showFilter.value === "ignored") return !!t.ignored;
-    if (showFilter.value === "pending") return t.reviewStatus === "pending" && !t.ignored;
+    if (showFilter.value === "pending") return isPendingReview(t, now);
     return true;
-  }),
-);
+  });
+});
 
 const SOURCE_LABEL: Partial<Record<CategorySource, string>> = { manual: "manual", rule: "regra", ai: "IA", import: "importação" };
 const sourceLabel = (tx: Transaction) => (tx.categoryId ? SOURCE_LABEL[tx.categorySource] : undefined);
 
 const actionErro = ref("");
-const busyId = ref("");
+const reloadErro = ref("");
+/** Chave da ação em andamento: `pair:<id>` (os dois lados do par ficam bloqueados) ou `tx:<id>`. */
+const busyKey = ref("");
+const pairBusy = (tx: Transaction) => !!tx.transferPairId && busyKey.value === `pair:${tx.transferPairId}`;
+const txBusy = (tx: Transaction) => busyKey.value === `tx:${tx.id}`;
 
-/** Desfaz o par (os dois lados) ou reativa o ignorado, e recarrega a lista com os filtros atuais. */
-async function runAction(tx: Transaction, action: () => Promise<unknown>) {
-  actionErro.value = "";
-  busyId.value = tx.id;
+/** Recarrega a lista; falha aqui não é falha da ação (que já aconteceu). */
+async function reload() {
   try {
-    await action();
     await filtrar();
   } catch (e) {
-    actionErro.value = (e as Error).message || "Não foi possível concluir a ação.";
-  } finally {
-    busyId.value = "";
+    reloadErro.value = `Não foi possível atualizar a lista: ${(e as Error).message || "erro desconhecido"}. Use Filtrar para tentar de novo.`;
   }
 }
-const desfazerPar = (tx: Transaction) => runAction(tx, () => api.review.unpair(tx.transferPairId!));
-const reativar = (tx: Transaction) => runAction(tx, () => api.review.unignore([tx.id]));
+
+/** Executa a ação e recarrega. Se a linha já mudou (404), o erro é mostrado e a lista também é recarregada. */
+async function runAction(key: string, action: () => Promise<unknown>) {
+  actionErro.value = "";
+  reloadErro.value = "";
+  busyKey.value = key;
+  try {
+    try {
+      await action();
+    } catch (e) {
+      actionErro.value = (e as Error).message || "Não foi possível concluir a ação.";
+      if (e instanceof HttpError && e.status === 404) await reload();
+      return;
+    }
+    await reload();
+  } finally {
+    busyKey.value = "";
+  }
+}
+const desfazerPar = (tx: Transaction) => runAction(`pair:${tx.transferPairId}`, () => api.review.unpair(tx.transferPairId!));
+const reativar = (tx: Transaction) => runAction(`tx:${tx.id}`, () => api.review.unignore([tx.id]));
+const descOf = (tx: Transaction) => tx.description ?? "sem descrição";
 
 const filterCategoryName = computed(() =>
   filterCategoryId.value === "__none" ? "Sem categoria" : (store.categories.find((c) => c.id === filterCategoryId.value)?.name ?? ""),
@@ -272,6 +294,7 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
       >{{ o.label }}</button>
     </div>
     <p v-if="actionErro" role="alert" class="text-error">{{ actionErro }}</p>
+    <p v-if="reloadErro" role="alert" class="text-error">{{ reloadErro }}</p>
 
     <!-- List -->
     <ul class="tx-list">
@@ -285,9 +308,24 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
           </div>
           <div class="tx-tags">
             <span v-if="tx.transferPairId" class="tag paired">Transferência pareada</span>
-            <button v-if="tx.transferPairId" type="button" class="tag-action" :disabled="busyId === tx.id" @click="desfazerPar(tx)">Desfazer par</button>
+            <button
+              v-if="tx.transferPairId"
+              type="button"
+              class="btn-small btn-outline"
+              title="Desfazer o par (os dois lançamentos)"
+              :aria-label="`Desfazer o par (os dois lançamentos): ${descOf(tx)}`"
+              :disabled="pairBusy(tx)"
+              @click="desfazerPar(tx)"
+            >Desfazer par</button>
             <span v-if="tx.ignored" class="tag ignored">Ignorado</span>
-            <button v-if="tx.ignored" type="button" class="tag-action" :disabled="busyId === tx.id" @click="reativar(tx)">Reativar</button>
+            <button
+              v-if="tx.ignored"
+              type="button"
+              class="btn-small btn-outline"
+              :aria-label="`Reativar lançamento: ${descOf(tx)}`"
+              :disabled="txBusy(tx)"
+              @click="reativar(tx)"
+            >Reativar</button>
             <span v-if="tx.installmentCurrent && tx.installmentTotal" class="tag">Parcela {{ tx.installmentCurrent }}/{{ tx.installmentTotal }}</span>
             <span v-if="tx.reviewStatus === 'pending' && !tx.ignored" class="tag pending">Sem categoria</span>
             <span v-if="sourceLabel(tx)" class="source">Categoria: {{ sourceLabel(tx) }}</span>
@@ -320,13 +358,12 @@ button { white-space: nowrap; }
 .tag.paired { color: var(--c-transfer); background: color-mix(in srgb, var(--c-transfer) 15%, transparent); }
 .tag.ignored { color: var(--text-muted); }
 .tag.pending { color: var(--warning); background: color-mix(in srgb, var(--warning) 15%, transparent); }
-.tag-action { padding: 0 8px; font-size: 0.75rem; }
 .source { font-size: 0.75rem; color: var(--text-muted); }
 .dim .tx-desc, .dim .tx-amount { opacity: 0.6; }
 .show-filter { display: flex; align-items: center; gap: var(--space); flex-wrap: wrap; margin-bottom: calc(var(--space) * 2); }
 .show-label { font-size: 0.85rem; color: var(--text-muted); }
-.chip-btn { padding: 2px 12px; border-radius: 999px; font-size: 0.85rem; }
-.chip-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.chip-btn { padding: 2px 12px; border-radius: 999px; font-size: 0.85rem; background: var(--surface-2); color: var(--text-muted); border-color: var(--border); }
+.chip-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 700; }
 .tx-info { display: flex; gap: calc(var(--space) * 2); align-items: baseline; flex-wrap: wrap; }
 .tx-type { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
 .tx-desc { font-weight: 500; }

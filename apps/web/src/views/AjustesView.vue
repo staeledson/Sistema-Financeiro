@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { api, type WorkspaceSettings } from "../lib/api";
 import {
-  formatOwnerNames, parseOwnerNames, SETTINGS_LIMITS, validateSettingsForm, type SettingsErrors,
+  formatOwnerNames, parseOwnerNames, settingsErrorMessage, SETTINGS_LIMITS, validateSettingsForm, type SettingsErrors,
 } from "../lib/settings-client";
 import { useSection } from "../lib/use-section";
 import { useThemeStore, type ThemeMode } from "../stores/theme";
@@ -75,7 +75,7 @@ async function save() {
     fill(updated);
     saved.value = true;
   } catch (e) {
-    saveError.value = e instanceof Error && e.message ? e.message : "Não foi possível salvar.";
+    saveError.value = settingsErrorMessage(e);
   } finally {
     saving.value = false;
   }
@@ -119,6 +119,7 @@ async function save() {
             Escreva o seu nome e o da sua empresa como aparecem nos extratos. Sem eles, o Pix entre as suas contas não é
             pareado e entra como receita e despesa. Até {{ SETTINGS_LIMITS.maxOwnerNames }} nomes ({{ ownerCount }} informados).
           </p>
+          <p class="hint">Nomes com menos de 3 caracteres são ignorados no pareamento.</p>
           <p v-if="errors.ownerNames" id="owner-err" class="err" role="alert">{{ errors.ownerNames }}</p>
         </div>
 

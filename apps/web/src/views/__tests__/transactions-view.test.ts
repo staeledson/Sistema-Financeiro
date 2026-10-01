@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { createMemoryHistory, createRouter } from "vue-router";
+import { HttpError } from "../../lib/http";
 
 const { listMock, unpairMock, unignoreMock } = vi.hoisted(() => ({ listMock: vi.fn(), unpairMock: vi.fn(), unignoreMock: vi.fn() }));
 
@@ -43,7 +44,7 @@ beforeEach(() => {
 const row = (id: string, over: Record<string, unknown> = {}) => ({
   id, type: "expense", amountCents: 1000, date: "2026-06-10T00:00:00.000Z", accountId: "a1", sourceAccountId: null, destAccountId: null,
   categoryId: "c1", description: `Lançamento ${id}`, counterparty: null, transferPairId: null, ignored: false,
-  categorySource: "manual", reviewStatus: "ok", installmentCurrent: null, installmentTotal: null, ...over,
+  categorySource: "manual", reviewStatus: "ok", createdAt: new Date().toISOString(), installmentCurrent: null, installmentTotal: null, ...over,
 });
 
 describe("TransactionsView com filtros da URL", () => {
@@ -89,13 +90,15 @@ describe("TransactionsView selos, ações e filtro rápido", () => {
     row("t3", { ignored: true, reviewStatus: "ok", categoryId: null, categorySource: "none" }),
     row("t4", { reviewStatus: "pending", categoryId: null, categorySource: "none" }),
     row("t5", { installmentCurrent: 2, installmentTotal: 6, categorySource: "rule" }),
+    row("t6", { categoryId: null, categorySource: "none", createdAt: "2020-01-01T00:00:00.000Z" }), // esquecida: sem categoria há mais de 15 min
+    row("t7", { reviewStatus: "pending", categoryId: null, categorySource: "none", transferPairId: "p9" }), // pareada nunca entra
   ];
 
   it("mostra os selos de par, ignorado, parcela, sem categoria e a origem da categoria", async () => {
     listMock.mockResolvedValue(rows());
     const { w } = await mountAt("/transacoes");
     const items = w.findAll(".tx-item");
-    expect(items).toHaveLength(5);
+    expect(items).toHaveLength(7);
     expect(items[0].text()).toContain("Categoria: manual");
     expect(items[1].text()).toContain("Transferência pareada");
     expect(items[1].text()).toContain("Desfazer par");
@@ -114,24 +117,28 @@ describe("TransactionsView selos, ações e filtro rápido", () => {
       await w.findAll(".show-filter button").find((b) => b.text() === label)!.trigger("click");
     };
     await click("Pareados");
-    expect(w.findAll(".tx-item").map((i) => i.text())).toEqual([expect.stringContaining("Lançamento t2")]);
+    expect(w.findAll(".tx-item").map((i) => i.text())).toEqual([
+      expect.stringContaining("Lançamento t2"), expect.stringContaining("Lançamento t7"),
+    ]);
     await click("Ignorados");
     expect(w.findAll(".tx-item").map((i) => i.text())).toEqual([expect.stringContaining("Lançamento t3")]);
     await click("Pendentes");
-    expect(w.findAll(".tx-item").map((i) => i.text())).toEqual([expect.stringContaining("Lançamento t4")]);
+    expect(w.findAll(".tx-item").map((i) => i.text())).toEqual([
+      expect.stringContaining("Lançamento t4"), expect.stringContaining("Lançamento t6"),
+    ]);
     await click("Todos");
-    expect(w.findAll(".tx-item")).toHaveLength(5);
+    expect(w.findAll(".tx-item")).toHaveLength(7);
   });
 
   it("Desfazer par e Reativar chamam a API e recarregam a lista", async () => {
     listMock.mockResolvedValue(rows());
     const { w } = await mountAt("/transacoes");
     const before = listMock.mock.calls.length;
-    await w.findAll(".tx-item")[1].find(".tag-action").trigger("click");
+    await w.findAll(".tx-item")[1].find("button.btn-outline").trigger("click");
     await flushPromises();
     expect(unpairMock).toHaveBeenCalledWith("p1");
     expect(listMock.mock.calls.length).toBe(before + 1);
-    await w.findAll(".tx-item")[2].find(".tag-action").trigger("click");
+    await w.findAll(".tx-item")[2].find("button.btn-outline").trigger("click");
     await flushPromises();
     expect(unignoreMock).toHaveBeenCalledWith(["t3"]);
     expect(listMock.mock.calls.length).toBe(before + 2);
@@ -142,9 +149,62 @@ describe("TransactionsView selos, ações e filtro rápido", () => {
     unpairMock.mockRejectedValue(new Error("par não encontrado"));
     const { w } = await mountAt("/transacoes");
     const before = listMock.mock.calls.length;
-    await w.findAll(".tx-item")[1].find(".tag-action").trigger("click");
+    await w.findAll(".tx-item")[1].find("button.btn-outline").trigger("click");
     await flushPromises();
     expect(w.find('[role="alert"]').text()).toContain("par não encontrado");
     expect(listMock.mock.calls.length).toBe(before);
+  });
+
+  it("botões têm aria-label com a descrição; desfazer par explica que afeta os dois lançamentos", async () => {
+    listMock.mockResolvedValue(rows());
+    const { w } = await mountAt("/transacoes");
+    const desfazer = w.findAll(".tx-item")[1].find("button.btn-outline");
+    expect(desfazer.attributes("aria-label")).toBe("Desfazer o par (os dois lançamentos): Lançamento t2");
+    expect(desfazer.attributes("title")).toBe("Desfazer o par (os dois lançamentos)");
+    expect(w.findAll(".tx-item")[2].find("button.btn-outline").attributes("aria-label")).toBe("Reativar lançamento: Lançamento t3");
+  });
+
+  it("desfazer par bloqueia os botões dos dois lados do par enquanto a ação roda", async () => {
+    listMock.mockResolvedValue([
+      row("a", { transferPairId: "p1", type: "expense" }),
+      row("b", { transferPairId: "p1", type: "income" }),
+      row("c", { transferPairId: "p2", type: "expense" }),
+    ]);
+    let release!: () => void;
+    unpairMock.mockReturnValue(new Promise((r) => { release = () => r({ unpaired: 2 }); }));
+    const { w } = await mountAt("/transacoes");
+    const btn = (i: number) => w.findAll(".tx-item")[i].find("button.btn-outline");
+    await btn(0).trigger("click");
+    expect(btn(0).attributes("disabled")).toBeDefined();
+    expect(btn(1).attributes("disabled")).toBeDefined();
+    expect(btn(2).attributes("disabled")).toBeUndefined();
+    release();
+    await flushPromises();
+    expect(btn(1).attributes("disabled")).toBeUndefined();
+  });
+
+  it("404 na ação mostra o erro e recarrega a lista (a linha já mudou)", async () => {
+    listMock.mockResolvedValue(rows());
+    unpairMock.mockRejectedValue(new HttpError(404, "par não encontrado", ""));
+    const { w } = await mountAt("/transacoes");
+    const before = listMock.mock.calls.length;
+    await w.findAll(".tx-item")[1].find("button.btn-outline").trigger("click");
+    await flushPromises();
+    expect(w.find('[role="alert"]').text()).toContain("par não encontrado");
+    expect(listMock.mock.calls.length).toBe(before + 1);
+  });
+
+  it("falha ao recarregar depois de uma ação bem-sucedida não aparece como falha da ação", async () => {
+    listMock.mockResolvedValue(rows());
+    const { w } = await mountAt("/transacoes");
+    listMock.mockRejectedValueOnce(new Error("sem conexão"));
+    await w.findAll(".tx-item")[1].find("button.btn-outline").trigger("click");
+    await flushPromises();
+    expect(unpairMock).toHaveBeenCalled();
+    const alerts = w.findAll('[role="alert"]').map((a) => a.text());
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toContain("Não foi possível atualizar a lista");
+    expect(alerts[0]).toContain("sem conexão");
+    expect(alerts[0]).not.toContain("concluir a ação");
   });
 });
