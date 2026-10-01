@@ -19,6 +19,7 @@ const entityFilter = ref<EntityFilter>("all");
 const accountFilter = ref("");
 const showRules = ref(false);
 const rulesPanel = ref<InstanceType<typeof RulesPanel> | null>(null);
+const loaded = ref(false);
 const erro = ref("");
 const info = ref("");
 const busy = ref(false);
@@ -68,6 +69,7 @@ async function loadPending() {
     }
   }
   pending.value = res;
+  loaded.value = true;
 }
 
 /** Recarrega a lista (filtros, montagem) mostrando o erro na tela em vez de estourar. */
@@ -245,7 +247,7 @@ const confidenceColor = (c: number | null) =>
 <template>
   <section class="review">
     <header class="head">
-      <h2>Para categorizar <span class="counter">{{ pending.total }}</span></h2>
+      <h2>Para categorizar <span v-if="loaded" class="counter">{{ pending.total }}</span></h2>
       <div class="head-actions">
         <button type="button" class="btn-secondary" :disabled="busy" @click="recat">Recategorizar pendentes</button>
         <button type="button" class="btn-secondary" @click="showRules = !showRules">{{ showRules ? "Ocultar regras" : "Regras" }}</button>
@@ -269,7 +271,8 @@ const confidenceColor = (c: number | null) =>
       </select>
     </div>
 
-    <p v-if="!pending.groups.length" class="empty">Nada pendente de categoria.</p>
+    <p v-if="!loaded && !erro" class="hint">Carregando…</p>
+    <p v-else-if="loaded && !pending.groups.length" class="empty">Nada pendente de categoria.</p>
 
     <ul class="groups">
       <li v-for="g in pending.groups" :key="g.key" class="group">
