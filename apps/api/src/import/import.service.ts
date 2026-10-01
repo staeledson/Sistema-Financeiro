@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import Papa from "papaparse";
 import { Queue } from "bullmq";
-import { csvMappingSchema, csvRowToTransaction, ordinalFingerprints, parseInstallment } from "@app/shared";
+import { csvMappingSchema, csvRowToTransaction, ordinalFingerprints, parseInstallment, reserveDirection } from "@app/shared";
 import { prisma } from "../database";
 import { StorageService } from "../storage/storage.service";
 import { AI_QUEUE } from "../queue/queue.tokens";
@@ -87,7 +87,10 @@ export class ImportService {
     if (batch.undoneAt) throw new ConflictException("o lote foi desfeito; gere um novo preview");
 
     const accountIds = [...new Set(rows.map((r) => r.accountId))];
-    const ownedAccounts = await prisma.bankAccount.findMany({ where: { id: { in: accountIds }, workspaceId }, select: { id: true, type: true } });
+    const ownedAccounts = await prisma.bankAccount.findMany({
+      where: { id: { in: accountIds }, workspaceId },
+      select: { id: true, type: true, entity: true, institution: true },
+    });
     if (ownedAccounts.length !== accountIds.length) throw new BadRequestException("conta inexistente no workspace");
 
     const categoryIds = [...new Set(rows.map((r) => r.categoryId).filter((c): c is string => !!c))];
@@ -98,8 +101,34 @@ export class ImportService {
 
     // parcela "n/m" só em despesa de cartão de crédito, a mesma regra do lançamento manual
     const cardIds = new Set(ownedAccounts.filter((a) => a.type === "credit_card").map((a) => a.id));
+    const reserveOf = await this.reserveAccounts(workspaceId, ownedAccounts);
     const payload = rows.map((r) => {
       const inst = r.type === "expense" && cardIds.has(r.accountId) ? parseInstallment(r.description) : null;
+      // guardar/retirar da reserva é dinheiro do próprio titular: vira transferência entre a conta e a reserva
+      const reserveId = reserveOf.get(r.accountId);
+      const direction = reserveId ? reserveDirection(r.type, r.description) : null;
+      if (reserveId && direction) {
+        return {
+          workspaceId,
+          type: "transfer" as const,
+          amountCents: BigInt(r.amountCents),
+          date: new Date(r.date),
+          postedDate: r.postedDate ? new Date(r.postedDate) : null,
+          accountId: r.accountId,
+          sourceAccountId: direction === "to_reserve" ? r.accountId : reserveId,
+          destAccountId: direction === "to_reserve" ? reserveId : r.accountId,
+          categoryId: null,
+          description: r.description,
+          source: "import",
+          categorySource: "none" as const,
+          reviewStatus: "ok" as const,
+          installmentCurrent: null,
+          installmentTotal: null,
+          importFingerprint: r.fingerprint,
+          importBatchId: batchId,
+          createdById: userId,
+        };
+      }
       return {
         workspaceId,
         type: r.type,
@@ -110,7 +139,10 @@ export class ImportService {
         categoryId: r.categoryId ?? null,
         description: r.description,
         source: "import",
+        sourceAccountId: null,
+        destAccountId: null,
         categorySource: r.categoryId ? ("import" as const) : ("none" as const),
+        reviewStatus: undefined,
         installmentCurrent: inst?.current ?? null,
         installmentTotal: inst?.total ?? null,
         importFingerprint: r.fingerprint,
@@ -151,6 +183,28 @@ export class ImportService {
     }
 
     return { inserted, skipped: rows.length - inserted };
+  }
+
+  /**
+   * Conta de reserva de cada conta de origem: a única conta de poupança ativa da mesma entidade (PF/PJ) e da mesma
+   * instituição. Zero ou mais de uma candidata → sem reserva (o movimento segue como despesa/receita). Nunca decide
+   * por nome, para não depender de como o usuário batizou a conta.
+   */
+  private async reserveAccounts(
+    workspaceId: string,
+    sources: Array<{ id: string; type: string; entity: string; institution: string }>,
+  ): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    const savings = await prisma.bankAccount.findMany({
+      where: { workspaceId, type: "savings", archived: false },
+      select: { id: true, entity: true, institution: true },
+    });
+    for (const src of sources) {
+      if (src.type === "savings" || src.type === "credit_card") continue;
+      const candidates = savings.filter((a) => a.entity === src.entity && a.institution === src.institution);
+      if (candidates.length === 1) out.set(src.id, candidates[0].id);
+    }
+    return out;
   }
 
   async enqueuePdf(workspaceId: string, userId: string, storagePath: string) {
