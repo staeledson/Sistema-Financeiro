@@ -11,8 +11,25 @@ const db = vi.hoisted(() => {
     txUpdateMany: op("transaction.updateMany"),
     ruleUpdate: op("categoryRule.update"),
     jobUpdate: op("aiJob.update"),
-    transaction: vi.fn(async (ops: unknown[]) => ops),
+    // Operações feitas dentro da transação interativa, em ordem.
+    log: [] as Array<{ op: string; args: Record<string, unknown> }>,
+    // Quantas linhas cada updateMany "alterou": por padrão 1 (ou 2 para um par); testes sobrescrevem.
+    countFor: { fn: (_op: string, args: { where: { id?: unknown } }): number => (typeof args.where.id === "object" ? 2 : 1) },
+    transaction: vi.fn(),
   };
+});
+
+db.transaction.mockImplementation(async (arg: unknown) => {
+  if (typeof arg !== "function") return arg;
+  const rec = (name: string) => async (args: { where: { id?: unknown } }) => {
+    db.log.push({ op: name, args: args as never });
+    return { count: db.countFor.fn(name, args) };
+  };
+  return (arg as (c: unknown) => Promise<unknown>)({
+    transaction: { updateMany: rec("transaction.updateMany") },
+    categoryRule: { updateMany: rec("categoryRule.updateMany") },
+    aiJob: { update: async (args: never) => { db.log.push({ op: "aiJob.update", args }); return {}; } },
+  });
 });
 
 vi.mock("../src/database", () => ({
@@ -54,9 +71,13 @@ function setup(scope: Row[], opts: { pool?: Row[]; examples?: Row[]; aiFails?: b
   return ai;
 }
 
-beforeEach(() => Object.values(db).forEach((m) => "mockClear" in m && (m as { mockClear: () => void }).mockClear()));
+beforeEach(() => {
+  Object.values(db).forEach((m) => typeof m === "function" && "mockClear" in m && (m as { mockClear: () => void }).mockClear());
+  db.log.length = 0;
+  db.countFor.fn = (_op, args) => (typeof args.where.id === "object" ? 2 : 1);
+});
 
-const ops = () => (db.transaction.mock.calls[0][0] as Array<{ op: string; args: Row }>);
+const ops = () => (db.log.length ? db.log : (db.transaction.mock.calls[0][0] as Array<{ op: string; args: Row }>)) as Array<{ op: string; args: Row }>;
 
 describe("processCategorize", () => {
   it("aplica regra, IA e pendência em uma transação, só em linhas ainda livres, e grava o resultado no job", async () => {
@@ -82,7 +103,7 @@ describe("processCategorize", () => {
     expect(pend.args.where).toEqual(guard("t-pend"));
     expect(pend.args.data).toEqual({ reviewStatus: "pending", suggestedCategoryId: "c-merc", categoryConfidence: 0.5 });
     expect(all.some((o) => o.op === "transaction.update")).toBe(false);
-    expect(all.find((o) => o.op === "categoryRule.update")!.args).toEqual({ where: { id: "r1" }, data: { hitCount: { increment: 1 } } });
+    expect(all.find((o) => o.op === "categoryRule.updateMany")!.args).toEqual({ where: { id: "r1" }, data: { hitCount: { increment: 1 } } });
     const job = all.find((o) => o.op === "aiJob.update")!;
     expect(job.args.data).toMatchObject({ status: "done", costTokens: 7, result: { total: 3, transfers: 0, byRule: 1, byAi: 1, pending: 1 } });
   });
@@ -117,6 +138,52 @@ describe("processCategorize", () => {
     expect(ops().some((o) => o.op === "transaction.update")).toBe(false);
     expect(ops().find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({ result: { transfers: 1 } });
     expect(ai.categorizeBatch).not.toHaveBeenCalled();
+  });
+
+  it("par em que só uma linha foi gravada (count 1) é desfeito e não conta como transferência", async () => {
+    const saida = row("s", { description: "Pix para STAEL EDSON", accountId: "a-pj", account: { type: "checking", entity: "pj" } });
+    const entrada = row("e", { type: "income", description: "Pix recebido", accountId: "a-pf" });
+    const ai = setup([saida, entrada], {
+      settings: { aiConfidenceThreshold: 0.8, aiBatchSize: 40, transferMatchWindowDays: 2, ownerNames: ["Stael Edson"] },
+    });
+    db.countFor.fn = () => 1;
+    await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
+
+    const all = ops();
+    const pairWrite = all.find((o) => o.op === "transaction.updateMany" && typeof o.args.where === "object" && "id" in (o.args.where as Row))!;
+    const pairId = (pairWrite.args.data as { transferPairId: string }).transferPairId;
+    const undo = all.filter((o) => o.op === "transaction.updateMany" && (o.args.where as Row).transferPairId === pairId);
+    expect(undo).toHaveLength(2);
+    expect(undo[0].args).toEqual({ where: { workspaceId: "w1", transferPairId: pairId, categoryId: null }, data: { reviewStatus: "pending" } });
+    expect(undo[1].args).toEqual({ where: { workspaceId: "w1", transferPairId: pairId }, data: { transferPairId: null } });
+    expect(all.find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({ result: { transfers: 0 } });
+  });
+
+  it("par completo (count 2) não é desfeito", async () => {
+    const saida = row("s", { description: "Pix para STAEL EDSON", accountId: "a-pj", account: { type: "checking", entity: "pj" } });
+    const entrada = row("e", { type: "income", description: "Pix recebido", accountId: "a-pf" });
+    const ai = setup([saida, entrada], {
+      settings: { aiConfidenceThreshold: 0.8, aiBatchSize: 40, transferMatchWindowDays: 2, ownerNames: ["Stael Edson"] },
+    });
+    await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
+    expect(ops().filter((o) => o.op === "transaction.updateMany")).toHaveLength(1);
+  });
+
+  it("regra apagada no meio do job (updateMany count 0) não lança e hitCount/resultado só contam o que mudou", async () => {
+    const ai = setup([
+      row("t-regra", { description: "Supermercado Extra" }),
+      row("t-regra2", { description: "Supermercado Bom" }),
+      row("t-ia", { description: "Coisa estranha" }),
+    ]);
+    // t-regra2 já foi categorizada por outro caminho (guarda não casa): count 0.
+    db.countFor.fn = (name, args) => (name === "categoryRule.updateMany" ? 0 : (args.where as { id?: unknown }).id === "t-regra2" ? 0 : 1);
+    await expect(processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never })).resolves.toBeUndefined();
+
+    const all = ops();
+    expect(all.find((o) => o.op === "categoryRule.updateMany")!.args).toEqual({ where: { id: "r1" }, data: { hitCount: { increment: 1 } } });
+    expect(all.find((o) => o.op === "aiJob.update")!.args.data).toMatchObject({
+      status: "done", result: { total: 3, transfers: 0, byRule: 1, byAi: 1, pending: 0 },
+    });
   });
 
   it("com batchId só olha o lote e o que ainda não foi categorizado; sem batchId olha pendentes e sem categoria", async () => {

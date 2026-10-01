@@ -159,48 +159,70 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
     deps.ai,
   );
 
-  const ruleHits = new Map<string, number>();
-  for (const h of plan.byRule) ruleHits.set(h.ruleId, (ruleHits.get(h.ruleId) ?? 0) + 1);
+  // Gravação atômica. Cada updateMany é guardado (linha ainda livre), então só os counts dizem o que mudou de fato.
+  await prisma.$transaction(
+    async (db) => {
+      let transfers = 0;
+      for (const p of plan.transferPairs) {
+        const pairId = randomUUID();
+        const r = await db.transaction.updateMany({
+          where: { id: { in: [p.expenseId, p.incomeId] }, workspaceId, transferPairId: null, ignored: false },
+          data: { transferPairId: pairId, reviewStatus: "ok", suggestedCategoryId: null, categoryConfidence: null },
+        });
+        if (r.count === 2) {
+          transfers++;
+        } else if (r.count > 0) {
+          // Meio par (a outra linha mudou no meio do job): desfaz, nunca deixa transferPairId apontando para menos de 2 linhas.
+          await db.transaction.updateMany({
+            where: { workspaceId, transferPairId: pairId, categoryId: null },
+            data: { reviewStatus: "pending" },
+          });
+          await db.transaction.updateMany({ where: { workspaceId, transferPairId: pairId }, data: { transferPairId: null } });
+        }
+      }
 
-  await prisma.$transaction([
-    ...plan.transferPairs.map((p) =>
-      prisma.transaction.updateMany({
-        where: { id: { in: [p.expenseId, p.incomeId] }, workspaceId, transferPairId: null, ignored: false },
-        data: { transferPairId: randomUUID(), reviewStatus: "ok", suggestedCategoryId: null, categoryConfidence: null },
-      }),
-    ),
-    ...plan.byRule.map((h) =>
-      prisma.transaction.updateMany({
-        where: { id: h.txId, workspaceId, categoryId: null, ignored: false, transferPairId: null },
-        data: { categoryId: h.categoryId, categorySource: "rule", categoryConfidence: 1, reviewStatus: "ok", suggestedCategoryId: null },
-      }),
-    ),
-    ...[...ruleHits].map(([id, n]) => prisma.categoryRule.update({ where: { id }, data: { hitCount: { increment: n } } })),
-    ...plan.byAi.map((h) =>
-      prisma.transaction.updateMany({
-        where: { id: h.txId, workspaceId, categoryId: null, ignored: false, transferPairId: null },
-        data: { categoryId: h.categoryId, categorySource: "ai", categoryConfidence: h.confidence, reviewStatus: "ok", suggestedCategoryId: null },
-      }),
-    ),
-    ...plan.pending.map((p) =>
-      prisma.transaction.updateMany({
-        where: { id: p.txId, workspaceId, categoryId: null, ignored: false, transferPairId: null },
-        data: { reviewStatus: "pending", suggestedCategoryId: p.suggestedCategoryId, categoryConfidence: p.confidence },
-      }),
-    ),
-    prisma.aiJob.update({
-      where: { id: jobId },
-      data: {
-        status: "done",
-        costTokens: plan.costTokens || null,
-        result: {
-          total: scope.length,
-          transfers: plan.transferPairs.length,
-          byRule: plan.byRule.length,
-          byAi: plan.byAi.length,
-          pending: plan.pending.length,
+      let byRule = 0;
+      const ruleHits = new Map<string, number>();
+      for (const h of plan.byRule) {
+        const r = await db.transaction.updateMany({
+          where: { id: h.txId, workspaceId, categoryId: null, ignored: false, transferPairId: null },
+          data: { categoryId: h.categoryId, categorySource: "rule", categoryConfidence: 1, reviewStatus: "ok", suggestedCategoryId: null },
+        });
+        byRule += r.count;
+        if (r.count > 0) ruleHits.set(h.ruleId, (ruleHits.get(h.ruleId) ?? 0) + r.count);
+      }
+      // updateMany: uma regra apagada no meio do job não derruba o job.
+      for (const [id, n] of ruleHits) {
+        await db.categoryRule.updateMany({ where: { id }, data: { hitCount: { increment: n } } });
+      }
+
+      let byAi = 0;
+      for (const h of plan.byAi) {
+        const r = await db.transaction.updateMany({
+          where: { id: h.txId, workspaceId, categoryId: null, ignored: false, transferPairId: null },
+          data: { categoryId: h.categoryId, categorySource: "ai", categoryConfidence: h.confidence, reviewStatus: "ok", suggestedCategoryId: null },
+        });
+        byAi += r.count;
+      }
+
+      let pending = 0;
+      for (const p of plan.pending) {
+        const r = await db.transaction.updateMany({
+          where: { id: p.txId, workspaceId, categoryId: null, ignored: false, transferPairId: null },
+          data: { reviewStatus: "pending", suggestedCategoryId: p.suggestedCategoryId, categoryConfidence: p.confidence },
+        });
+        pending += r.count;
+      }
+
+      await db.aiJob.update({
+        where: { id: jobId },
+        data: {
+          status: "done",
+          costTokens: plan.costTokens || null,
+          result: { total: scope.length, transfers, byRule, byAi, pending },
         },
-      },
-    }),
-  ]);
+      });
+    },
+    { timeout: 120_000, maxWait: 10_000 },
+  );
 }
