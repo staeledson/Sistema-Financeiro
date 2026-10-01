@@ -4,6 +4,8 @@ import { CurrentUser } from "../auth/current-user.decorator";
 import { DashboardService } from "./dashboard.service";
 import { SpendingService } from "./spending.service";
 import { CardsService } from "./cards.service";
+import { CashflowService } from "./cashflow.service";
+import { SummaryService } from "./summary.service";
 import { parseDashboardFilter } from "./dashboard-filter";
 
 @Controller("dashboard")
@@ -13,6 +15,8 @@ export class DashboardController {
     private readonly service: DashboardService,
     private readonly spending: SpendingService,
     private readonly cards: CardsService,
+    private readonly cashflow: CashflowService,
+    private readonly summary: SummaryService,
   ) {}
 
   @Get()
@@ -32,5 +36,16 @@ export class DashboardController {
   getCards(@CurrentUser() user: AuthenticatedUser, @Query() query: Record<string, string>) {
     const { entity, accountId, asOf } = parseDashboardFilter(query);
     return this.cards.get(user.workspaceId, { entity, accountId, asOf });
+  }
+
+  @Get("cashflow")
+  getCashflow(@CurrentUser() user: AuthenticatedUser, @Query() query: Record<string, string>) {
+    const { entity, accountId, asOf } = parseDashboardFilter(query);
+    return this.cashflow.get(user.workspaceId, { entity, accountId, asOf });
+  }
+
+  @Get("summary")
+  getSummary(@CurrentUser() user: AuthenticatedUser, @Query() query: Record<string, string>) {
+    return this.summary.get(user.workspaceId, parseDashboardFilter(query).asOf);
   }
 }

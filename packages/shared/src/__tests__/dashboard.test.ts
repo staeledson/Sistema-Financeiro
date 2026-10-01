@@ -27,6 +27,10 @@ describe("dashboardFilterSchema", () => {
     expect(() => dashboardFilterSchema.parse({ month: "2026-13" })).toThrow();
     expect(() => dashboardFilterSchema.parse({ entity: "xx" })).toThrow();
   });
+  it("data impossível (mês 13, dia 40) vira erro de validação, não exceção de data", () => {
+    expect(() => dashboardFilterSchema.parse({ asOf: "2026-13-40" })).toThrow(/data inválida/);
+    expect(() => dashboardFilterSchema.parse({ from: "2026-13-01", to: "2026-14-01" })).toThrow(/data inválida/);
+  });
 });
 
 describe("datas ISO", () => {

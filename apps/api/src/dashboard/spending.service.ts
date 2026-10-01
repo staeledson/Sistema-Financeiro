@@ -58,7 +58,7 @@ export class SpendingService {
       this.byMonth(workspaceId, period, scope),
       this.vsBudget(workspaceId, period, byCategory),
       this.topCounterparties(workspaceId, period, scope),
-      this.recurring(workspaceId, period, scope),
+      this.recurring(workspaceId, period.to, scope),
     ]);
 
     return { period, previousPeriod: previous, totalCents, previousTotalCents, insight, byCategory, byMonth, vsBudget, topCounterparties, recurring };
@@ -132,8 +132,9 @@ export class SpendingService {
     return rows.map((r) => ({ name: r.name, totalCents: Number(r.total), count: Number(r.count) }));
   }
 
-  private async recurring(workspaceId: string, period: Period, scope: Scope) {
-    const from = addMonths(period.to.slice(0, 7), -11) + "-01";
+  /** Despesas recorrentes detectadas nos 12 meses que terminam em `to` (só despesas; parceladas ficam de fora). */
+  async recurring(workspaceId: string, to: string, scope: Scope) {
+    const from = addMonths(to.slice(0, 7), -11) + "-01";
     const rows = await prisma.$queryRaw<
       Array<{ description: string | null; amountCents: bigint; date: string; installmentTotal: number | null }>
     >`
@@ -141,7 +142,7 @@ export class SpendingService {
       FROM transactions t
       LEFT JOIN bank_accounts a ON a."id" = t."accountId" AND a."workspaceId" = t."workspaceId"
       WHERE t."workspaceId" = ${workspaceId} AND t."type" = 'expense'
-        AND t."date" >= ${from}::date AND t."date" <= ${period.to}::date
+        AND t."date" >= ${from}::date AND t."date" <= ${to}::date
         ${reportableSql("t")} ${scopeSql(scope)}
       ORDER BY t."date" DESC
       LIMIT 20000`;
