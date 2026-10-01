@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { prisma } from "../database";
+import { REPORTABLE } from "../common/reportable";
 
 @Injectable()
 export class DashboardService {
@@ -8,7 +9,7 @@ export class DashboardService {
     const end = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 1));
 
     const txs = await prisma.transaction.findMany({
-      where: { workspaceId, type: { in: ["income", "expense"] }, date: { gte: start, lt: end } },
+      where: { workspaceId, type: { in: ["income", "expense"] }, date: { gte: start, lt: end }, ...REPORTABLE },
       select: { type: true, amountCents: true },
     });
 
@@ -26,7 +27,7 @@ export class DashboardService {
 
     const rows = await prisma.transaction.groupBy({
       by: ["categoryId"],
-      where: { workspaceId, type, categoryId: { not: null }, date: { gte: start, lt: end } },
+      where: { workspaceId, type, categoryId: { not: null }, date: { gte: start, lt: end }, ...REPORTABLE },
       _sum: { amountCents: true },
       orderBy: { _sum: { amountCents: "desc" } },
     });

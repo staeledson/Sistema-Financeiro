@@ -1,4 +1,5 @@
 import { prisma } from "../database";
+import { reportableSql } from "./reportable";
 
 type InsightUpsertData = {
   workspaceId: string;
@@ -31,6 +32,7 @@ async function detectSpikes(workspaceId: string, period: string) {
         AND t."type" = 'expense'
         AND t."categoryId" IS NOT NULL
         AND t."date" >= NOW() - INTERVAL '4 months'
+        ${reportableSql("t")}
       GROUP BY t."categoryId", DATE_TRUNC('month', t."date")
     ),
     current_month AS (
@@ -86,6 +88,7 @@ async function detectSubscriptions(workspaceId: string, period: string) {
       AND t."type" = 'expense'
       AND t."counterparty" IS NOT NULL
       AND t."date" >= NOW() - INTERVAL '6 months'
+      ${reportableSql("t")}
     GROUP BY t."counterparty"
     HAVING COUNT(DISTINCT DATE_TRUNC('month', t."date")) >= 3
     ORDER BY "avgCents" DESC
@@ -124,6 +127,7 @@ async function detectBudgetAlerts(workspaceId: string, period: string) {
       AND "type" = 'expense'
       AND "categoryId" = ANY(${categoryIds}::text[])
       AND "date" >= DATE_TRUNC('month', NOW())
+      ${reportableSql()}
     GROUP BY "categoryId"
   `;
 
