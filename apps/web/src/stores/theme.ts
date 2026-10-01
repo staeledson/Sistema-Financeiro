@@ -37,8 +37,22 @@ export const useThemeStore = defineStore("theme", () => {
   const mode = ref<ThemeMode>(readStored());
   apply(mode.value);
 
+  // Preferência do sistema como estado reativo: acompanha mudanças do SO no modo "system".
+  const systemDark = ref(systemPrefersDark());
+  try {
+    if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      // Store é singleton: o listener vive junto com a página.
+      mq.addEventListener?.("change", (e: MediaQueryListEvent) => {
+        systemDark.value = e.matches;
+      });
+    }
+  } catch {
+    /* sem matchMedia: assume o valor inicial */
+  }
+
   /** Tema efetivamente em uso (resolve "system" pela preferência do sistema). */
-  const effective = computed<"light" | "dark">(() => (mode.value === "system" ? (systemPrefersDark() ? "dark" : "light") : mode.value));
+  const effective = computed<"light" | "dark">(() => (mode.value === "system" ? (systemDark.value ? "dark" : "light") : mode.value));
 
   function setMode(next: ThemeMode) {
     mode.value = next;
@@ -51,9 +65,7 @@ export const useThemeStore = defineStore("theme", () => {
   }
 
   function toggle() {
-    // Não usa `effective` (computed) porque a preferência do sistema pode mudar fora do Vue.
-    const current = mode.value === "system" ? (systemPrefersDark() ? "dark" : "light") : mode.value;
-    setMode(current === "dark" ? "light" : "dark");
+    setMode(effective.value === "dark" ? "light" : "dark");
   }
 
   return { mode, effective, setMode, toggle };

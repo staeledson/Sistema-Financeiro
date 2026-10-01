@@ -59,6 +59,8 @@ watch(
 const YEAR_RE = /^(19|20)\d{2}$/;
 const MONTH_RE = /^(19|20)\d{2}-(0[1-9]|1[0-2])$/;
 
+const rangeInvalid = computed(() => !!from.value && !!to.value && from.value > to.value);
+
 /** Valor atual da aba ativa, só com a chave dessa aba; `null` se incompleto. */
 const current = computed<PeriodValue | null>(() => {
   switch (kind.value) {
@@ -69,7 +71,7 @@ const current = computed<PeriodValue | null>(() => {
     case "year":
       return YEAR_RE.test(year.value) ? { year: year.value } : null;
     default:
-      return from.value && to.value ? { from: from.value, to: to.value } : null;
+      return from.value && to.value && !rangeInvalid.value ? { from: from.value, to: to.value } : null;
   }
 });
 
@@ -115,6 +117,7 @@ function selectKind(k: Kind) {
         <input v-model="to" type="date" aria-label="Até" @change="emitCurrent" />
       </template>
     </div>
+    <p v-if="kind === 'range' && rangeInvalid" class="range-hint" role="alert">A data inicial deve ser anterior à final.</p>
   </div>
 </template>
 
@@ -129,6 +132,7 @@ function selectKind(k: Kind) {
   font-size: 0.85rem;
 }
 .tab.active { background: var(--surface); color: var(--text); font-weight: 600; border-color: var(--border); }
+.range-hint { flex-basis: 100%; font-size: 0.78rem; color: var(--danger); }
 .inputs { display: inline-flex; gap: var(--space); }
 .inputs input[inputmode="numeric"] { width: 5rem; }
 </style>

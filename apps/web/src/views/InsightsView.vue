@@ -90,7 +90,7 @@ function titleFor(ins: any) {
 
 function detailFor(ins: any) {
   const p = ins.payload;
-  const fmt = (c: number) => `R$ ${(c / 100).toFixed(2)}`;
+  const fmt = formatBRL;
   switch (ins.type) {
     case "spike":
       return `${p.pctAboveAvg}% acima da média (atual ${fmt(p.currentCents)} vs média ${fmt(p.avgCents)})`;
@@ -120,7 +120,7 @@ onMounted(load);
   border: 1px solid var(--border);
   cursor: pointer; transition: box-shadow 0.15s;
 }
-.insight-card:hover { box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 10%, transparent); }
+.insight-card:hover { box-shadow: var(--shadow); }
 .insight-card.unread { border-left: 3px solid var(--accent); }
 .insight-icon { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
 .insight-body { flex: 1; }

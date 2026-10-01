@@ -101,7 +101,7 @@ onMounted(() => store.load().catch(() => {}));
   border-radius: var(--radius);
   padding: var(--space);
   z-index: 100;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--text) 22%, transparent);
+  box-shadow: var(--shadow);
 }
 .ws-section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); padding: 0.25rem 0.5rem 0.4rem; }
 .ws-item {
@@ -122,7 +122,7 @@ onMounted(() => store.load().catch(() => {}));
 .ws-divider { height: 1px; background: var(--border); margin: 0.4rem 0; }
 .ws-create { color: var(--accent); }
 .ws-modal-overlay {
-  position: fixed; inset: 0; background: color-mix(in srgb, var(--text) 50%, transparent);
+  position: fixed; inset: 0; background: var(--scrim);
   display: flex; align-items: center; justify-content: center; z-index: 200;
 }
 .ws-modal {

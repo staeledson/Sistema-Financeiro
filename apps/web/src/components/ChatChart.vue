@@ -9,6 +9,7 @@ import { PieChart, BarChart, LineChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import { themeColors } from "../lib/theme-colors";
+import { formatBRL, formatBRLCompact } from "../lib/money";
 
 echarts.use([PieChart, BarChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent, CanvasRenderer]);
 
@@ -23,7 +24,8 @@ const chartEl = ref<HTMLDivElement | null>(null);
 let instance: echarts.ECharts | null = null;
 
 function buildOption(spec: ChartSpec): echarts.EChartsCoreOption {
-  const fmt = (v: number) => `R$ ${(v / 100).toFixed(2)}`;
+  const fmt = (v: number) => formatBRL(v);
+  const fmtAxis = (v: number) => formatBRLCompact(v);
   const c = themeColors();
   const text = { color: c.text, fontFamily: c.fontSans };
   const muted = { color: c.textMuted, fontFamily: c.fontSans };
@@ -52,7 +54,7 @@ function buildOption(spec: ChartSpec): echarts.EChartsCoreOption {
       tooltip: { ...tooltip, trigger: "axis", valueFormatter: fmt },
       legend: { data: ["Receita", "Despesa"], textStyle: muted },
       xAxis: { type: "category", data: months, axisLabel: muted, axisLine },
-      yAxis: { type: "value", axisLabel: { ...muted, formatter: fmt }, splitLine },
+      yAxis: { type: "value", axisLabel: { ...muted, formatter: fmtAxis }, splitLine },
       series: [
         { name: "Receita", type: "line", data: incomes, smooth: true, color: c.income, itemStyle: { color: c.income }, lineStyle: { color: c.income } },
         { name: "Despesa", type: "line", data: expenses, smooth: true, color: c.expense, itemStyle: { color: c.expense }, lineStyle: { color: c.expense } },
@@ -66,7 +68,7 @@ function buildOption(spec: ChartSpec): echarts.EChartsCoreOption {
     title: { text: spec.title, textStyle: { ...text, fontSize: 13 } },
     tooltip: { ...tooltip, trigger: "axis", valueFormatter: fmt },
     xAxis: { type: "category", data: spec.series.map((s) => s.name), axisLabel: muted, axisLine },
-    yAxis: { type: "value", axisLabel: { ...muted, formatter: fmt }, splitLine },
+    yAxis: { type: "value", axisLabel: { ...muted, formatter: fmtAxis }, splitLine },
     series: [{ type: "bar", data: spec.series.map((s) => s.value), itemStyle: { color: c.accent } }],
   };
 }

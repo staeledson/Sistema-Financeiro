@@ -107,7 +107,7 @@ onMounted(load);
 .pct { font-size: 0.875rem; font-weight: 600; }
 .pct.warn { color: var(--warning); }
 .pct.danger { color: var(--danger); }
-.modal-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--text) 45%, transparent); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal-overlay { position: fixed; inset: 0; background: var(--scrim); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; width: 360px; max-width: calc(100vw - 2rem); display: flex; flex-direction: column; gap: 1rem; }
 .modal h3 { font-size: 1.1rem; font-weight: 600; }
 label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.875rem; }

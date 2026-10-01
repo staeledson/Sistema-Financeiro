@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends object">
 import EmptyState from "./EmptyState.vue";
 
 export interface DataTableColumn {
@@ -10,24 +10,37 @@ export interface DataTableColumn {
 
 defineProps<{
   columns: DataTableColumn[];
-  rows: Array<Record<string, unknown>>;
+  rows: T[];
+  /** Legenda visível só para leitores de tela. */
+  caption?: string;
+  ariaLabel?: string;
   emptyTitle?: string;
   emptyHint?: string;
 }>();
+
+function cellValue(row: T, key: string): unknown {
+  return (row as Record<string, unknown>)[key];
+}
+
+function rowKey(row: T, i: number): string | number {
+  const id = (row as { id?: unknown }).id;
+  return typeof id === "string" || typeof id === "number" ? id : i;
+}
 </script>
 
 <template>
   <div class="table-wrap">
-    <table v-if="rows.length" class="data-table">
+    <table v-if="rows.length" class="data-table" :aria-label="ariaLabel">
+      <caption v-if="caption" class="sr-only">{{ caption }}</caption>
       <thead>
         <tr>
-          <th v-for="c in columns" :key="c.key" :class="[c.class, c.align && `a-${c.align}`]">{{ c.label }}</th>
+          <th v-for="c in columns" :key="c.key" scope="col" :class="[c.class, c.align && `a-${c.align}`]">{{ c.label }}</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(row, i) in rows" :key="(row.id as string | number | undefined) ?? i">
+        <tr v-for="(row, i) in rows" :key="rowKey(row, i)">
           <td v-for="c in columns" :key="c.key" :class="[c.class, c.align && `a-${c.align}`]">
-            <slot :name="`cell-${c.key}`" :row="row" :value="row[c.key]">{{ row[c.key] }}</slot>
+            <slot :name="`cell-${c.key}`" :row="row" :value="cellValue(row, c.key)">{{ cellValue(row, c.key) }}</slot>
           </td>
         </tr>
       </tbody>
@@ -38,6 +51,7 @@ defineProps<{
 
 <style scoped>
 .table-wrap { overflow-x: auto; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 th {
   text-align: left;

@@ -82,4 +82,27 @@ describe("useThemeStore", () => {
     t2.toggle();
     expect(t2.mode).toBe("dark");
   });
+
+  it("effective acompanha mudanças do sistema no modo 'system'", () => {
+    let listener: ((e: { matches: boolean }) => void) | null = null;
+    let dark = false;
+    vi.stubGlobal("matchMedia", (q: string) => ({
+      get matches() { return dark && q.includes("dark"); },
+      media: q,
+      addEventListener: (_: string, cb: (e: { matches: boolean }) => void) => { listener = cb; },
+      removeEventListener() {},
+    }));
+    window.matchMedia = (globalThis as any).matchMedia;
+    const t = useThemeStore();
+    expect(t.effective).toBe("light");
+    dark = true;
+    listener!({ matches: true });
+    expect(t.effective).toBe("dark");
+    listener!({ matches: false });
+    expect(t.effective).toBe("light");
+    // modo explícito ignora o sistema
+    t.setMode("light");
+    listener!({ matches: true });
+    expect(t.effective).toBe("light");
+  });
 });

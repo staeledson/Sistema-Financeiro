@@ -123,7 +123,7 @@ onMounted(load);
 .progress-bar { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; margin-bottom: 0.5rem; }
 .progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
 .goal-deadline { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; }
-.modal-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--text) 45%, transparent); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal-overlay { position: fixed; inset: 0; background: var(--scrim); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; width: 360px; max-width: calc(100vw - 2rem); display: flex; flex-direction: column; gap: 1rem; }
 .modal h3 { font-size: 1.1rem; font-weight: 600; }
 label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.875rem; }
