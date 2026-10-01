@@ -191,9 +191,9 @@ VAPID_PRIVATE_KEY=
 pnpm test
 
 # por app
-pnpm --filter @app/shared test   # 141 testes unitários
+pnpm --filter @app/shared test   # 145 testes unitários
 pnpm --filter @app/api    test   # 200 testes e2e
-pnpm --filter @app/worker test   # 54 testes unitários
+pnpm --filter @app/worker test   # 55 testes unitários
 pnpm --filter @app/web    test   # 51 testes unitários
 ```
 
