@@ -569,6 +569,11 @@ describe("POST /category-rules: sem mass assignment", () => {
 
     expect((await post(a, "/category-rules", { matchType: "like", pattern: "x1", categoryId: minha.id })).statusCode).toBe(400);
     expect((await post(a, "/category-rules", { matchType: "contains", pattern: "x1", categoryId: minha.id, priority: 1.5 })).statusCode).toBe(400);
+    for (const priority of [-1, 1001, 1e12]) {
+      expect((await post(a, "/category-rules", { matchType: "contains", pattern: "x1", categoryId: minha.id, priority })).statusCode, String(priority)).toBe(400);
+    }
+    expect((await post(a, "/category-rules", { matchType: "contains", pattern: "x1", categoryId: minha.id, priority: 1000 })).statusCode).toBe(201);
+    expect((await post(a, "/category-rules", { matchType: "contains", pattern: "x2", categoryId: minha.id, priority: 0 })).statusCode).toBe(201);
     expect((await post(a, "/category-rules", { matchType: "contains", categoryId: minha.id })).statusCode).toBe(400);
     expect((await post(a, "/category-rules", { matchType: "contains", pattern: "x1" })).statusCode).toBe(400);
   });

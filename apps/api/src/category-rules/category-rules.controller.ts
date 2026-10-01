@@ -10,7 +10,7 @@ const createRuleBody = z
     matchType: z.enum(["contains", "equals", "regex"]),
     pattern: z.string().trim().min(1).max(200),
     categoryId: z.string().min(1),
-    priority: z.number().int().optional(),
+    priority: z.number().int().min(0).max(1000).optional(),
   })
   .strict();
 
