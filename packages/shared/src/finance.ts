@@ -48,6 +48,11 @@ export const accountUpdateSchema = z
   })
   .partial();
 
+/** Conciliação de saldo: o saldo real de hoje, em centavos (inteiro seguro; negativo vale, ex.: fatura devida). */
+export const accountReconcileSchema = z.object({
+  balanceCents: z.number().int().safe(),
+});
+
 export const categorySchema = z.object({
   type: z.enum(CATEGORY_TYPES),
   name: z.string().min(1),
@@ -89,5 +94,6 @@ export const transactionInputSchema = z
 
 export type AccountInput = z.infer<typeof accountSchema>;
 export type AccountUpdateInput = z.infer<typeof accountUpdateSchema>;
+export type AccountReconcileInput = z.infer<typeof accountReconcileSchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
 export type TransactionInput = z.infer<typeof transactionInputSchema>;

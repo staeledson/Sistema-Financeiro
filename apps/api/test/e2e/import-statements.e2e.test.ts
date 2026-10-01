@@ -189,6 +189,8 @@ describe("Fase 11 — POST /import/preview e commit (extrato C6)", () => {
 
     expect(body).toMatchObject({ institution: "c6", accountRef: C6_SAMPLE.conta, rowCount: C6_SAMPLE.rowCount, dupCount: 0 });
     expect(body.period).toEqual(C6_SAMPLE.period);
+    // o cabeçalho do C6 declara o saldo corrente (R$ 500,00 em 5/11/2025)
+    expect(body.statementBalance).toEqual({ dateISO: "2025-11-05", balanceCents: 50000, current: true });
     expect(body.balanceCheck).toMatchObject({ ok: true, checkpoints: C6_SAMPLE.checkpoints, mismatches: [] });
     expect(body.rows[0]).toMatchObject({ type: "income", amountCents: 100000, date: "2025-10-02", accountId, dup: false });
 
@@ -257,6 +259,7 @@ describe("Fase 11 — POST /import/preview e commit (extrato C6)", () => {
     expect(first.statusCode).toBe(200);
     expect(first.json().rows.map((r: { fingerprint: string }) => r.fingerprint)).toEqual([`ofx:${accountId}:F1`, `ofx:${accountId}:F2`]);
     expect(first.json().balanceCheck).toBeNull();
+    expect(first.json().statementBalance).toBeNull(); // ponto de saldo sem a marca `current`: não se adivinha
 
     await post(u, `/import/${first.json().batchId}/commit`, commitPayload(first.json().rows, accountId));
     const second = await post(u, "/import/preview", { accountId, text: OFX, format: "ofx" });

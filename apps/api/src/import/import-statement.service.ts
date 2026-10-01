@@ -12,6 +12,7 @@ import {
   mapBankCategory,
   StatementParseError,
   verifyBalances,
+  type BalancePoint,
   type Institution,
   type StatementFormat,
   type StatementKind,
@@ -54,6 +55,16 @@ function looksLikeCsv(fileName: string, text: string): boolean {
   if (/\.csv$/i.test(fileName)) return true;
   const lines = text.split(/\r?\n/).filter(Boolean);
   return lines.length >= 2 && lines[0].split(/[;,]/).length >= 3;
+}
+
+/**
+ * Saldo corrente que o próprio arquivo declara (momento da exportação), ou null. Só o ponto marcado `current`
+ * serve: os demais valem para a data deles, não para hoje, e não se adivinha. Havendo mais de um, vale o de data mais recente.
+ */
+export function currentStatementBalance(balances: BalancePoint[]): { dateISO: string; balanceCents: number; current: true } | null {
+  let best: BalancePoint | null = null;
+  for (const p of balances) if (p.current === true && (!best || p.dateISO >= best.dateISO)) best = p;
+  return best ? { dateISO: best.dateISO, balanceCents: best.balanceCents, current: true } : null;
 }
 
 @Injectable()
@@ -192,6 +203,10 @@ export class ImportStatementService {
     }));
     const dupCount = rows.filter((r) => r.dup).length;
     const balanceCheck = verifyBalances(parsed.rows, parsed.balances);
+    const statementBalance = currentStatementBalance(parsed.balances);
+    const laterActivity = statementBalance
+      ? await this.hasLaterActivity(workspaceId, account.id, statementBalance.dateISO, [...fingerprints, ...legacyBases])
+      : false;
 
     const batch = await prisma.importBatch.create({
       data: {
@@ -218,7 +233,28 @@ export class ImportStatementService {
       rowCount: rows.length,
       dupCount,
       balanceCheck,
+      statementBalance,
+      laterActivity,
     };
+  }
+
+  /**
+   * A conta tem lançamento datado DEPOIS do saldo corrente do extrato? Então o saldo do extrato já não é o de hoje e
+   * ajustar o saldo inicial por ele seria errado. Calculado no preview (linhas do lote ainda não inseridas); as linhas
+   * deste mesmo extrato que já existem (reimportação) são excluídas pela impressão digital, pois o saldo corrente do
+   * banco as inclui. Lançamentos feitos entre o preview e a confirmação não entram: a conciliação é sempre manual.
+   */
+  private async hasLaterActivity(workspaceId: string, accountId: string, dateISO: string, ownFingerprints: string[]): Promise<boolean> {
+    const hit = await prisma.transaction.findFirst({
+      where: {
+        workspaceId,
+        date: { gt: new Date(`${dateISO}T00:00:00Z`) },
+        OR: [{ accountId }, { sourceAccountId: accountId }, { destAccountId: accountId }],
+        AND: [{ OR: [{ importFingerprint: null }, { importFingerprint: { notIn: ownFingerprints } }] }],
+      },
+      select: { id: true },
+    });
+    return hit !== null;
   }
 
   /** Apaga as transações do lote e registra `undoneAt`. O lote precisa estar confirmado e ainda não desfeito. */

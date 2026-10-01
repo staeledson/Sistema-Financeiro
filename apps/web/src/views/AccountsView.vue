@@ -14,6 +14,9 @@ import EntityBadge from "../components/ui/EntityBadge.vue";
 import EmptyState from "../components/ui/EmptyState.vue";
 import Money from "../components/ui/Money.vue";
 import { formatBRL } from "../lib/money";
+import { formatAdjustment, parseMoneyInput } from "../lib/money-input";
+import { futureActivity } from "../lib/reconcile";
+import { localTodayISO } from "../lib/date";
 
 const store = useFinanceStore();
 const filtro = ref<EntityFilter>("all");
@@ -21,6 +24,10 @@ const novo = ref(emptyAccountForm());
 const editId = ref<string | null>(null);
 const edicao = ref(emptyAccountForm());
 const erro = ref("");
+const conciliarId = ref<string | null>(null);
+const saldoReal = ref("");
+const conciliando = ref(false);
+const aviso = ref("");
 
 const filtros: { value: EntityFilter; label: string }[] = [
   { value: "all", label: "Todas" },
@@ -53,6 +60,7 @@ async function criar() {
 
 function iniciarEdicao(acc: BankAccount) {
   erro.value = "";
+  conciliarId.value = null;
   editId.value = acc.id;
   edicao.value = formFromAccount(acc);
 }
@@ -70,6 +78,50 @@ async function salvarEdicao() {
     editId.value = null;
   } catch (e) {
     erro.value = (e as Error).message;
+  }
+}
+
+const conciliarConta = computed(() => store.accounts.find((a) => a.id === conciliarId.value) ?? null);
+const saldoRealCents = computed(() => parseMoneyInput(saldoReal.value));
+// saldo que o sistema mostra, só se já veio do servidor (nunca cai no saldo inicial: o ajuste sairia errado)
+const saldoAtual = computed(() => store.balances?.accounts.find((b) => b.accountId === conciliarId.value)?.balanceCents ?? null);
+const semSaldo = computed(() => conciliarConta.value !== null && saldoAtual.value === null);
+// ajuste previsto no saldo inicial: saldo real informado - saldo que o sistema mostra hoje
+const ajusteCents = computed(() => (saldoRealCents.value === null || saldoAtual.value === null ? null : saldoRealCents.value - saldoAtual.value));
+const cartaoPositivo = computed(() => conciliarConta.value?.type === "credit_card" && (saldoRealCents.value ?? 0) > 0);
+// só com lançamentos já carregados no store (ex.: lista de Transações); sem eles a nota não aparece
+const futuros = computed(() => {
+  if (!conciliarConta.value || store.transactions.length === 0) return null;
+  const f = futureActivity(store.transactions, conciliarConta.value.id, localTodayISO());
+  return f.count > 0 ? f : null;
+});
+
+function iniciarConciliacao(acc: BankAccount) {
+  erro.value = "";
+  aviso.value = "";
+  editId.value = null;
+  conciliarId.value = acc.id;
+  saldoReal.value = "";
+}
+
+function cancelarConciliacao() {
+  conciliarId.value = null;
+}
+
+async function conciliar() {
+  const acc = conciliarConta.value;
+  const alvo = saldoRealCents.value;
+  if (!acc || alvo === null || semSaldo.value || conciliando.value) return;
+  erro.value = "";
+  conciliando.value = true;
+  try {
+    const r = await store.reconcileAccount(acc.id, alvo);
+    conciliarId.value = null;
+    aviso.value = `Saldo conciliado: ${formatBRL(r.newBalanceCents)} (${acc.name}; ajuste de saldo inicial: ${formatAdjustment(r.adjustmentCents)})`;
+  } catch (e) {
+    erro.value = (e as Error).message;
+  } finally {
+    conciliando.value = false;
   }
 }
 
@@ -113,6 +165,7 @@ function detalheCartao(acc: BankAccount): string | null {
       Saldo {{ filtro === 'all' ? 'consolidado' : filtro.toUpperCase() }}: <strong><Money :cents="saldoVisivel" /></strong>
     </div>
 
+    <p v-if="aviso" role="status" class="notice">{{ aviso }}</p>
     <ul class="account-list">
       <li v-for="acc in visiveis" :key="acc.id" class="account-item">
         <template v-if="editId === acc.id">
@@ -124,6 +177,46 @@ function detalheCartao(acc: BankAccount): string | null {
             </div>
           </form>
         </template>
+        <template v-else-if="conciliarId === acc.id">
+          <form class="reconcile-form" @submit.prevent="conciliar">
+            <h3>Conciliar saldo: {{ acc.name }}</h3>
+            <p v-if="saldoAtual !== null" class="reconcile-current">Saldo no sistema: <strong><Money :cents="saldoAtual" /></strong></p>
+            <p v-else class="text-error" role="alert">Os saldos ainda não foram carregados. Recarregue a página para conciliar.</p>
+            <p v-if="futuros" class="hint" data-test="reconcile-future">
+              Há {{ futuros.count }} {{ futuros.count === 1 ? "lançamento" : "lançamentos" }} com data futura (total {{ formatBRL(futuros.netCents) }}); eles entram no saldo de hoje.
+            </p>
+            <label :for="`reconcile-${acc.id}`">Saldo real hoje (R$)</label>
+            <input
+              :id="`reconcile-${acc.id}`"
+              v-model="saldoReal"
+              type="text"
+              inputmode="decimal"
+              autocomplete="off"
+              placeholder="Ex.: 6.508,80"
+              :disabled="semSaldo"
+            />
+            <p class="hint">
+              Informe o saldo que o banco mostra agora. O sistema ajusta o saldo inicial da conta pela diferença.
+              <template v-if="acc.type === 'credit_card'"> Informe o total devido hoje (fatura aberta + parcelas), como valor negativo.</template>
+            </p>
+            <div aria-live="polite">
+              <template v-if="ajusteCents !== null && saldoRealCents !== null">
+                <p class="reconcile-informed" data-test="reconcile-informed">Saldo informado: <strong>{{ formatBRL(saldoRealCents) }}</strong></p>
+                <p class="reconcile-preview" data-test="reconcile-preview">
+                  Ajuste de saldo inicial: <strong>{{ formatAdjustment(ajusteCents) }}</strong>
+                </p>
+                <p v-if="cartaoPositivo" class="warn" data-test="reconcile-card-warning">
+                  Atenção: em cartão, o valor devido é negativo. Confirme que o saldo positivo informado é mesmo o que você quer.
+                </p>
+              </template>
+              <p v-else-if="saldoReal.trim() && saldoRealCents === null" class="text-error" role="alert">Valor inválido. Use o formato 1.234,56 (sinal de menos para valores negativos).</p>
+            </div>
+            <div class="edit-actions">
+              <button type="submit" :disabled="saldoRealCents === null || semSaldo || conciliando">Confirmar conciliação</button>
+              <button type="button" class="btn-secondary btn-small" @click="cancelarConciliacao">Cancelar</button>
+            </div>
+          </form>
+        </template>
         <template v-else>
           <div class="account-info">
             <span class="account-name">{{ acc.name }}</span>
@@ -132,6 +225,7 @@ function detalheCartao(acc: BankAccount): string | null {
           </div>
           <div class="account-actions">
             <Money class="balance" :cents="saldoDe(acc)" />
+            <button v-if="!acc.archived" type="button" class="btn-secondary btn-small" @click="iniciarConciliacao(acc)">Conciliar saldo</button>
             <button type="button" class="btn-secondary btn-small" @click="iniciarEdicao(acc)">Editar</button>
             <button type="button" class="btn-danger btn-small" @click="arquivar(acc.id)">Arquivar</button>
           </div>
@@ -167,5 +261,12 @@ h2, h3 { margin-bottom: calc(var(--space) * 2); }
 .create-form, .edit-form { display: flex; flex-direction: column; gap: calc(var(--space) * 2); width: 100%; }
 .create-form { background: var(--surface); border: 1px solid var(--border); padding: calc(var(--space) * 3); border-radius: var(--radius); }
 .edit-actions { display: flex; gap: var(--space); }
+.reconcile-form { display: flex; flex-direction: column; gap: var(--space); width: 100%; }
+.reconcile-form h3 { margin-bottom: 0; font-size: 1rem; }
+.reconcile-form input { width: 100%; }
+.reconcile-current, .reconcile-preview, .reconcile-informed { margin: 0; }
+.warn { margin: 0; font-size: 0.85rem; color: var(--warning); }
+.hint { font-size: 0.85rem; color: var(--text-muted); margin: 0; }
+.notice { font-size: 0.9rem; margin: 0 0 calc(var(--space) * 2); color: var(--c-income); }
 p[role="alert"] { font-size: 0.9rem; margin-top: calc(var(--space) * 2); }
 </style>

@@ -47,6 +47,13 @@ export interface PreviewRow {
   bankCategory?: string | null;
 }
 
+/** Saldo que o próprio extrato declara; só vem preenchido quando é o saldo corrente (de hoje). */
+export interface StatementBalance {
+  dateISO: string;
+  balanceCents: number;
+  current: boolean;
+}
+
 export interface StatementPreview {
   batchId: string;
   institution: Institution | null;
@@ -56,6 +63,9 @@ export interface StatementPreview {
   rowCount: number;
   dupCount: number;
   balanceCheck: BalanceCheck | null;
+  statementBalance?: StatementBalance | null;
+  /** A conta tem lançamento depois da data de `statementBalance`: o saldo do extrato já não é o de hoje. */
+  laterActivity?: boolean;
 }
 
 export interface BatchSummary {
