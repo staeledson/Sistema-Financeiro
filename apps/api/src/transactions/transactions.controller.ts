@@ -20,9 +20,9 @@ export class TransactionsController {
   updateCategory(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id") id: string,
-    @Body() body: { categoryId: string | null },
+    @Body() body: { categoryId: string | null; applyToSimilar?: boolean },
   ) {
-    return this.service.updateCategory(user.workspaceId, id, body.categoryId);
+    return this.service.updateCategory(user.workspaceId, id, body.categoryId, body.applyToSimilar === true);
   }
 
   @Post("categorize")

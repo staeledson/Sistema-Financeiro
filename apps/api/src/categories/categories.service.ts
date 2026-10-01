@@ -48,7 +48,14 @@ export class CategoriesService {
   async remove(workspaceId: string, id: string) {
     const existing = await prisma.category.findFirst({ where: { id, workspaceId, isSystem: false } });
     if (!existing) throw new NotFoundException();
-    await prisma.category.delete({ where: { id } });
+    // O FK é SET NULL: sem este reset os lançamentos ficariam sem categoria mas ainda marcados como categorizados.
+    await prisma.$transaction([
+      prisma.transaction.updateMany({
+        where: { workspaceId, categoryId: id },
+        data: { categorySource: "none", categoryConfidence: null, reviewStatus: "pending" },
+      }),
+      prisma.category.delete({ where: { id } }),
+    ]);
     return { ok: true };
   }
 }

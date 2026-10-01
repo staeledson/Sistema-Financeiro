@@ -24,6 +24,7 @@ import { ChatModule } from "./chat/chat.module";
 import { PushModule } from "./push/push.module";
 import { BillsModule } from "./bills/bills.module";
 import { ExportModule } from "./export/export.module";
+import { ReviewModule } from "./review/review.module";
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ExportModule } from "./export/export.module";
     PushModule,
     BillsModule,
     ExportModule,
+    ReviewModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: ZodExceptionFilter }],
 })
