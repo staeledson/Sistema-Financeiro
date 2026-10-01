@@ -68,8 +68,8 @@ export class SpendingService {
     return prisma.$queryRaw<CatRow[]>`
       SELECT t."categoryId" AS "categoryId", c."name" AS "name", SUM(t."amountCents") AS "total", COUNT(*) AS "count"
       FROM transactions t
-      LEFT JOIN categories c ON c."id" = t."categoryId"
-      LEFT JOIN bank_accounts a ON a."id" = t."accountId"
+      LEFT JOIN categories c ON c."id" = t."categoryId" AND c."workspaceId" = t."workspaceId"
+      LEFT JOIN bank_accounts a ON a."id" = t."accountId" AND a."workspaceId" = t."workspaceId"
       WHERE t."workspaceId" = ${workspaceId} AND t."type" = 'expense'
         AND t."date" >= ${period.from}::date AND t."date" <= ${period.to}::date
         ${reportableSql("t")} ${scopeSql(scope)}
@@ -82,8 +82,8 @@ export class SpendingService {
     const rows = await prisma.$queryRaw<Array<{ categoryId: string | null; name: string | null; month: string; total: bigint }>>`
       SELECT t."categoryId" AS "categoryId", c."name" AS "name", to_char(t."date", 'YYYY-MM') AS "month", SUM(t."amountCents") AS "total"
       FROM transactions t
-      LEFT JOIN categories c ON c."id" = t."categoryId"
-      LEFT JOIN bank_accounts a ON a."id" = t."accountId"
+      LEFT JOIN categories c ON c."id" = t."categoryId" AND c."workspaceId" = t."workspaceId"
+      LEFT JOIN bank_accounts a ON a."id" = t."accountId" AND a."workspaceId" = t."workspaceId"
       WHERE t."workspaceId" = ${workspaceId} AND t."type" = 'expense'
         AND t."date" >= ${months[0] + "-01"}::date AND t."date" <= ${period.to}::date
         ${reportableSql("t")} ${scopeSql(scope)}
@@ -119,14 +119,14 @@ export class SpendingService {
 
   private async topCounterparties(workspaceId: string, period: Period, scope: Scope) {
     const rows = await prisma.$queryRaw<Array<{ name: string; total: bigint; count: bigint }>>`
-      SELECT COALESCE(NULLIF(t."counterparty", ''), t."description") AS "name", SUM(t."amountCents") AS "total", COUNT(*) AS "count"
+      SELECT COALESCE(NULLIF(t."counterparty", ''), NULLIF(t."description", '')) AS "name", SUM(t."amountCents") AS "total", COUNT(*) AS "count"
       FROM transactions t
-      LEFT JOIN bank_accounts a ON a."id" = t."accountId"
+      LEFT JOIN bank_accounts a ON a."id" = t."accountId" AND a."workspaceId" = t."workspaceId"
       WHERE t."workspaceId" = ${workspaceId} AND t."type" = 'expense'
         AND t."date" >= ${period.from}::date AND t."date" <= ${period.to}::date
-        AND COALESCE(NULLIF(t."counterparty", ''), t."description") IS NOT NULL
+        AND COALESCE(NULLIF(t."counterparty", ''), NULLIF(t."description", '')) IS NOT NULL
         ${reportableSql("t")} ${scopeSql(scope)}
-      GROUP BY COALESCE(NULLIF(t."counterparty", ''), t."description")
+      GROUP BY COALESCE(NULLIF(t."counterparty", ''), NULLIF(t."description", ''))
       ORDER BY SUM(t."amountCents") DESC, 1 ASC
       LIMIT 15`;
     return rows.map((r) => ({ name: r.name, totalCents: Number(r.total), count: Number(r.count) }));
@@ -135,19 +135,19 @@ export class SpendingService {
   private async recurring(workspaceId: string, period: Period, scope: Scope) {
     const from = addMonths(period.to.slice(0, 7), -11) + "-01";
     const rows = await prisma.$queryRaw<
-      Array<{ description: string | null; counterparty: string | null; amountCents: bigint; date: string; installmentTotal: number | null }>
+      Array<{ description: string | null; amountCents: bigint; date: string; installmentTotal: number | null }>
     >`
-      SELECT t."description", t."counterparty", t."amountCents", to_char(t."date", 'YYYY-MM-DD') AS "date", t."installmentTotal"
+      SELECT COALESCE(NULLIF(t."description", ''), NULLIF(t."counterparty", '')) AS "description", t."amountCents", to_char(t."date", 'YYYY-MM-DD') AS "date", t."installmentTotal"
       FROM transactions t
-      LEFT JOIN bank_accounts a ON a."id" = t."accountId"
+      LEFT JOIN bank_accounts a ON a."id" = t."accountId" AND a."workspaceId" = t."workspaceId"
       WHERE t."workspaceId" = ${workspaceId} AND t."type" = 'expense'
         AND t."date" >= ${from}::date AND t."date" <= ${period.to}::date
         ${reportableSql("t")} ${scopeSql(scope)}
-      ORDER BY t."date" ASC
+      ORDER BY t."date" DESC
       LIMIT 20000`;
     const inputs: RecurringInput[] = rows
       .map((r) => ({
-        description: r.description ?? r.counterparty ?? "",
+        description: r.description ?? "",
         amountCents: Number(r.amountCents),
         date: r.date,
         installment: r.installmentTotal != null,

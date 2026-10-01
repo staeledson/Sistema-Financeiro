@@ -5,6 +5,7 @@ import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify
 import { AppModule } from "../../src/app.module";
 import { prisma, cleanDb } from "../helpers/db";
 import { auth } from "../../src/auth";
+import { CardsService } from "../../src/dashboard/cards.service";
 
 let app: NestFastifyApplication;
 
@@ -214,6 +215,18 @@ describe("GET /dashboard/spending", () => {
     expect((await get(u, "/dashboard/spending?month=2026-06&year=2026")).statusCode).toBe(400);
   });
 
+  it("despesa sem categoria aparece como Sem categoria; parâmetro repetido na query dá 400", async () => {
+    const u = await newUser("sp7");
+    const acc = await account(u, "checking");
+    await prisma.transaction.create({
+      data: { workspaceId: u.workspaceId, type: "expense", accountId: acc.id, source: "manual", createdById: u.userId, amountCents: 4200n, date: dayOf("2026-06-05"), description: "Sem classificar" } as never,
+    });
+    const b = (await get(u, "/dashboard/spending?month=2026-06")).json();
+    expect(b.totalCents).toBe(4200);
+    expect(b.byCategory).toEqual([expect.objectContaining({ name: "Sem categoria", totalCents: 4200, pct: 100, count: 1 })]);
+    expect((await get(u, "/dashboard/spending?month=2026-06&month=2026-07")).statusCode).toBe(400);
+  });
+
   it("parâmetros vazios são ignorados", async () => {
     const u = await newUser("sp6");
     const res = await get(u, "/dashboard/spending?month=2026-06&entity=&accountId=");
@@ -233,32 +246,34 @@ describe("GET /balances (SQL, com entidade)", () => {
     await tx({ type: "expense", accountId: pf1.id, amountCents: 50000n });
     await tx({ type: "expense", accountId: pf1.id, amountCents: 30000n, transferPairId: "par" });
     await tx({ type: "income", accountId: pj1.id, amountCents: 30000n, transferPairId: "par" });
+    await tx({ type: "expense", accountId: pf1.id, amountCents: 7000n, ignored: true });
     await tx({ type: "transfer", sourceAccountId: pf1.id, destAccountId: pj1.id, amountCents: 400n, date: dayOf("2026-07-01") });
     return { u, pf1, pj1 };
   }
 
+  // PF1: 100000 + 200000 - 50000 - 30000 (par) - 7000 (ignorado) - 400 (transferência) = 212600; PJ1: 50000 + 30000 (par) + 400 = 80400
   it("mantém o contrato e inclui pares e ignorados no saldo", async () => {
     const { u, pf1, pj1 } = await seedBalances("bal1");
     const body = (await get(u, "/balances")).json();
     expect(body.accounts).toEqual([
-      { accountId: pf1.id, name: "PF1", type: "checking", balanceCents: 219600 },
+      { accountId: pf1.id, name: "PF1", type: "checking", balanceCents: 212600 },
       { accountId: pj1.id, name: "PJ1", type: "checking", balanceCents: 80400 },
     ]);
-    expect(body.consolidatedCents).toBe(300000);
+    expect(body.consolidatedCents).toBe(293000);
   });
 
   it("entity, accountId e asOf restringem o resultado", async () => {
     const { u, pf1 } = await seedBalances("bal2");
     const pf = (await get(u, "/balances?entity=pf")).json();
     expect(pf.accounts.map((a: { name: string }) => a.name)).toEqual(["PF1"]);
-    expect(pf.consolidatedCents).toBe(219600);
+    expect(pf.consolidatedCents).toBe(212600);
     const pj = (await get(u, "/balances?entity=pj")).json();
     expect(pj.consolidatedCents).toBe(80400);
     const one = (await get(u, `/balances?accountId=${pf1.id}`)).json();
-    expect(one.consolidatedCents).toBe(219600);
-    // a transferência de 400 é de julho: antes dela PF1 = 100000 + 200000 - 50000 - 30000 = 220000
+    expect(one.consolidatedCents).toBe(212600);
+    // a transferência de 400 é de julho: antes dela PF1 = 100000 + 200000 - 50000 - 30000 - 7000 = 213000
     const antes = (await get(u, "/balances?entity=pf&asOf=2026-06-30")).json();
-    expect(antes.consolidatedCents).toBe(220000);
+    expect(antes.consolidatedCents).toBe(213000);
     expect((await get(u, "/balances?entity=xx")).statusCode).toBe(400);
   });
 
@@ -326,14 +341,16 @@ describe("GET /dashboard/cards", () => {
     expect(day(10).avgPreviousCents).toBe(13333);
     expect(day(31).avgPreviousCents).toBe(13333);
 
+    // meses de vencimento, 12 a partir de jul/26: a 2/10 já lançada (15/06, fatura que vence 17/07) + parcelas 3 a 10 (ago/26 a mar/27)
     expect(c.installmentsAhead).toHaveLength(12);
-    expect(c.installmentsAhead[0]).toEqual({ month: "2026-08", amountCents: 20000, count: 1 });
-    expect(c.installmentsAhead.slice(0, 8).every((e: { amountCents: number; count: number }) => e.amountCents === 20000 && e.count === 1)).toBe(true);
-    expect(c.installmentsAhead[7].month).toBe("2027-03");
-    expect(c.installmentsAhead.slice(8)).toEqual([
-      { month: "2027-04", amountCents: 0, count: 0 }, { month: "2027-05", amountCents: 0, count: 0 },
-      { month: "2027-06", amountCents: 0, count: 0 }, { month: "2027-07", amountCents: 0, count: 0 },
-    ]);
+    expect(c.installmentsAhead.map((e: { month: string }) => e.month)[0]).toBe("2026-07");
+    expect(c.installmentsAhead[11].month).toBe("2027-06");
+    expect(c.installmentsAhead.slice(0, 9)).toEqual(
+      ["2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12", "2027-01", "2027-02", "2027-03"].map((month) => ({ month, amountCents: 20000, count: 1 })),
+    );
+    expect(c.installmentsAhead.slice(9)).toEqual(
+      ["2027-04", "2027-05", "2027-06"].map((month) => ({ month, amountCents: 0, count: 0 })),
+    );
 
     expect(c.invoicePayments).toEqual([
       { closing: "2026-06-10", due: "2026-06-17", invoiceCents: 40000, paidCents: 40000, status: "paid" },
@@ -411,5 +428,95 @@ describe("GET /dashboard/cards", () => {
     expect(jan.cards[0].openInvoiceCents).toBe(27000);
     expect((await get(u, `/dashboard/cards?${AS_OF}&accountId=${other.card.id}`)).statusCode).toBe(400);
     expect((await get(u, `/dashboard/cards?entity=xx`)).statusCode).toBe(400);
+  });
+
+  it("lançamentos ignorados não entram na fatura, no ciclo diário nem nas parcelas", async () => {
+    const { u, tx } = await seedCard("cd6");
+    await tx({ type: "expense", amountCents: 5000n, date: dayOf("2026-06-13"), ignored: true, description: "Duplicada" });
+    await tx({
+      type: "expense", amountCents: 9000n, date: dayOf("2026-06-13"), ignored: true, description: "LOJA IGN 01/05",
+      installmentCurrent: 1, installmentTotal: 5,
+    });
+    const c = (await get(u, `/dashboard/cards?${AS_OF}`)).json().cards[0];
+    expect(c.openInvoiceCents).toBe(27000);
+    expect(c.cycleDaily[2].currentCents).toBe(10000); // dia 3 (13/06) continua igual ao dia 2
+    expect(c.installmentsAhead.slice(0, 9).every((e: { amountCents: number }) => e.amountCents === 20000)).toBe(true);
+  });
+
+  it("identidade da parcela: 10/10 antiga não esconde a série nova e compras simultâneas com totais diferentes ficam separadas", async () => {
+    const u = await newUser("cd7");
+    const card = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "C", closingDay: 10, dueDay: 17 } });
+    const tx = (data: Record<string, unknown>) =>
+      prisma.transaction.create({ data: { workspaceId: u.workspaceId, accountId: card.id, type: "expense", source: "manual", createdById: u.userId, ...data } as never });
+    // série antiga terminada (fev) e série nova (jun) da mesma loja
+    await tx({ amountCents: 10000n, date: dayOf("2026-02-15"), description: "AMAZON 10/10", installmentCurrent: 10, installmentTotal: 10 });
+    await tx({ amountCents: 30000n, date: dayOf("2026-06-15"), description: "AMAZON 02/06", installmentCurrent: 2, installmentTotal: 6 });
+    // duas compras simultâneas na mesma loja, totais diferentes
+    await tx({ amountCents: 1000n, date: dayOf("2026-06-12"), description: "FARMACIA 01/02", installmentCurrent: 1, installmentTotal: 2 });
+    await tx({ amountCents: 2000n, date: dayOf("2026-06-12"), description: "FARMACIA 01/03", installmentCurrent: 1, installmentTotal: 3 });
+    const c = (await get(u, `/dashboard/cards?${AS_OF}`)).json().cards[0];
+    const amounts = c.installmentsAhead.map((e: { amountCents: number }) => e.amountCents);
+    // jul/26: 30000 (2/6 lançada) + 1000 + 2000 (1as parcelas lançadas); ago: 30000 + 1000 + 2000; set: 30000 + 2000; out e nov: 30000 (3..6 = ago..nov)
+    expect(amounts.slice(0, 6)).toEqual([33000, 33000, 32000, 30000, 30000, 0]);
+    expect(c.installmentsAhead[0].count).toBe(3);
+    expect(c.installmentsAhead[2].count).toBe(2);
+  });
+
+  it("parcela escrita só na contraparte agrupa pela contraparte", async () => {
+    const u = await newUser("cd8");
+    const card = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "C", closingDay: 10, dueDay: 17 } });
+    await prisma.transaction.create({
+      data: {
+        workspaceId: u.workspaceId, accountId: card.id, type: "expense", source: "manual", createdById: u.userId, amountCents: 5000n,
+        date: dayOf("2026-06-15"), description: "Compra online", counterparty: "LOJA Z 02/04", installmentCurrent: 2, installmentTotal: 4,
+      } as never,
+    });
+    const c = (await get(u, `/dashboard/cards?${AS_OF}`)).json().cards[0];
+    expect(c.installmentsAhead.slice(0, 4).map((e: { amountCents: number }) => e.amountCents)).toEqual([5000, 5000, 5000, 0]);
+  });
+
+  it("vencimento no mês seguinte ao fechamento (fecha 25, vence 5): parcelas por mês de vencimento", async () => {
+    const u = await newUser("cd9");
+    const card = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "C", closingDay: 25, dueDay: 5 } });
+    await prisma.transaction.create({
+      data: {
+        workspaceId: u.workspaceId, accountId: card.id, type: "expense", source: "manual", createdById: u.userId, amountCents: 8000n,
+        date: dayOf("2026-06-15"), description: "LOJA W 02/04", installmentCurrent: 2, installmentTotal: 4,
+      } as never,
+    });
+    // asOf 20/06: ciclo aberto fecha 25/06 e vence 05/07; parcelas 3 e 4 caem nos ciclos que fecham em jul e ago (vencem em ago e set)
+    const c = (await get(u, `/dashboard/cards?${AS_OF}`)).json().cards[0];
+    expect(c).toMatchObject({ closingDate: "2026-06-25", dueDate: "2026-07-05" });
+    expect(c.installmentsAhead.slice(0, 4)).toEqual([
+      { month: "2026-07", amountCents: 8000, count: 1 }, // a 2/4 já lançada, paga no vencimento de 05/07
+      { month: "2026-08", amountCents: 8000, count: 1 },
+      { month: "2026-09", amountCents: 8000, count: 1 },
+      { month: "2026-10", amountCents: 0, count: 0 },
+    ]);
+  });
+
+  it("installmentsAheadMonthly soma os cartões do escopo em 12 meses fixos", async () => {
+    const { u } = await seedCard("cd10"); // cartão A: 20000 de jul/26 a mar/27
+    const b = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "B", entity: "pj", closingDay: 25, dueDay: 5 } });
+    await prisma.transaction.create({
+      data: {
+        workspaceId: u.workspaceId, accountId: b.id, type: "expense", source: "manual", createdById: u.userId, amountCents: 8000n,
+        date: dayOf("2026-06-15"), description: "LOJA W 02/04", installmentCurrent: 2, installmentTotal: 4,
+      } as never,
+    });
+    const service = app.get(CardsService, { strict: false });
+    const all = await service.installmentsAheadMonthly(u.workspaceId, {}, "2026-06-20");
+    expect(all).toHaveLength(12);
+    expect(all.slice(0, 5)).toEqual([
+      { month: "2026-07", amountCents: 28000 },
+      { month: "2026-08", amountCents: 28000 },
+      { month: "2026-09", amountCents: 28000 },
+      { month: "2026-10", amountCents: 20000 },
+      { month: "2026-11", amountCents: 20000 },
+    ]);
+    expect(all[11]).toEqual({ month: "2027-06", amountCents: 0 });
+    const pj = await service.installmentsAheadMonthly(u.workspaceId, { entity: "pj" }, "2026-06-20");
+    expect(pj).toHaveLength(12);
+    expect(pj.slice(0, 4).map((e) => e.amountCents)).toEqual([8000, 8000, 8000, 0]);
   });
 });

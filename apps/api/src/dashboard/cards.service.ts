@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
-  addDaysISO, addMonths, cycleOf, daysBetweenISO, normalizeDescriptionKey, recentCycles, type AccountEntity, type InvoiceCycle,
+  addMonths, cycleClosingIn, cycleOf, daysBetweenISO, normalizeDescriptionKey, parseInstallment, recentCycles,
+  type AccountEntity, type InvoiceCycle,
 } from "@app/shared";
 import { prisma } from "../database";
 import { BalancesService } from "../balances/balances.service";
@@ -35,8 +36,12 @@ type Row = {
   installmentCurrent: number | null;
   installmentTotal: number | null;
   description: string | null;
+  counterparty: string | null;
 };
-type Movement = { date: string; type: string; cents: number; paired: boolean; installmentCurrent: number | null; installmentTotal: number | null; description: string };
+type Movement = {
+  date: string; type: string; cents: number; paired: boolean;
+  installmentCurrent: number | null; installmentTotal: number | null; description: string; counterparty: string;
+};
 
 type CardAccount = {
   id: string;
@@ -54,7 +59,10 @@ const AHEAD_MONTHS = 12;
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const min = (a: string, b: string) => (a < b ? a : b);
 
-/** Efeito do lançamento na fatura: despesa soma, estorno (receita não pareada) subtrai; pagamento (pareada) não entra. */
+/**
+ * Efeito do lançamento na fatura: despesa soma, estorno (receita não pareada) subtrai; pagamento (pareada) não entra.
+ * Pagamento registrado como `transfer` para o cartão não conta como pago (só receita pareada); lançamentos ignorados ficam fora.
+ */
 function invoiceEffect(m: Movement): number {
   if (m.type === "expense") return m.cents;
   if (m.type === "income" && !m.paired) return -m.cents;
@@ -74,14 +82,15 @@ export class CardsService {
     return { cards };
   }
 
-  /** Soma das parcelas futuras de todos os cartões do escopo, por mês (usado pela previsão). */
+  /** Soma das parcelas dos cartões do escopo por mês de vencimento: 12 meses a partir do mês seguinte a `asOf` (usado pela previsão). */
   async installmentsAheadMonthly(workspaceId: string, scope: Scope, asOf: string): Promise<Array<{ month: string; amountCents: number }>> {
     await assertScopeAccount(workspaceId, scope.accountId);
     const accounts = (await this.cardAccounts(workspaceId, scope)).filter((a) => a.closingDay != null && a.dueDay != null);
     const perCard = await Promise.all(accounts.map((a) => this.installmentsFor(workspaceId, a, asOf)));
-    const sums = new Map<string, number>();
-    for (const list of perCard) for (const e of list) sums.set(e.month, (sums.get(e.month) ?? 0) + e.amountCents);
-    return [...sums.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, amountCents]) => ({ month, amountCents }));
+    return Array.from({ length: AHEAD_MONTHS }, (_, i) => {
+      const month = addMonths(asOf.slice(0, 7), i + 1);
+      return { month, amountCents: perCard.reduce((s, list) => s + list[i].amountCents, 0) };
+    });
   }
 
   private cardAccounts(workspaceId: string, scope: Scope): Promise<CardAccount[]> {
@@ -99,7 +108,7 @@ export class CardsService {
   private async movements(workspaceId: string, accountId: string, from: string, to: string): Promise<Movement[]> {
     const rows = await prisma.$queryRaw<Row[]>`
       SELECT to_char(t."date", 'YYYY-MM-DD') AS "date", t."type"::text AS "type", t."amountCents",
-        (t."transferPairId" IS NOT NULL) AS "paired", t."installmentCurrent", t."installmentTotal", t."description"
+        (t."transferPairId" IS NOT NULL) AS "paired", t."installmentCurrent", t."installmentTotal", t."description", t."counterparty"
       FROM transactions t
       WHERE t."workspaceId" = ${workspaceId} AND t."accountId" = ${accountId}
         AND t."ignored" = false
@@ -109,7 +118,7 @@ export class CardsService {
       LIMIT 50000`;
     return rows.map((r) => ({
       date: r.date, type: r.type, cents: Number(r.amountCents), paired: r.paired,
-      installmentCurrent: r.installmentCurrent, installmentTotal: r.installmentTotal, description: r.description ?? "",
+      installmentCurrent: r.installmentCurrent, installmentTotal: r.installmentTotal, description: r.description ?? "", counterparty: r.counterparty ?? "",
     }));
   }
 
@@ -137,7 +146,7 @@ export class CardsService {
       closingDate: open.closing,
       dueDate: open.due,
       cycleDaily: this.cycleDaily(rows, open, closed, asOf),
-      installmentsAhead: this.installmentsAhead(rows, open.ym, a.closingDay, a.dueDay),
+      installmentsAhead: this.installmentsAhead(rows, asOf, a.closingDay, a.dueDay),
       invoicePayments: this.invoicePayments(rows, open, closed, asOf),
     };
   }
@@ -196,30 +205,50 @@ export class CardsService {
   }
 
   private async installmentsFor(workspaceId: string, a: CardAccount, asOf: string) {
-    const { open, closed } = recentCycles(asOf, a.closingDay!, a.dueDay!, CLOSED_CYCLES);
+    const { closed } = recentCycles(asOf, a.closingDay!, a.dueDay!, CLOSED_CYCLES);
     const rows = await this.movements(workspaceId, a.id, closed[0].start, asOf);
-    return this.installmentsAhead(rows, open.ym, a.closingDay!, a.dueDay!);
+    return this.installmentsAhead(rows, asOf, a.closingDay!, a.dueDay!);
   }
 
-  /** Parcelas que ainda vão cair: por compra (descrição normalizada), a linha de maior parcela projeta o restante mês a mês. */
-  private installmentsAhead(rows: Movement[], openYm: string, closingDay: number, dueDay: number): Card["installmentsAhead"] {
+  /** Identidade da compra parcelada: descrição normalizada (ou contraparte, se a parcela veio dela), total e mês de origem. */
+  private installmentKey(m: Movement, closingDay: number, dueDay: number) {
+    const dKey = normalizeDescriptionKey(m.description);
+    const cKey = normalizeDescriptionKey(m.counterparty);
+    const name =
+      dKey && parseInstallment(m.description) ? dKey
+      : cKey && parseInstallment(m.counterparty) ? cKey
+      : dKey || cKey || (m.description || m.counterparty).trim().toLowerCase();
+    const origin = addMonths(cycleOf(m.date, closingDay, dueDay).ym, -m.installmentCurrent!);
+    return `${name}|${m.installmentTotal}|${origin}`;
+  }
+
+  /**
+   * Parcelas a pagar nos próximos 12 meses (a partir do mês seguinte a `asOf`), por mês de VENCIMENTO da fatura
+   * (saída de caixa). Entram as já lançadas (na fatura em que caíram) e as restantes de cada compra, que a linha de
+   * maior parcela projeta ciclo a ciclo. Sempre 12 entradas, zeros incluídos.
+   */
+  private installmentsAhead(rows: Movement[], asOf: string, closingDay: number, dueDay: number): Card["installmentsAhead"] {
+    const months = Array.from({ length: AHEAD_MONTHS }, (_, i) => addMonths(asOf.slice(0, 7), i + 1));
+    const byMonth = new Map(months.map((month) => [month, { month, amountCents: 0, count: 0 }]));
+    const add = (month: string, cents: number) => {
+      const slot = byMonth.get(month);
+      if (slot) { slot.amountCents += cents; slot.count += 1; }
+    };
+
     const latest = new Map<string, Movement>();
     for (const m of rows) {
       if (m.type !== "expense" || m.installmentCurrent == null || m.installmentTotal == null) continue;
-      const key = normalizeDescriptionKey(m.description) || m.description.trim().toLowerCase();
+      add(cycleOf(m.date, closingDay, dueDay).due.slice(0, 7), m.cents); // já lançada: paga no vencimento da fatura dela
+      const key = this.installmentKey(m, closingDay, dueDay);
       const prev = latest.get(key);
       if (!prev || m.installmentCurrent > prev.installmentCurrent! || (m.installmentCurrent === prev.installmentCurrent && m.date > prev.date)) {
         latest.set(key, m);
       }
     }
-    const months = Array.from({ length: AHEAD_MONTHS }, (_, i) => addMonths(openYm, i + 1));
-    const byMonth = new Map(months.map((month) => [month, { month, amountCents: 0, count: 0 }]));
     for (const m of latest.values()) {
-      const remaining = m.installmentTotal! - m.installmentCurrent!;
       const rowYm = cycleOf(m.date, closingDay, dueDay).ym;
-      for (let k = 1; k <= remaining; k++) {
-        const slot = byMonth.get(addMonths(rowYm, k));
-        if (slot) { slot.amountCents += m.cents; slot.count += 1; }
+      for (let k = 1; k <= m.installmentTotal! - m.installmentCurrent!; k++) {
+        add(cycleClosingIn(addMonths(rowYm, k), closingDay, dueDay).due.slice(0, 7), m.cents);
       }
     }
     return months.map((month) => byMonth.get(month)!);
