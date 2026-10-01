@@ -409,6 +409,7 @@ enum ImportFormat {
   ofx
   pdf
   pdf_statement
+  csv_invoice
 }
 
 enum ImportStatus {

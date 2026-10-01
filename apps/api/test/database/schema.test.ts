@@ -40,10 +40,11 @@ describe("schema base", () => {
     expect(await cols("transactions")).toContain("postedDate");
   });
 
-  it("ImportFormat aceita pdf_statement", async () => {
+  it("ImportFormat aceita pdf_statement e csv_invoice", async () => {
     const rows = await prisma.$queryRaw<{ v: string }[]>`
       select unnest(enum_range(null::"ImportFormat"))::text as v`;
     expect(rows.map((r) => r.v)).toContain("pdf_statement");
+    expect(rows.map((r) => r.v)).toContain("csv_invoice");
   });
 
   it("transactions e category_rules têm as colunas da fase 12", async () => {

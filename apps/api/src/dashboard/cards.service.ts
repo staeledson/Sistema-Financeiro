@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import {
-  addMonths, cycleClosingIn, cycleOf, daysBetweenISO, normalizeDescriptionKey, parseInstallment, recentCycles,
+  addMonths, cycleClosingIn, cycleOf, daysBetweenISO, isCardPaymentText, normalizeDescriptionKey, parseInstallment, recentCycles,
   type AccountEntity, type InvoiceCycle,
 } from "@app/shared";
 import { prisma } from "../database";
@@ -60,12 +60,21 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 const min = (a: string, b: string) => (a < b ? a : b);
 
 /**
- * Efeito do lançamento na fatura: despesa soma, estorno (receita não pareada) subtrai; pagamento (pareada) não entra.
- * Pagamento registrado como `transfer` para o cartão não conta como pago (só receita pareada); lançamentos ignorados ficam fora.
+ * Receita que paga a fatura: pareada com a saída da conta corrente, ou sem par mas com texto de pagamento
+ * (fatura em CSV importada sem o extrato da conta que pagou). As demais receitas são estorno.
+ */
+function isInvoicePayment(m: Movement): boolean {
+  return m.type === "income" && (m.paired || isCardPaymentText(m.description));
+}
+
+/**
+ * Efeito do lançamento na fatura: despesa soma, estorno (receita não pareada e sem texto de pagamento) subtrai;
+ * pagamento não entra. Pagamento registrado como `transfer` para o cartão não conta como pago (só receita);
+ * lançamentos ignorados ficam fora.
  */
 function invoiceEffect(m: Movement): number {
   if (m.type === "expense") return m.cents;
-  if (m.type === "income" && !m.paired) return -m.cents;
+  if (m.type === "income" && !isInvoicePayment(m)) return -m.cents;
   return 0;
 }
 
@@ -168,7 +177,7 @@ export class CardsService {
       const paidEnd = min(nextClosing, asOf);
       const invoiceCents = this.invoice(rows, c);
       const paidCents = rows
-        .filter((m) => m.type === "income" && m.paired && m.date > c.closing && m.date <= paidEnd)
+        .filter((m) => isInvoicePayment(m) && m.date > c.closing && m.date <= paidEnd)
         .reduce((s, m) => s + m.cents, 0);
       if (invoiceCents === 0 && paidCents === 0) return;
       const status: InvoiceStatus =
