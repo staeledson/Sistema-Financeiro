@@ -112,6 +112,16 @@ export interface TransferCandidate {
 }
 
 const CARD_PAYMENT = /pgto\.?\s*fat|pagamento\s+(de\s+)?fatura|pag\.?\s*fatura/;
+const STARTS_WITH_PAYMENT = /^pagamento\b/;
+
+/**
+ * Texto de pagamento de fatura de cartão (`pgto fat…`, `pagamento (de) fatura`, `pag fatura`) ou que começa com
+ * "pagamento". Pensado para linhas negativas de conta de cartão, onde "Pagamento ..." é o pagamento da fatura.
+ */
+export function isCardPaymentText(text: string | null | undefined): boolean {
+  const folded = foldText(text ?? "").trim();
+  return CARD_PAYMENT.test(folded) || STARTS_WITH_PAYMENT.test(folded);
+}
 
 const dayNumber = (iso: string) => Math.floor(Date.parse(`${iso.slice(0, 10)}T00:00:00Z`) / 86_400_000);
 

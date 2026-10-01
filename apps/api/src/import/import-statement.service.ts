@@ -13,7 +13,7 @@ import {
   type StatementFormat,
   type StatementKind,
 } from "@app/shared";
-import type { Prisma } from "../../generated/prisma/client";
+import type { ImportFormat, Prisma } from "../../generated/prisma/client";
 import { prisma } from "../database";
 import { decodeText, extractPdfText, isPdf } from "./pdf-text";
 
@@ -127,7 +127,8 @@ export class ImportStatementService {
       data: {
         workspaceId,
         accountId: account.id,
-        format: hit.detected.format,
+        // TODO(Fase 14, Task 2): "csv_invoice" entra no enum ImportFormat do Prisma; até lá, o cast mantém o tipo compilando.
+        format: hit.detected.format as ImportFormat,
         institution: hit.detected.institution,
         detectedAccountRef: parsed.accountRef,
         balanceCheck: balanceCheck ? (balanceCheck as unknown as Prisma.InputJsonValue) : undefined,
