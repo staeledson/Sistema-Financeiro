@@ -14,7 +14,10 @@ vi.mock("../../lib/api", async (orig) => {
 import InicioView from "../InicioView.vue";
 
 const summary = {
-  balances: { pfCents: 150000, pjCents: -20000, totalCents: 130000 },
+  balances: {
+    pfCents: 150000, pjCents: -20000, totalCents: 130000,
+    cards: { pfCents: -63113, pjCents: -1000, totalCents: -64113 },
+  },
   pendingCount: 7,
   nextInvoice: { accountId: "k1", name: "Cartão C6", dueDate: "2026-10-10", openInvoiceCents: 123456 },
   spending: {
@@ -64,6 +67,25 @@ describe("InicioView", () => {
     expect(w.find('a[href="/categorizar"]').exists()).toBe(true);
     expect(w.find('a[href="/painel#sec-cartoes"]').text()).toContain("Cartão C6");
     expect(w.findAll('a[href="/painel"]').map((a) => a.text())).toContain("Abrir o painel");
+  });
+
+  it("saldos de PF/PJ/total são caixa; a dívida dos cartões aparece à parte em 'Cartões a pagar'", async () => {
+    const { w } = await mountInicio();
+    const cards = w.find('[aria-label="Cartões a pagar"]');
+    expect(cards.exists()).toBe(true);
+    const text = cards.text().replace(/\u00a0/g, " ");
+    expect(text).toContain("Cartões a pagar");
+    expect(text).toContain("-R$ 641,13");
+    expect(text).toContain("PF -R$ 631,13");
+    expect(text).toContain("PJ -R$ 10,00");
+    // o total em contas não inclui a dívida
+    expect(w.find('[aria-label="Saldos"]').text().replace(/\u00a0/g, " ")).toContain("R$ 1.300,00");
+  });
+
+  it("sem dívida de cartão: não mostra 'Cartões a pagar'", async () => {
+    summaryMock.mockResolvedValue({ ...summary, balances: { ...summary.balances, cards: { pfCents: 0, pjCents: 0, totalCents: 0 } } });
+    const { w } = await mountInicio();
+    expect(w.find('[aria-label="Cartões a pagar"]').exists()).toBe(false);
   });
 
   it("sem fatura e sem despesas: estados vazios", async () => {

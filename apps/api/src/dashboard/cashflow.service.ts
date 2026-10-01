@@ -3,13 +3,15 @@ import { addMonths, forecastCashflow, lastMonths, type AccountEntity, type Forec
 import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../database";
 import { reportableSql } from "../common/reportable";
-import { BalancesService, type AccountBalanceRow } from "../balances/balances.service";
+import { BalancesService, isCardType, type AccountBalanceRow } from "../balances/balances.service";
 import { CardsService } from "./cards.service";
 import { SpendingService } from "./spending.service";
 import { assertScopeAccount, scopeSql, type Scope } from "./dashboard-filter";
 
 export type CashflowFilter = Scope & { asOf: string };
 export type Consolidated = { pfCents: number; pjCents: number; totalCents: number };
+/** Saldo em contas (`consolidated`, sem cartões) e dívida dos cartões (`cards`, negativo = a pagar), por entidade. */
+export type BalanceGroups = { consolidated: Consolidated; cards: Consolidated };
 export type CashflowMonth = { month: string; incomeCents: number; expenseCents: number; transfersNetCents: number; balanceCents: number };
 
 const MONTHS = 12;
@@ -34,6 +36,14 @@ function consolidate(rows: Pick<AccountBalanceRow, "entity" | "balanceCents">[])
   return { pfCents, pjCents, totalCents: pfCents + pjCents };
 }
 
+/** Separa o caixa (contas que não são cartão) da dívida dos cartões. */
+function balanceGroups(rows: Pick<AccountBalanceRow, "type" | "entity" | "balanceCents">[]): BalanceGroups {
+  return {
+    consolidated: consolidate(rows.filter((r) => !isCardType(r.type))),
+    cards: consolidate(rows.filter((r) => isCardType(r.type))),
+  };
+}
+
 @Injectable()
 export class CashflowService {
   constructor(
@@ -42,9 +52,12 @@ export class CashflowService {
     private readonly spending: SpendingService,
   ) {}
 
-  /** PF, PJ e total do workspace inteiro (ignora entidade e conta do filtro). */
-  async consolidated(workspaceId: string, asOf: string): Promise<Consolidated> {
-    return consolidate(await this.balances.accountBalances(workspaceId, {}, asOf));
+  /**
+   * PF, PJ e total do workspace inteiro (ignora entidade e conta do filtro): `consolidated` é o saldo em contas
+   * (caixa, sem cartões de crédito) e `cards` a dívida dos cartões (negativo = a pagar).
+   */
+  async consolidated(workspaceId: string, asOf: string): Promise<BalanceGroups> {
+    return balanceGroups(await this.balances.accountBalances(workspaceId, {}, asOf));
   }
 
   async get(workspaceId: string, filter: CashflowFilter) {
@@ -58,9 +71,11 @@ export class CashflowService {
       this.balances.accountBalances(workspaceId, {}, asOf),
     ]);
     const series = await this.monthly(workspaceId, scope, asOf);
-    const forecast = await this.forecast(workspaceId, scope, asOf, asOfYm, series, accounts.reduce((s, a) => s + a.balanceCents, 0));
+    // A previsão parte do caixa: sem cartões, a menos que o escopo seja um cartão explícito (`accountId`).
+    const cash = scope.accountId ? accounts : accounts.filter((a) => !isCardType(a.type));
+    const forecast = await this.forecast(workspaceId, scope, asOf, asOfYm, series, cash.reduce((s, a) => s + a.balanceCents, 0));
     const monthly: CashflowMonth[] = series.map(({ installmentsCents: _installments, ...m }) => m);
-    return { balances: { accounts, consolidated: consolidate(all) }, monthly, forecast };
+    return { balances: { accounts, ...balanceGroups(all) }, monthly, forecast };
   }
 
   /**
@@ -69,6 +84,8 @@ export class CashflowService {
    * transferências contam) e, no último mês, bate com a soma de `accountBalances` do escopo. Movimentos até `asOf`.
    * `transfersNetCents` também inclui as transferências manuais (`type = 'transfer'`) que cruzam a fronteira do escopo:
    * + valor se o destino está no escopo e a origem não, − valor no caso inverso, 0 se ambas (ou nenhuma) estão.
+   * O saldo da série é CAIXA: sem `accountId`, as contas de cartão de crédito ficam de fora (a dívida do cartão só
+   * entra no caixa quando a fatura é paga, via transferência); com `accountId` de um cartão, mostra o saldo dele.
    * Assimetria conhecida: receita/despesa/transferências seguem o `scopeSql` (não excluem contas arquivadas nem tratam
    * lançamentos sem conta), enquanto os saldos excluem contas arquivadas, como `accountBalances`.
    */
@@ -107,13 +124,13 @@ export class CashflowService {
           AND (t."accountId" = a."id" OR t."sourceAccountId" = a."id" OR t."destAccountId" = a."id")
           AND t."date" <= ${asOf}::date
         WHERE a."workspaceId" = ${workspaceId} AND a."archived" = false
-          ${scope.accountId ? Prisma.sql`AND a."id" = ${scope.accountId}` : Prisma.empty}
+          ${scope.accountId ? Prisma.sql`AND a."id" = ${scope.accountId}` : Prisma.sql`AND a."type"::text <> 'credit_card'`}
           ${scope.entity ? Prisma.sql`AND a."entity"::text = ${scope.entity}` : Prisma.empty}
         GROUP BY to_char(t."date", 'YYYY-MM')`,
       prisma.bankAccount.aggregate({
         where: {
           workspaceId, archived: false,
-          ...(scope.accountId ? { id: scope.accountId } : {}),
+          ...(scope.accountId ? { id: scope.accountId } : { type: { not: "credit_card" as const } }),
           ...(scope.entity ? { entity: scope.entity } : {}),
         },
         _sum: { openingBalanceCents: true },

@@ -9,6 +9,9 @@ export type AccountBalanceRow = { accountId: string; name: string; type: string;
 /** Cliente que executa o SQL: o `prisma` global ou o `tx` de uma transação interativa. */
 export type RawClient = Pick<Prisma.TransactionClient, "$queryRaw">;
 
+/** Cartão de crédito: o saldo é dívida futura (passivo), não caixa — fica fora do "saldo em contas". */
+export const isCardType = (type: string): boolean => type === "credit_card";
+
 @Injectable()
 export class BalancesService {
   /**
@@ -43,6 +46,13 @@ export class BalancesService {
   async getForWorkspace(workspaceId: string, scope: BalanceScope = {}, asOf?: string) {
     const rows = await this.accountBalances(workspaceId, scope, asOf);
     const accounts = rows.map(({ accountId, name, type, balanceCents }) => ({ accountId, name, type, balanceCents }));
-    return { accounts, consolidatedCents: accounts.reduce((s, b) => s + b.balanceCents, 0) };
+    const sum = (list: typeof accounts) => list.reduce((s, b) => s + b.balanceCents, 0);
+    return {
+      accounts,
+      // Saldo em contas (caixa): soma das contas que NÃO são cartão de crédito.
+      consolidatedCents: sum(accounts.filter((a) => !isCardType(a.type))),
+      // Dívida dos cartões: soma dos saldos dos cartões (negativo = a pagar), mostrada à parte.
+      cardsCents: sum(accounts.filter((a) => isCardType(a.type))),
+    };
   }
 }

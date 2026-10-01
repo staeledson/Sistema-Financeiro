@@ -12,7 +12,8 @@ export default {
     title: "Contas",
     create: "Nova conta",
     archive: "Arquivar",
-    consolidated: "Saldo consolidado",
+    consolidated: "Saldo em contas",
+    cards: "Cartões a pagar",
     types: {
       checking: "Conta corrente",
       savings: "Poupança",
