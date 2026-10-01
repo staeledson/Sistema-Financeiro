@@ -16,7 +16,7 @@ export class WorkspaceSettingsService {
   /** Lê sem escrever: sem linha, devolve os padrões. */
   async get(workspaceId: string) {
     const row = await prisma.workspaceSettings.findUnique({ where: { workspaceId }, select: SETTINGS_SELECT });
-    return row ?? { ...DEFAULT_WORKSPACE_SETTINGS };
+    return row ?? { ...DEFAULT_WORKSPACE_SETTINGS, ownerNames: [...DEFAULT_WORKSPACE_SETTINGS.ownerNames] };
   }
 
   async update(workspaceId: string, role: string, dto: Partial<WorkspaceSettingsInput>) {

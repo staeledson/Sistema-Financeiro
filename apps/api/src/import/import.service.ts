@@ -132,7 +132,7 @@ export class ImportService {
       if (claimed.count === 0) throw new ConflictException("o lote foi desfeito; gere um novo preview");
       const { count } = await tx.transaction.createMany({ data: toInsert, skipDuplicates: true });
       return count;
-    });
+    }, { timeout: 30_000 });
 
     if (inserted > 0) {
       try {

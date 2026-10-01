@@ -175,9 +175,15 @@ export class ImportStatementService {
       });
       const pairIds = [...new Set(pairs.map((p) => p.transferPairId!))];
       if (pairIds.length) {
+        const outside = { workspaceId, transferPairId: { in: pairIds }, OR: [{ importBatchId: null }, { importBatchId: { not: batchId } }] };
+        // sem categoria: volta para a fila de revisão; com categoria: só perde o par (mantém categoria, origem e status)
         await tx.transaction.updateMany({
-          where: { workspaceId, transferPairId: { in: pairIds }, OR: [{ importBatchId: null }, { importBatchId: { not: batchId } }] },
+          where: { ...outside, categoryId: null },
           data: { transferPairId: null, reviewStatus: "pending", categorySource: "none" },
+        });
+        await tx.transaction.updateMany({
+          where: { ...outside, categoryId: { not: null } },
+          data: { transferPairId: null },
         });
       }
       const removed = await tx.transaction.deleteMany({ where: { workspaceId, importBatchId: batchId } });

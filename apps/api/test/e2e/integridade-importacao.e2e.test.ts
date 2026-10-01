@@ -5,6 +5,7 @@ import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify
 import { AppModule } from "../../src/app.module";
 import { prisma, cleanDb } from "../helpers/db";
 import { auth } from "../../src/auth";
+import { WorkspaceSettingsService } from "../../src/workspaces/workspace-settings.service";
 
 let app: NestFastifyApplication;
 
@@ -138,6 +139,47 @@ describe("desfazer lote e pares de transferência", () => {
       transferPairId: null, reviewStatus: "pending", categorySource: "none",
     });
   });
+
+  it("contraparte já categorizada mantém categoria, origem e status; só perde o par", async () => {
+    const u = await newUser("undo2");
+    const pj = await account(u, "PJ");
+    const pf = await account(u, "PF");
+    const cat = await category(u, "Aluguel");
+    const b = await batch(u, pj.id, { status: "committed" });
+    const make = (accountId: string, extra: Record<string, unknown>) =>
+      prisma.transaction.create({
+        data: { workspaceId: u.workspaceId, type: "expense", amountCents: 5000n, date: new Date("2026-06-10"), accountId, source: "import", createdById: u.userId, transferPairId: "par-2", reviewStatus: "ok", ...extra } as never,
+      });
+    await make(pj.id, { importBatchId: b.id, importFingerprint: "in-batch-2" });
+    const fora = await make(pf.id, { type: "income", importFingerprint: "outside-2", categoryId: cat.id, categorySource: "manual" });
+
+    const res = await post(u, `/import/${b.id}/undo`);
+    expect(res.json()).toEqual({ removed: 1 });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: fora.id } })).toMatchObject({
+      transferPairId: null, categoryId: cat.id, categorySource: "manual", reviewStatus: "ok",
+    });
+  });
+
+  it("contraparte em outro lote também é solta; a linha do lote desfeito é apagada", async () => {
+    const u = await newUser("undo3");
+    const pj = await account(u, "PJ");
+    const pf = await account(u, "PF");
+    const b = await batch(u, pj.id, { status: "committed" });
+    const outro = await batch(u, pf.id, { status: "committed" });
+    const make = (accountId: string, extra: Record<string, unknown>) =>
+      prisma.transaction.create({
+        data: { workspaceId: u.workspaceId, type: "expense", amountCents: 5000n, date: new Date("2026-06-10"), accountId, source: "import", createdById: u.userId, transferPairId: "par-3", reviewStatus: "ok", ...extra } as never,
+      });
+    const dentro = await make(pj.id, { importBatchId: b.id, importFingerprint: "in-batch-3" });
+    const fora = await make(pf.id, { type: "income", importBatchId: outro.id, importFingerprint: "other-batch-3" });
+
+    const res = await post(u, `/import/${b.id}/undo`);
+    expect(res.json()).toEqual({ removed: 1 });
+    expect(await prisma.transaction.findUnique({ where: { id: dentro.id } })).toBeNull();
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: fora.id } })).toMatchObject({
+      transferPairId: null, reviewStatus: "pending", categorySource: "none", importBatchId: outro.id,
+    });
+  });
 });
 
 describe("OFX malformado e settings", () => {
@@ -158,5 +200,14 @@ describe("OFX malformado e settings", () => {
     await app.inject({ method: "PATCH", url: "/workspaces/current/settings", headers: u.h, payload: { aiBatchSize: 10 } });
     expect(await prisma.workspaceSettings.count({ where: { workspaceId: u.workspaceId } })).toBe(1);
     expect((await get()).json().aiBatchSize).toBe(10);
+  });
+
+  it("o serviço não expõe a constante de padrões: mutar a resposta não afeta a próxima", async () => {
+    const u = await newUser("set2");
+    const svc = app.get(WorkspaceSettingsService);
+    const first = await svc.get(u.workspaceId);
+    first.ownerNames.push("Fulano");
+    const second = await svc.get(u.workspaceId);
+    expect(second.ownerNames).toEqual([]);
   });
 });
