@@ -1,0 +1,143 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { flushPromises, mount } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
+
+const { httpMock } = vi.hoisted(() => ({ httpMock: vi.fn() }));
+vi.mock("../../lib/http", async (orig) => ({ ...(await orig<typeof import("../../lib/http")>()), http: httpMock }));
+
+import AccountsView from "../AccountsView.vue";
+
+const account = (over: Record<string, unknown>) => ({
+  id: "a1", type: "checking", name: "Conta C6", entity: "pf", institution: "c6", externalId: null,
+  closingDay: null, dueDay: null, creditLimitCents: null, openingBalanceCents: 0, archived: false, ...over,
+});
+
+let state: { accounts: ReturnType<typeof account>[]; balances: Record<string, number> };
+
+function route(method: string, path: string, body?: unknown) {
+  if (method === "GET" && path.startsWith("/accounts")) return state.accounts;
+  if (method === "GET" && path === "/balances") {
+    const accounts = state.accounts.map((a) => ({ accountId: a.id, name: a.name, type: a.type, balanceCents: state.balances[a.id] }));
+    return { accounts, consolidatedCents: accounts.reduce((s, b) => s + b.balanceCents, 0) };
+  }
+  const m = /^\/accounts\/([^/]+)\/reconcile$/.exec(path);
+  if (method === "POST" && m) {
+    const target = (body as { balanceCents: number }).balanceCents;
+    const previous = state.balances[m[1]];
+    state.balances[m[1]] = target;
+    return { accountId: m[1], previousBalanceCents: previous, newBalanceCents: target, adjustmentCents: target - previous, openingBalanceCents: target - previous };
+  }
+  throw new Error(`rota inesperada ${method} ${path}`);
+}
+
+async function mountView() {
+  setActivePinia(createPinia());
+  const w = mount(AccountsView);
+  await flushPromises();
+  return w;
+}
+
+const plain = (s: string) => s.replace(/ /g, " ");
+const buttonByText = (w: ReturnType<typeof mount>, text: string) => w.findAll("button").filter((b) => b.text() === text);
+
+beforeEach(() => {
+  state = {
+    accounts: [account({}), account({ id: "c1", type: "credit_card", name: "Cartão final 1111" })],
+    balances: { a1: 8000, c1: -25000 },
+  };
+  httpMock.mockReset().mockImplementation(async (method: string, path: string, body?: unknown) => route(method, path, body));
+});
+
+describe("AccountsView: Conciliar saldo", () => {
+  it("oferece a ação em cada conta e abre o formulário com o saldo atual do sistema", async () => {
+    const w = await mountView();
+    const buttons = buttonByText(w, "Conciliar saldo");
+    expect(buttons).toHaveLength(2);
+    await buttons[0].trigger("click");
+    expect(plain(w.text())).toContain("Saldo no sistema: R$ 80,00");
+    expect(w.find("label").text()).toBe("Saldo real hoje (R$)");
+    expect(w.text()).not.toContain("valor devido como negativo");
+  });
+
+  it("mostra a prévia do ajuste enquanto digita e envia centavos ao confirmar", async () => {
+    const w = await mountView();
+    await buttonByText(w, "Conciliar saldo")[0].trigger("click");
+    const input = w.find("#reconcile-a1");
+
+    await input.setValue("16,59");
+    expect(plain(w.find("[data-test=reconcile-preview]").text())).toBe("Ajuste de saldo inicial: −R$ 63,41");
+    await input.setValue("1.000,00");
+    expect(plain(w.find("[data-test=reconcile-preview]").text())).toBe("Ajuste de saldo inicial: +R$ 920,00");
+    await input.setValue("16,59");
+
+    httpMock.mockClear();
+    await w.find("form.reconcile-form").trigger("submit");
+    await flushPromises();
+
+    const post = httpMock.mock.calls.find((c) => c[0] === "POST");
+    expect(post).toEqual(["POST", "/accounts/a1/reconcile", { balanceCents: 1659 }]);
+    // recarrega contas e saldos
+    expect(httpMock.mock.calls.some((c) => c[0] === "GET" && String(c[1]).startsWith("/accounts"))).toBe(true);
+    expect(httpMock.mock.calls.some((c) => c[0] === "GET" && c[1] === "/balances")).toBe(true);
+    expect(plain(w.text())).toContain("Saldo conciliado: R$ 16,59");
+    expect(w.find("form.reconcile-form").exists()).toBe(false);
+    expect(plain(w.find(".account-item").text())).toContain("R$ 16,59");
+  });
+
+  it("aceita valor negativo e ponto decimal", async () => {
+    const w = await mountView();
+    await buttonByText(w, "Conciliar saldo")[0].trigger("click");
+    await w.find("#reconcile-a1").setValue("-120.5");
+    await w.find("form.reconcile-form").trigger("submit");
+    await flushPromises();
+    expect(httpMock.mock.calls.find((c) => c[0] === "POST")?.[2]).toEqual({ balanceCents: -12050 });
+  });
+
+  it("texto inválido: sem prévia, aviso de valor inválido e confirmar desabilitado; nada é enviado", async () => {
+    const w = await mountView();
+    await buttonByText(w, "Conciliar saldo")[0].trigger("click");
+    await w.find("#reconcile-a1").setValue("16,599");
+    expect(w.find("[data-test=reconcile-preview]").exists()).toBe(false);
+    expect(w.text()).toContain("Valor inválido");
+    const confirm = buttonByText(w, "Confirmar conciliação")[0];
+    expect(confirm.attributes("disabled")).toBeDefined();
+    await w.find("form.reconcile-form").trigger("submit");
+    await flushPromises();
+    expect(httpMock.mock.calls.some((c) => c[0] === "POST")).toBe(false);
+  });
+
+  it("cartão: o texto de ajuda pede o valor devido como negativo", async () => {
+    const w = await mountView();
+    await buttonByText(w, "Conciliar saldo")[1].trigger("click");
+    expect(plain(w.text())).toContain("Saldo no sistema: -R$ 250,00");
+    expect(w.text()).toContain("Para cartão, informe o valor devido como negativo");
+  });
+
+  it("erro da API aparece como alerta e o formulário continua aberto", async () => {
+    httpMock.mockImplementation(async (method: string, path: string, body?: unknown) => {
+      if (method === "POST") throw new Error("conta não encontrada");
+      return route(method, path, body);
+    });
+    const w = await mountView();
+    await buttonByText(w, "Conciliar saldo")[0].trigger("click");
+    await w.find("#reconcile-a1").setValue("10");
+    await w.find("form.reconcile-form").trigger("submit");
+    await flushPromises();
+    expect(w.find("[role=alert]").text()).toBe("conta não encontrada");
+    expect(w.find("form.reconcile-form").exists()).toBe(true);
+  });
+
+  it("Cancelar fecha o formulário sem chamar a API", async () => {
+    const w = await mountView();
+    await buttonByText(w, "Conciliar saldo")[0].trigger("click");
+    await buttonByText(w, "Cancelar")[0].trigger("click");
+    expect(w.find("form.reconcile-form").exists()).toBe(false);
+    expect(httpMock.mock.calls.some((c) => c[0] === "POST")).toBe(false);
+  });
+
+  it("conta arquivada não oferece a ação", async () => {
+    state.accounts = [account({ archived: true })];
+    const w = await mountView();
+    expect(buttonByText(w, "Conciliar saldo")).toHaveLength(0);
+  });
+});

@@ -39,6 +39,15 @@ export interface NewAccount {
 
 export type UpdateAccount = Partial<Omit<NewAccount, "type" | "openingBalanceCents">>;
 
+/** Resposta de `POST /accounts/:id/reconcile` (centavos). */
+export interface ReconcileResult {
+  accountId: string;
+  previousBalanceCents: number;
+  newBalanceCents: number;
+  adjustmentCents: number;
+  openingBalanceCents: number;
+}
+
 export interface Category {
   id: string;
   type: CategoryType;
@@ -273,6 +282,7 @@ export const api = {
     list: (entity?: AccountEntity) => req<BankAccount[]>("GET", `/accounts${entity ? `?entity=${entity}` : ""}`),
     create: (body: NewAccount) => req<BankAccount>("POST", "/accounts", body),
     update: (id: string, body: UpdateAccount) => req<BankAccount>("PATCH", `/accounts/${id}`, body),
+    reconcile: (id: string, balanceCents: number) => req<ReconcileResult>("POST", `/accounts/${id}/reconcile`, { balanceCents }),
     archive: (id: string) => req<{ ok: boolean }>("PATCH", `/accounts/${id}/archive`),
   },
   categories: {

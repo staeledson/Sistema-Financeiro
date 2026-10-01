@@ -24,6 +24,13 @@ export const useFinanceStore = defineStore("finance", () => {
     return acc;
   }
 
+  /** Ajusta o saldo inicial para o saldo real e recarrega contas e saldos. */
+  async function reconcileAccount(id: string, balanceCents: number) {
+    const result = await api.accounts.reconcile(id, balanceCents);
+    await Promise.all([loadAccounts(), loadBalances()]);
+    return result;
+  }
+
   async function archiveAccount(id: string) {
     await api.accounts.archive(id);
     accounts.value = accounts.value.filter((a) => a.id !== id);
@@ -51,7 +58,7 @@ export const useFinanceStore = defineStore("finance", () => {
 
   return {
     accounts, categories, transactions, balances,
-    loadAccounts, createAccount, updateAccount, archiveAccount,
+    loadAccounts, createAccount, updateAccount, reconcileAccount, archiveAccount,
     loadCategories, loadTransactions, createTransaction,
     loadBalances,
   };

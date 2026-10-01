@@ -12,6 +12,7 @@ import {
   mapBankCategory,
   StatementParseError,
   verifyBalances,
+  type BalancePoint,
   type Institution,
   type StatementFormat,
   type StatementKind,
@@ -54,6 +55,16 @@ function looksLikeCsv(fileName: string, text: string): boolean {
   if (/\.csv$/i.test(fileName)) return true;
   const lines = text.split(/\r?\n/).filter(Boolean);
   return lines.length >= 2 && lines[0].split(/[;,]/).length >= 3;
+}
+
+/**
+ * Saldo corrente que o próprio arquivo declara (momento da exportação), ou null. Só o ponto marcado `current`
+ * serve: os demais valem para a data deles, não para hoje, e não se adivinha. Havendo mais de um, vale o de data mais recente.
+ */
+export function currentStatementBalance(balances: BalancePoint[]): { dateISO: string; balanceCents: number; current: true } | null {
+  let best: BalancePoint | null = null;
+  for (const p of balances) if (p.current === true && (!best || p.dateISO >= best.dateISO)) best = p;
+  return best ? { dateISO: best.dateISO, balanceCents: best.balanceCents, current: true } : null;
 }
 
 @Injectable()
@@ -192,6 +203,7 @@ export class ImportStatementService {
     }));
     const dupCount = rows.filter((r) => r.dup).length;
     const balanceCheck = verifyBalances(parsed.rows, parsed.balances);
+    const statementBalance = currentStatementBalance(parsed.balances);
 
     const batch = await prisma.importBatch.create({
       data: {
@@ -218,6 +230,7 @@ export class ImportStatementService {
       rowCount: rows.length,
       dupCount,
       balanceCheck,
+      statementBalance,
     };
   }
 

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
-import { accountSchema, accountUpdateSchema } from "@app/shared";
+import { accountReconcileSchema, accountSchema, accountUpdateSchema } from "@app/shared";
 import { CurrentUserGuard, type AuthenticatedUser } from "../auth/current-user.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { parseEntityQuery } from "../common/entity-query";
@@ -24,6 +24,13 @@ export class AccountsController {
   @Patch(":id")
   update(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() body: unknown) {
     return this.service.update(user.workspaceId, id, accountUpdateSchema.parse(body));
+  }
+
+  /** Conciliação: o usuário informa o saldo real de hoje e o saldo inicial da conta absorve a diferença. */
+  @Post(":id/reconcile")
+  @HttpCode(200)
+  reconcile(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() body: unknown) {
+    return this.service.reconcile(user.workspaceId, id, accountReconcileSchema.parse(body).balanceCents);
   }
 
   @Patch(":id/archive")

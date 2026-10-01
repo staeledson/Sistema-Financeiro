@@ -6,14 +6,18 @@ import { prisma } from "../database";
 export type BalanceScope = { entity?: AccountEntity; accountId?: string };
 export type AccountBalanceRow = { accountId: string; name: string; type: string; entity: AccountEntity; balanceCents: number };
 
+/** Cliente que executa o SQL: o `prisma` global ou o `tx` de uma transação interativa. */
+export type RawClient = Pick<Prisma.TransactionClient, "$queryRaw">;
+
 @Injectable()
 export class BalancesService {
   /**
    * Saldo por conta, em SQL. Reflete o banco: NÃO aplica `reportableSql` (pares e ignorados contam).
    * `asOf` (YYYY-MM-DD) limita aos movimentos com data até esse dia; omitido = sem limite.
+   * `db` permite rodar dentro de uma transação interativa (padrão: o `prisma` global).
    */
-  async accountBalances(workspaceId: string, scope: BalanceScope = {}, asOf?: string): Promise<AccountBalanceRow[]> {
-    const rows = await prisma.$queryRaw<Array<{ id: string; name: string; type: string; entity: AccountEntity; balance: bigint }>>`
+  async accountBalances(workspaceId: string, scope: BalanceScope = {}, asOf?: string, db: RawClient = prisma): Promise<AccountBalanceRow[]> {
+    const rows = await db.$queryRaw<Array<{ id: string; name: string; type: string; entity: AccountEntity; balance: bigint }>>`
       SELECT a."id", a."name", a."type"::text AS "type", a."entity"::text AS "entity",
         a."openingBalanceCents" + COALESCE(SUM(
           CASE

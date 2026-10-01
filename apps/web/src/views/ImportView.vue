@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { http } from "../lib/http";
 import { useFinanceStore } from "../stores/finance";
 import { formatBRL } from "../lib/money";
+import { formatAdjustment } from "../lib/money-input";
 import { ENTITY_LABEL, INSTITUTION_LABEL, type AccountEntity } from "../lib/entity";
 import { buildCreateAccountPayload, emptyAccountForm } from "../lib/account-form";
 import {
@@ -29,6 +30,9 @@ const busy = ref(false);
 const preview = ref<StatementPreview | null>(null);
 const previewRows = ref<SelectableRow[]>([]);
 const batchId = ref("");
+// Saldo do extrato x saldo do sistema (passo "done", só extrato de conta com saldo corrente declarado)
+const reconcileInfo = ref<{ accountId: string; statementCents: number; systemCents: number } | null>(null);
+const reconcileNotice = ref("");
 const batches = ref<BatchSummary[]>([]);
 
 // Fatura de cartão em CSV: o arquivo traz vários cartões e importamos um por vez
@@ -293,6 +297,38 @@ async function saveMapping() {
   }
 }
 
+/** Depois do commit: busca o saldo do sistema para compará-lo com o saldo corrente que o extrato declara. */
+async function loadReconcileInfo(p: StatementPreview | null) {
+  reconcileInfo.value = null;
+  reconcileNotice.value = "";
+  const declared = p?.statementBalance;
+  const account = selectedAccount.value;
+  if (!declared?.current || !account || account.type === "credit_card") return;
+  try {
+    await finance.loadBalances();
+    const system = finance.balances?.accounts.find((b) => b.accountId === account.id);
+    if (system) reconcileInfo.value = { accountId: account.id, statementCents: declared.balanceCents, systemCents: system.balanceCents };
+  } catch {
+    /* a comparação é um extra: a importação já foi concluída */
+  }
+}
+
+async function adjustOpeningBalance() {
+  const info = reconcileInfo.value;
+  if (!info || busy.value) return;
+  erro.value = "";
+  busy.value = true;
+  try {
+    const r = await finance.reconcileAccount(info.accountId, info.statementCents);
+    reconcileInfo.value = { ...info, systemCents: r.newBalanceCents };
+    reconcileNotice.value = `Saldo conciliado: ${formatBRL(r.newBalanceCents)} (ajuste de saldo inicial: ${formatAdjustment(r.adjustmentCents)})`;
+  } catch (e) {
+    erro.value = (e as Error).message;
+  } finally {
+    busy.value = false;
+  }
+}
+
 function showPreview(data: { batchId: string; rows: PreviewRow[] }, p: StatementPreview | null) {
   preview.value = p;
   batchId.value = data.batchId;
@@ -372,6 +408,7 @@ async function commit() {
     } else {
       status.value = `${result.inserted} transações importadas${dupNote}.`;
       step.value = "done";
+      await loadReconcileInfo(preview.value);
     }
     await loadBatches();
   } catch (e) {
@@ -422,6 +459,8 @@ async function undo(b: BatchSummary) {
 
 function reset() {
   step.value = "upload";
+  reconcileInfo.value = null;
+  reconcileNotice.value = "";
   file.value = null;
   detected.value = null;
   preview.value = null;
@@ -665,6 +704,19 @@ function reset() {
     <div v-if="step === 'done'" class="card">
       <h3>Concluído</h3>
       <p>{{ status }}</p>
+      <div v-if="reconcileInfo" class="reconcile-info">
+        <p data-test="statement-balance-line">
+          Saldo do extrato: {{ formatBRL(reconcileInfo.statementCents) }}; saldo no sistema: {{ formatBRL(reconcileInfo.systemCents) }}
+        </p>
+        <template v-if="reconcileInfo.statementCents !== reconcileInfo.systemCents">
+          <p class="hint">
+            O extrato cobre só um período; o saldo anterior a ele pode nunca ter sido informado.
+            O ajuste muda o saldo inicial da conta em {{ formatAdjustment(reconcileInfo.statementCents - reconcileInfo.systemCents) }}.
+          </p>
+          <button type="button" class="btn-secondary" :disabled="busy" @click="adjustOpeningBalance">Ajustar saldo inicial da conta</button>
+        </template>
+        <p v-if="reconcileNotice" role="status" class="balance ok">{{ reconcileNotice }}</p>
+      </div>
       <button type="button" @click="reset">Nova importação</button>
     </div>
 
@@ -709,6 +761,8 @@ select, input[type="text"], input[type="number"], input:not([type]) { width: 100
 .hint { font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
 .btn-row { display: flex; gap: var(--space); justify-content: flex-end; }
 .btn-small.active { background: var(--accent); color: var(--accent-text); }
+.reconcile-info { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space); }
+.reconcile-info p { margin: 0; }
 .balance { font-size: 0.9rem; font-weight: 600; }
 .balance.ok { color: var(--c-income); }
 .balance.warn { color: var(--warning); }

@@ -14,6 +14,7 @@ import EntityBadge from "../components/ui/EntityBadge.vue";
 import EmptyState from "../components/ui/EmptyState.vue";
 import Money from "../components/ui/Money.vue";
 import { formatBRL } from "../lib/money";
+import { formatAdjustment, parseMoneyInput } from "../lib/money-input";
 
 const store = useFinanceStore();
 const filtro = ref<EntityFilter>("all");
@@ -21,6 +22,10 @@ const novo = ref(emptyAccountForm());
 const editId = ref<string | null>(null);
 const edicao = ref(emptyAccountForm());
 const erro = ref("");
+const conciliarId = ref<string | null>(null);
+const saldoReal = ref("");
+const conciliando = ref(false);
+const aviso = ref("");
 
 const filtros: { value: EntityFilter; label: string }[] = [
   { value: "all", label: "Todas" },
@@ -53,6 +58,7 @@ async function criar() {
 
 function iniciarEdicao(acc: BankAccount) {
   erro.value = "";
+  conciliarId.value = null;
   editId.value = acc.id;
   edicao.value = formFromAccount(acc);
 }
@@ -70,6 +76,42 @@ async function salvarEdicao() {
     editId.value = null;
   } catch (e) {
     erro.value = (e as Error).message;
+  }
+}
+
+const conciliarConta = computed(() => store.accounts.find((a) => a.id === conciliarId.value) ?? null);
+const saldoRealCents = computed(() => parseMoneyInput(saldoReal.value));
+// ajuste previsto no saldo inicial: saldo real informado - saldo que o sistema mostra hoje
+const ajusteCents = computed(() =>
+  saldoRealCents.value === null || !conciliarConta.value ? null : saldoRealCents.value - saldoDe(conciliarConta.value),
+);
+
+function iniciarConciliacao(acc: BankAccount) {
+  erro.value = "";
+  aviso.value = "";
+  editId.value = null;
+  conciliarId.value = acc.id;
+  saldoReal.value = "";
+}
+
+function cancelarConciliacao() {
+  conciliarId.value = null;
+}
+
+async function conciliar() {
+  const acc = conciliarConta.value;
+  const alvo = saldoRealCents.value;
+  if (!acc || alvo === null || conciliando.value) return;
+  erro.value = "";
+  conciliando.value = true;
+  try {
+    const r = await store.reconcileAccount(acc.id, alvo);
+    conciliarId.value = null;
+    aviso.value = `Saldo conciliado: ${formatBRL(r.newBalanceCents)} (${acc.name}; ajuste de saldo inicial: ${formatAdjustment(r.adjustmentCents)})`;
+  } catch (e) {
+    erro.value = (e as Error).message;
+  } finally {
+    conciliando.value = false;
   }
 }
 
@@ -113,6 +155,7 @@ function detalheCartao(acc: BankAccount): string | null {
       Saldo {{ filtro === 'all' ? 'consolidado' : filtro.toUpperCase() }}: <strong><Money :cents="saldoVisivel" /></strong>
     </div>
 
+    <p v-if="aviso" role="status" class="notice">{{ aviso }}</p>
     <ul class="account-list">
       <li v-for="acc in visiveis" :key="acc.id" class="account-item">
         <template v-if="editId === acc.id">
@@ -124,6 +167,33 @@ function detalheCartao(acc: BankAccount): string | null {
             </div>
           </form>
         </template>
+        <template v-else-if="conciliarId === acc.id">
+          <form class="reconcile-form" @submit.prevent="conciliar">
+            <h3>Conciliar saldo: {{ acc.name }}</h3>
+            <p class="reconcile-current">Saldo no sistema: <strong><Money :cents="saldoDe(acc)" /></strong></p>
+            <label :for="`reconcile-${acc.id}`">Saldo real hoje (R$)</label>
+            <input
+              :id="`reconcile-${acc.id}`"
+              v-model="saldoReal"
+              type="text"
+              inputmode="decimal"
+              autocomplete="off"
+              placeholder="Ex.: 6.508,80"
+            />
+            <p class="hint">
+              Informe o saldo que o banco mostra agora. O sistema ajusta o saldo inicial da conta pela diferença.
+              <template v-if="acc.type === 'credit_card'"> Para cartão, informe o valor devido como negativo.</template>
+            </p>
+            <p v-if="ajusteCents !== null" class="reconcile-preview" data-test="reconcile-preview">
+              Ajuste de saldo inicial: <strong>{{ formatAdjustment(ajusteCents) }}</strong>
+            </p>
+            <p v-else-if="saldoReal.trim()" class="text-error" role="alert">Valor inválido. Use o formato 1.234,56 (sinal de menos para valores negativos).</p>
+            <div class="edit-actions">
+              <button type="submit" :disabled="saldoRealCents === null || conciliando">Confirmar conciliação</button>
+              <button type="button" class="btn-secondary btn-small" @click="cancelarConciliacao">Cancelar</button>
+            </div>
+          </form>
+        </template>
         <template v-else>
           <div class="account-info">
             <span class="account-name">{{ acc.name }}</span>
@@ -132,6 +202,7 @@ function detalheCartao(acc: BankAccount): string | null {
           </div>
           <div class="account-actions">
             <Money class="balance" :cents="saldoDe(acc)" />
+            <button v-if="!acc.archived" type="button" class="btn-secondary btn-small" @click="iniciarConciliacao(acc)">Conciliar saldo</button>
             <button type="button" class="btn-secondary btn-small" @click="iniciarEdicao(acc)">Editar</button>
             <button type="button" class="btn-danger btn-small" @click="arquivar(acc.id)">Arquivar</button>
           </div>
@@ -167,5 +238,11 @@ h2, h3 { margin-bottom: calc(var(--space) * 2); }
 .create-form, .edit-form { display: flex; flex-direction: column; gap: calc(var(--space) * 2); width: 100%; }
 .create-form { background: var(--surface); border: 1px solid var(--border); padding: calc(var(--space) * 3); border-radius: var(--radius); }
 .edit-actions { display: flex; gap: var(--space); }
+.reconcile-form { display: flex; flex-direction: column; gap: var(--space); width: 100%; }
+.reconcile-form h3 { margin-bottom: 0; font-size: 1rem; }
+.reconcile-form input { width: 100%; }
+.reconcile-current, .reconcile-preview { margin: 0; }
+.hint { font-size: 0.85rem; color: var(--text-muted); margin: 0; }
+.notice { font-size: 0.9rem; margin: 0 0 calc(var(--space) * 2); color: var(--c-income); }
 p[role="alert"] { font-size: 0.9rem; margin-top: calc(var(--space) * 2); }
 </style>
