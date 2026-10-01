@@ -638,7 +638,7 @@ function reset() {
 </script>
 
 <template>
-  <section class="import">
+  <section class="import" :class="{ wide: step === 'lote' }">
     <h2>Importar extrato</h2>
 
     <p v-if="erro" role="alert" class="text-error">{{ erro }}</p>
@@ -1009,6 +1009,7 @@ function reset() {
 </template>
 
 <style scoped>
+.import.wide { max-width: 1120px; }
 .import { padding: calc(var(--space) * 3); max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: calc(var(--space) * 3); }
 h2 { margin-bottom: 0; }
 .card { background: var(--surface); border: 1px solid var(--border); padding: calc(var(--space) * 3); border-radius: var(--radius); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
