@@ -880,7 +880,8 @@ describe("GET /dashboard/summary", () => {
     });
 
     expect(b.pendingCount).toBe(2);
-    expect(b.nextInvoice).toEqual({ accountId: cardB.id, name: "Cartão B", dueDate: "2026-07-05", openInvoiceCents: 8000 });
+    expect(b.nextInvoice).toEqual({ accountId: cardB.id, name: "Cartão B", dueDate: "2026-07-05", openInvoiceCents: 8000, estimated: false });
+    expect(b.cardsConfigured).toBe(true);
 
     const spending = (await get(u, "/dashboard/spending?month=2026-06&asOf=2026-06-20")).json();
     expect(b.spending.totalCents).toBe(spending.totalCents);
@@ -913,6 +914,7 @@ describe("GET /dashboard/summary", () => {
     const { u } = await seedCashflow("sm3");
     const b = (await get(u, `/dashboard/summary?${AS_OF}`)).json();
     expect(b.nextInvoice).toBeNull();
+    expect(b.cardsConfigured).toBe(false);
     expect(b.pendingCount).toBe(0);
     expect(b.balances).toEqual({
       pfCents: 220000, pjCents: 160000, totalCents: 380000,
@@ -948,10 +950,60 @@ describe("GET /dashboard/summary", () => {
     await tx({ type: "expense", amountCents: 5000n, date: dayOf("2026-06-11") }); // ciclo aberto: fecha 10/07, vence 17/07
     // asOf 12/06: a fatura fechada (restam 25000, vence 17/06) vem antes da aberta (5000, vence 17/07)
     const b = (await get(u, "/dashboard/summary?asOf=2026-06-12")).json();
-    expect(b.nextInvoice).toEqual({ accountId: card.id, name: "Cartão", dueDate: "2026-06-17", openInvoiceCents: 25000 });
+    expect(b.nextInvoice).toEqual({ accountId: card.id, name: "Cartão", dueDate: "2026-06-17", openInvoiceCents: 25000, estimated: false });
     // depois do vencimento da fechada (asOf 18/06) só resta a aberta
     const depois = (await get(u, "/dashboard/summary?asOf=2026-06-18")).json();
-    expect(depois.nextInvoice).toEqual({ accountId: card.id, name: "Cartão", dueDate: "2026-07-17", openInvoiceCents: 5000 });
+    expect(depois.nextInvoice).toEqual({ accountId: card.id, name: "Cartão", dueDate: "2026-07-17", openInvoiceCents: 5000, estimated: false });
+  });
+
+  it("cartão configurado com saldo devedor e sem lançamentos: próxima fatura estimada pelo saldo do cartão", async () => {
+    const u = await newUser("sm7");
+    const card = await prisma.bankAccount.create({
+      data: { workspaceId: u.workspaceId, type: "credit_card", name: "Cartão", closingDay: 9, dueDay: 15, openingBalanceCents: -45269n },
+    });
+    const b = (await get(u, "/dashboard/summary?asOf=2026-10-01")).json();
+    expect(b.nextInvoice).toEqual({ accountId: card.id, name: "Cartão", dueDate: "2026-10-15", openInvoiceCents: 45269, estimated: true });
+    expect(b.cardsConfigured).toBe(true);
+  });
+
+  it("fallback do saldo devedor não duplica cartão que já tem fatura calculada", async () => {
+    const u = await newUser("sm8");
+    const comFatura = await prisma.bankAccount.create({
+      data: { workspaceId: u.workspaceId, type: "credit_card", name: "Com fatura", closingDay: 9, dueDay: 15 },
+    });
+    await prisma.bankAccount.create({
+      data: { workspaceId: u.workspaceId, type: "credit_card", name: "Só saldo", closingDay: 9, dueDay: 20, openingBalanceCents: -10000n },
+    });
+    await prisma.transaction.create({
+      data: { workspaceId: u.workspaceId, accountId: comFatura.id, source: "manual", createdById: u.userId, type: "expense", amountCents: 30000n, date: dayOf("2026-09-20") } as never,
+    });
+    // asOf 01/10: o ciclo aberto de "Com fatura" (fecha 09/10, vence 15/10) tem fatura calculada; "Só saldo" (vence 20/10) só tem saldo devedor
+    const b = (await get(u, "/dashboard/summary?asOf=2026-10-01")).json();
+    expect(b.nextInvoice).toEqual({ accountId: comFatura.id, name: "Com fatura", dueDate: "2026-10-15", openInvoiceCents: 30000, estimated: false });
+    // só o cartão com saldo, sem a fatura calculada do outro: aparece como estimada
+    await prisma.transaction.deleteMany({ where: { accountId: comFatura.id } });
+    const c = (await get(u, "/dashboard/summary?asOf=2026-10-01")).json();
+    expect(c.nextInvoice).toMatchObject({ name: "Só saldo", dueDate: "2026-10-20", openInvoiceCents: 10000, estimated: true });
+  });
+
+  it("cartão sem dias configurados não gera fatura e cardsConfigured é falso", async () => {
+    const u = await newUser("sm9");
+    await prisma.bankAccount.create({
+      data: { workspaceId: u.workspaceId, type: "credit_card", name: "Sem dia", openingBalanceCents: -5000n },
+    });
+    const b = (await get(u, "/dashboard/summary?asOf=2026-10-01")).json();
+    expect(b.nextInvoice).toBeNull();
+    expect(b.cardsConfigured).toBe(false);
+  });
+
+  it("cartão configurado sem dívida e sem faturas: próxima fatura nula, cardsConfigured verdadeiro", async () => {
+    const u = await newUser("sm10");
+    await prisma.bankAccount.create({
+      data: { workspaceId: u.workspaceId, type: "credit_card", name: "Zerado", closingDay: 9, dueDay: 15 },
+    });
+    const b = (await get(u, "/dashboard/summary?asOf=2026-10-01")).json();
+    expect(b.nextInvoice).toBeNull();
+    expect(b.cardsConfigured).toBe(true);
   });
 
   it("não vaza dados de outro workspace", async () => {

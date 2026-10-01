@@ -19,7 +19,8 @@ const summary = {
     cards: { pfCents: -63113, pjCents: -1000, totalCents: -64113 },
   },
   pendingCount: 7,
-  nextInvoice: { accountId: "k1", name: "Cartão C6", dueDate: "2026-10-10", openInvoiceCents: 123456 },
+  nextInvoice: { accountId: "k1", name: "Cartão C6", dueDate: "2026-10-10", openInvoiceCents: 123456, estimated: false },
+  cardsConfigured: true,
   spending: {
     totalCents: 50000,
     insight: "Mercado subiu 18% vs. mês anterior",
@@ -86,6 +87,25 @@ describe("InicioView", () => {
     summaryMock.mockResolvedValue({ ...summary, balances: { ...summary.balances, cards: { pfCents: 0, pjCents: 0, totalCents: 0 } } });
     const { w } = await mountInicio();
     expect(w.find('[aria-label="Cartões a pagar"]').exists()).toBe(false);
+  });
+
+  it("fatura estimada pelo saldo devedor mostra a observação; a calculada não", async () => {
+    const { w } = await mountInicio();
+    expect(w.text()).not.toContain("Saldo devedor do cartão");
+    summaryMock.mockResolvedValue({ ...summary, nextInvoice: { ...summary.nextInvoice, openInvoiceCents: 45269, estimated: true } });
+    const { w: w2 } = await mountInicio();
+    expect(w2.text()).toContain("Cartão C6");
+    expect(w2.text()).toContain("Saldo devedor do cartão (a fatura ainda não tem lançamentos importados)");
+  });
+
+  it("sem fatura: cartões configurados dizem só 'Nenhuma fatura a vencer.'; sem cartão configurado orienta a configurar", async () => {
+    summaryMock.mockResolvedValue({ ...summary, nextInvoice: null, cardsConfigured: true });
+    const { w } = await mountInicio();
+    expect(w.text()).toContain("Nenhuma fatura a vencer.");
+    expect(w.text()).not.toContain("dias de fechamento e vencimento");
+    summaryMock.mockResolvedValue({ ...summary, nextInvoice: null, cardsConfigured: false });
+    const { w: w2 } = await mountInicio();
+    expect(w2.text()).toContain("Cartões precisam de dias de fechamento e vencimento em Contas.");
   });
 
   it("sem fatura e sem despesas: estados vazios", async () => {

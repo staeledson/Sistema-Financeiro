@@ -142,6 +142,23 @@ describe("PainelView", () => {
     expect(w.find('a[href="/contas"]').exists()).toBe(true);
   });
 
+  it("cartão com saldo devedor mas fatura zerada mostra a dica do saldo devedor; com fatura calculada não", async () => {
+    const card = {
+      accountId: "k1", name: "C6", entity: "pf", configured: true, closingDay: 9, dueDay: 15, creditLimitCents: null,
+      usedCents: 45269, limitUsedPct: null, openInvoiceCents: 0, closingDate: "2026-10-09", dueDate: "2026-10-15",
+      cycleDaily: [], installmentsAhead: [], invoicePayments: [],
+    };
+    cardsMock.mockResolvedValue({ cards: [card] });
+    const { w } = await mountAt("/painel");
+    const hint = w.find(".debt-hint");
+    expect(hint.exists()).toBe(true);
+    expect(hint.text().replace(/\s/g, " ")).toContain("Saldo devedor do cartão: R$ 452,69 (importe a fatura atual para detalhar)");
+
+    cardsMock.mockResolvedValue({ cards: [{ ...card, openInvoiceCents: 45269 }] });
+    const { w: w2 } = await mountAt("/painel");
+    expect(w2.find(".debt-hint").exists()).toBe(false);
+  });
+
   it("falha de uma seção não derruba as outras", async () => {
     cardsMock.mockRejectedValue(new Error("falhou cartões"));
     const { w } = await mountAt("/painel");
