@@ -73,7 +73,7 @@
 **Interfaces:**
 - Produces (Prisma): enums `CategorySource`, `ReviewStatus`; em `Transaction`: `categorySource`, `categoryConfidence`, `reviewStatus`, `suggestedCategoryId` (+ relação `suggestedCategory`), `transferPairId`, `ignored`; em `CategoryRule`: `hitCount`.
 
-- [ ] **Step 1: Criar a branch**
+- [x] **Step 1: Criar a branch**
 
 ```bash
 git checkout main
@@ -82,7 +82,7 @@ git checkout -b fase-12-categorizacao
 
 Esperado: `Switched to a new branch 'fase-12-categorizacao'`.
 
-- [ ] **Step 2: Escrever o teste de schema (deve falhar)**
+- [x] **Step 2: Escrever o teste de schema (deve falhar)**
 
 Em `apps/api/test/database/schema.test.ts`, acrescentar dentro do `describe("schema base", …)`, depois do último `it`:
 
@@ -107,7 +107,7 @@ Em `apps/api/test/database/schema.test.ts`, acrescentar dentro do `describe("sch
   });
 ```
 
-- [ ] **Step 3: Rodar e confirmar a falha**
+- [x] **Step 3: Rodar e confirmar a falha**
 
 ```bash
 docker compose up -d
@@ -116,7 +116,7 @@ pnpm --filter @app/api exec vitest run test/database/schema.test.ts
 
 Esperado: FAIL nos dois testes novos.
 
-- [ ] **Step 4: Editar o `prisma/schema.prisma`**
+- [x] **Step 4: Editar o `prisma/schema.prisma`**
 
 1. Junto dos demais enums, acrescentar:
 
@@ -174,7 +174,7 @@ pnpm exec prisma validate
 
 Esperado: `The schema at prisma/schema.prisma is valid`.
 
-- [ ] **Step 5: Gerar o SQL, acrescentar o passo de dados e aplicar**
+- [x] **Step 5: Gerar o SQL, acrescentar o passo de dados e aplicar**
 
 ```bash
 git show HEAD:prisma/schema.prisma > "$TMPDIR/old.prisma"
@@ -216,7 +216,7 @@ docker exec financas-postgres psql -U app -d financas -c "delete from \"user\" w
 
 Esperado: `t_pre12a:manual:ok:false`, `t_pre12b:none:ok:false`, depois `1` (sem drift). O `delete` remove os dados de teste por cascata.
 
-- [ ] **Step 6: Rodar testes e typecheck**
+- [x] **Step 6: Rodar testes e typecheck**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/database/schema.test.ts
@@ -225,7 +225,7 @@ pnpm turbo typecheck
 
 Esperado: 8 testes passam em `schema.test.ts` e typecheck verde nos 4 pacotes.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add prisma apps/api/test/database/schema.test.ts
@@ -257,7 +257,7 @@ EOF
   - `type TransferCandidate { id; accountId; accountType: AccountType; type: "income" | "expense"; amountCents: number; date: string; text: string }`, `detectTransferPairs(candidates: TransferCandidate[], opts: { ownerNames: string[]; windowDays: number }): Array<[expenseId: string, incomeId: string]>`
   - `matchRule<T extends Rule>(text: string, rules: T[]): T | null` (`applyRules` passa a usá-la)
 
-- [ ] **Step 1: Escrever os testes (devem falhar)**
+- [x] **Step 1: Escrever os testes (devem falhar)**
 
 Criar `packages/shared/src/__tests__/categorization.test.ts`:
 
@@ -433,7 +433,7 @@ describe("matchRule", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/shared test
@@ -441,7 +441,7 @@ pnpm --filter @app/shared test
 
 Esperado: FAIL no novo arquivo (exports inexistentes). Os demais testes continuam passando.
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 Em `packages/shared/src/rules.ts`, substituir a função `applyRules` por:
 
@@ -636,7 +636,7 @@ Em `packages/shared/src/index.ts`, acrescentar antes da linha `// Mesma instânc
 export * from "./categorization";
 ```
 
-- [ ] **Step 4: Rodar testes e typecheck**
+- [x] **Step 4: Rodar testes e typecheck**
 
 ```bash
 pnpm --filter @app/shared test
@@ -645,7 +645,7 @@ pnpm --filter @app/shared typecheck
 
 Esperado: todos passam (103 anteriores + 19 novos) e typecheck verde. Se algum teste de `detectTransferPairs` falhar, corrigir o **código** (não o teste) quando a lógica divergir do docstring.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/shared
@@ -675,7 +675,7 @@ EOF
   - `categorize.core.ts`: tipos `CatTx`, `CatCategory`, `CatRule`, `CatExample`, `CatSettings`, `CategorizeAi`, `CategorizePlan` e `planCategorization(input, ai): Promise<CategorizePlan>`.
   - `processCategorize(data: { jobId; workspaceId; batchId? }, deps: { ai: OpenRouterGateway })` mantém a assinatura atual e grava `AiJob.result = { total, transfers, byRule, byAi, pending }`.
 
-- [ ] **Step 1: Escrever os testes do gateway (devem falhar)**
+- [x] **Step 1: Escrever os testes do gateway (devem falhar)**
 
 Criar `apps/worker/test/categorize-gateway.test.ts`:
 
@@ -728,7 +728,7 @@ describe("OpenRouterGateway.categorizeBatch", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/worker exec vitest run test/categorize-gateway.test.ts
@@ -736,7 +736,7 @@ pnpm --filter @app/worker exec vitest run test/categorize-gateway.test.ts
 
 Esperado: FAIL (`categorizeBatch is not a function`).
 
-- [ ] **Step 3: Implementar o gateway**
+- [x] **Step 3: Implementar o gateway**
 
 Ler `apps/worker/src/ai/draft-schema.ts` e seguir o mesmo formato de `INVOICE_JSON_SCHEMA` (mesmas chaves no objeto exportado, inclusive `strict` se existir lá). Acrescentar ao final do arquivo:
 
@@ -794,7 +794,7 @@ pnpm --filter @app/worker exec vitest run test/categorize-gateway.test.ts
 
 Esperado: 3 testes passam.
 
-- [ ] **Step 4: Escrever os testes do núcleo (devem falhar)**
+- [x] **Step 4: Escrever os testes do núcleo (devem falhar)**
 
 Criar `apps/worker/test/categorize-core.test.ts`:
 
@@ -960,7 +960,7 @@ describe("planCategorization", () => {
 });
 ```
 
-- [ ] **Step 5: Rodar e confirmar a falha**
+- [x] **Step 5: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/worker exec vitest run test/categorize-core.test.ts
@@ -968,7 +968,7 @@ pnpm --filter @app/worker exec vitest run test/categorize-core.test.ts
 
 Esperado: FAIL (módulo `categorize.core` inexistente).
 
-- [ ] **Step 6: Implementar o núcleo**
+- [x] **Step 6: Implementar o núcleo**
 
 Criar `apps/worker/src/ai/categorize.core.ts`:
 
@@ -1143,7 +1143,7 @@ pnpm --filter @app/worker exec vitest run test/categorize-core.test.ts
 
 Esperado: 10 testes passam.
 
-- [ ] **Step 7: Escrever o teste do wrapper (deve falhar)**
+- [x] **Step 7: Escrever o teste do wrapper (deve falhar)**
 
 Criar `apps/worker/test/categorize-processor.test.ts`:
 
@@ -1271,7 +1271,7 @@ describe("processCategorize", () => {
 });
 ```
 
-- [ ] **Step 8: Rodar e confirmar a falha**
+- [x] **Step 8: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/worker exec vitest run test/categorize-processor.test.ts
@@ -1279,7 +1279,7 @@ pnpm --filter @app/worker exec vitest run test/categorize-processor.test.ts
 
 Esperado: FAIL (o processor antigo não usa `$transaction`, settings nem `ignored`).
 
-- [ ] **Step 9: Reescrever o job**
+- [x] **Step 9: Reescrever o job**
 
 Substituir `apps/worker/src/ai/categorize.processor.ts` por:
 
@@ -1489,7 +1489,7 @@ pnpm --filter @app/worker typecheck
 
 Esperado: todos passam (22 anteriores − os testes antigos que dependiam do comportamento removido, se existirem, mais 3 + 10 + 5 novos) e typecheck verde. Se existir um teste antigo do `processCategorize` que quebre por causa do comportamento novo, reescrevê-lo para o contrato novo em vez de removê-lo e listar a mudança no relatório.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add apps/worker
@@ -1527,7 +1527,7 @@ EOF
   - `PATCH /transactions/:id/category` body `{ categoryId: string | null; applyToSimilar?: boolean }` → `{ id, categoryId, similarCount }`; grava `categorySource = manual` (ou `none` se `categoryId` nulo), `reviewStatus = ok`; 400 se a categoria não serve.
   - `GET /category-rules` passa a incluir `hitCount`.
 
-- [ ] **Step 1: Escrever os testes e2e (devem falhar)**
+- [x] **Step 1: Escrever os testes e2e (devem falhar)**
 
 Criar `apps/api/test/e2e/revisao.e2e.test.ts`:
 
@@ -1825,7 +1825,7 @@ describe("PATCH /transactions/:id/category", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/revisao.e2e.test.ts
@@ -1833,7 +1833,7 @@ pnpm --filter @app/api exec vitest run test/e2e/revisao.e2e.test.ts
 
 Esperado: FAIL (rotas `/review/*` inexistentes → 404; o PATCH ainda não grava `categorySource`).
 
-- [ ] **Step 3: Helper de lançamentos parecidos**
+- [x] **Step 3: Helper de lançamentos parecidos**
 
 Criar `apps/api/src/common/similar-transactions.ts`:
 
@@ -1877,7 +1877,7 @@ export async function findSimilarUncategorizedIds(
 }
 ```
 
-- [ ] **Step 4: `ReviewService`**
+- [x] **Step 4: `ReviewService`**
 
 Criar `apps/api/src/review/review.service.ts`:
 
@@ -2100,7 +2100,7 @@ export class ReviewService {
 
 Observação: se o Prisma não aceitar `accountId: { not: tx.accountId, notIn: [] }`, usar só `accountId: { not: tx.accountId }` e filtrar `accountId !== null` em memória (contrapartes sem conta não servem).
 
-- [ ] **Step 5: Controller, módulo e registro**
+- [x] **Step 5: Controller, módulo e registro**
 
 Criar `apps/api/src/review/review.controller.ts`:
 
@@ -2196,7 +2196,7 @@ export class ReviewModule {}
 
 Em `apps/api/src/app.module.ts`, importar `ReviewModule` e acrescentá-lo à lista `imports`.
 
-- [ ] **Step 6: `PATCH /transactions/:id/category`, `hitCount` nas regras**
+- [x] **Step 6: `PATCH /transactions/:id/category`, `hitCount` nas regras**
 
 Em `apps/api/src/transactions/transactions.service.ts`, acrescentar aos imports:
 
@@ -2261,7 +2261,7 @@ Em `apps/api/src/transactions/transactions.controller.ts`, substituir o método 
 
 Em `apps/api/src/category-rules/category-rules.service.ts`, no `select` do método `list`, acrescentar `hitCount: true`.
 
-- [ ] **Step 7: Rodar os testes e o typecheck**
+- [x] **Step 7: Rodar os testes e o typecheck**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/revisao.e2e.test.ts
@@ -2271,7 +2271,7 @@ pnpm --filter @app/api test
 
 Esperado: todos os testes novos passam e a suíte completa da API continua verde. Se algum teste antigo falhar porque faz `PATCH /transactions/:id/category` com categoria de tipo diferente do lançamento (agora 400), ajustar o teste para usar uma categoria compatível e listar o ajuste no relatório.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add apps/api
@@ -2305,7 +2305,7 @@ EOF
   - `GET /workspaces/current/settings` lê sem escrever: devolve os padrões se a linha não existe.
   - Um OFX com `DTPOSTED` ou `TRNAMT` inválido lança `StatementParseError` (422 no preview).
 
-- [ ] **Step 1: Escrever os testes (devem falhar)**
+- [x] **Step 1: Escrever os testes (devem falhar)**
 
 Em `packages/shared/src/__tests__/statement-parsers.test.ts`, dentro do `describe("ofxStatementParser", …)`, acrescentar:
 
@@ -2487,7 +2487,7 @@ describe("OFX malformado e settings", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/shared test
@@ -2496,7 +2496,7 @@ pnpm --filter @app/api exec vitest run test/e2e/integridade-importacao.e2e.test.
 
 Esperado: FAIL no teste novo do OFX (shared) e em vários do e2e (categorySource `none`, commit aceitando categoria alheia, par não solto, settings criando linha, OFX sem data passando). O teste de corrida pode passar mesmo antes da correção (ele só falha quando o intervalo de concorrência ocorre); isso é esperado.
 
-- [ ] **Step 3: Implementar (shared e API)**
+- [x] **Step 3: Implementar (shared e API)**
 
 Em `packages/shared/src/parsers/ofx-statement.ts`, adicionar `toISODate` ao import de `./text` (`import { toISODate } from "./text";`) e, logo depois de `const txns = parseOfx(text);` e da checagem de lista vazia, acrescentar:
 
@@ -2587,7 +2587,7 @@ e acrescentar `import { DEFAULT_WORKSPACE_SETTINGS, type WorkspaceSettingsInput 
 
 Em `apps/api/test/e2e/modelo-pf-pj.e2e.test.ts`, substituir o teste `"GET devolve os padrões da spec na primeira leitura"` por uma versão que também confere que não houve escrita (se o teste de settings da fase 10 esperava a linha criada na leitura, ajustar só essa expectativa).
 
-- [ ] **Step 4: Rodar os testes e o typecheck**
+- [x] **Step 4: Rodar os testes e o typecheck**
 
 ```bash
 pnpm --filter @app/shared test
@@ -2598,7 +2598,7 @@ pnpm --filter @app/api test
 
 Esperado: tudo verde. O teste `TM2` (recommit do mesmo lote idempotente) continua passando (o status `committed` ainda aceita novo commit; só `undoneAt != null` dá 409).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -2625,7 +2625,7 @@ EOF
 - Produces: `REPORTABLE` (`{ transferPairId: null, ignored: false }`, filtro Prisma) e `reportableSql(alias?: string)` (fragmento `Prisma.sql` com `AND <alias.>"transferPairId" IS NULL AND <alias.>"ignored" = false`) em `apps/api/src/common/reportable.ts`, e o mesmo `reportableSql` em `apps/worker/src/insights/reportable.ts` (cliente Prisma do worker).
 - Regra: dashboard (fluxo do mês, quebra por categoria, série), ferramentas do chat de receita/despesa, progresso de orçamentos e os insights/previsão do worker ignoram pareados e ignorados. `BalancesService` e `get_balance` **não mudam**.
 
-- [ ] **Step 1: Escrever os testes (devem falhar)**
+- [x] **Step 1: Escrever os testes (devem falhar)**
 
 Criar `apps/api/test/e2e/agregacao.e2e.test.ts`:
 
@@ -2736,7 +2736,7 @@ describe("reportableSql", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/api exec vitest run test/e2e/agregacao.e2e.test.ts
@@ -2745,7 +2745,7 @@ pnpm --filter @app/worker exec vitest run test/reportable.test.ts
 
 Esperado: FAIL (os totais incluem pareados e ignorados; módulo `reportable` do worker inexistente). O teste de saldo já passa.
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 Criar `apps/api/src/common/reportable.ts`:
 
@@ -2780,7 +2780,7 @@ pnpm --filter @app/api test
 
 Esperado: os 4 testes novos da API e o do worker passam; suítes completas verdes. Se um teste antigo de dashboard/chat/orçamento quebrar, verificar se ele cria transações com `transferPairId`/`ignored` (não deveria); ajustar só se a expectativa antiga contrariar a regra nova.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A
@@ -2806,7 +2806,7 @@ EOF
 - Consumes: contrato da API da Task 4; `categoriesForEntity`, `ENTITY_LABEL`, `ENTITY_SHORT`, `accountsForEntity`, tipos em `lib/entity.ts`; `useFinanceStore` (`accounts`, `categories`, `loadAccounts`, `loadCategories`); `http` de `lib/http.ts`.
 - Produces (`lib/review-client.ts`): tipos `PendingGroup`, `PendingResponse`, `TransferCandidate`, `RuleRow`; funções `getPending`, `categorizeGroup`, `acceptSuggestions`, `ignoreTransactions`, `markTransfer`, `getTransferCandidates`, `recategorize`, `listRules`, `deleteRule`; helper puro `categoriesForGroup(categories, group)`.
 
-- [ ] **Step 1: Escrever os testes do cliente (devem falhar)**
+- [x] **Step 1: Escrever os testes do cliente (devem falhar)**
 
 Criar `apps/web/src/lib/__tests__/review-client.test.ts`:
 
@@ -2882,7 +2882,7 @@ describe("categoriesForGroup", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar e confirmar a falha**
+- [x] **Step 2: Rodar e confirmar a falha**
 
 ```bash
 pnpm --filter @app/web test
@@ -2890,7 +2890,7 @@ pnpm --filter @app/web test
 
 Esperado: FAIL (módulo `../review-client` inexistente).
 
-- [ ] **Step 3: Criar `lib/review-client.ts`**
+- [x] **Step 3: Criar `lib/review-client.ts`**
 
 ```ts
 import { http } from "./http";
@@ -2985,7 +2985,7 @@ pnpm --filter @app/web typecheck
 
 Esperado: os testes novos passam (45 anteriores + 7) e typecheck verde.
 
-- [ ] **Step 4: Painel de regras**
+- [x] **Step 4: Painel de regras**
 
 Criar `apps/web/src/components/RulesPanel.vue`:
 
@@ -3065,7 +3065,7 @@ button { padding: calc(var(--space) * 0.75) calc(var(--space) * 1.5); border: no
 </style>
 ```
 
-- [ ] **Step 5: Reescrever `ReviewView.vue`**
+- [x] **Step 5: Reescrever `ReviewView.vue`**
 
 Ler o `ReviewView.vue` atual (rascunhos: `Draft`, `load`, `confirm`, `discard`, `formatBRL`, `formatDate`, `confidenceColor` e o template da lista) e **preservar exatamente o comportamento dos rascunhos** dentro da seção "Rascunhos". Substituir o arquivo por uma versão que mantém essas funções e acrescenta, acima dos rascunhos, a seção de pendentes. Estrutura obrigatória:
 
@@ -3255,7 +3255,7 @@ pnpm --filter @app/web test
 
 Esperado: vue-tsc verde e todos os testes passando.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/web
@@ -3277,7 +3277,7 @@ EOF
 
 **Interfaces:** nenhuma nova.
 
-- [ ] **Step 1: Typecheck, testes e drift, sem cache**
+- [x] **Step 1: Typecheck, testes e drift, sem cache**
 
 ```bash
 docker compose up -d
@@ -3289,7 +3289,7 @@ pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema
 
 Esperado: exit 0, nenhum teste falhando e a contagem final `1`. Anotar os totais por pacote para o README.
 
-- [ ] **Step 2: SQL dos insights do worker contra o banco real**
+- [x] **Step 2: SQL dos insights do worker contra o banco real**
 
 Os testes do worker não usam o banco, então esta verificação manual cobre o `WHERE` novo das consultas de insights. Com um workspace sintético contendo uma despesa normal, uma pareada e uma ignorada no mês corrente, rodar as funções do worker e conferir que só a normal conta. Criar e executar (sem commitar) o script `apps/worker/_verify.ts`:
 
@@ -3332,7 +3332,7 @@ cd apps/worker && pnpm exec tsx _verify.ts; rm -f _verify.ts; cd ../..
 
 Esperado: `insights de pico (esperado 0): 0`. Se der `1`, o filtro não foi aplicado à consulta de picos; corrigir na Task 6. (A consulta da previsão de caixa usa a mesma função `reportableSql`; a verificação de picos cobre o mecanismo.)
 
-- [ ] **Step 3: Fluxo completo pela API com worker, transferência e regra**
+- [x] **Step 3: Fluxo completo pela API com worker, transferência e regra**
 
 Subir os apps e simular o uso real: duas contas (PF e PJ), nomes do titular nas configurações, dois OFX sintéticos que formam uma transferência, mais um lançamento sem regra.
 
@@ -3373,7 +3373,7 @@ rm -f "$TMPDIR"/pv.json "$TMPDIR"/pv.out "$TMPDIR"/cm.json
 
 Esperado (sem chave de IA configurada, a chamada ao LLM falha e o lote fica pendente): os dois lançamentos Pix aparecem `pareado = t` com `reviewStatus ok`; "Padaria do Bairro" aparece `none | pending | f`. O job do primeiro import mostra `pending: 2` (o Pix PJ ainda não tinha contraparte) e o do segundo import mostra `transfers: 1`; ao final só a padaria segue pendente. Se houver chave de IA válida, a padaria pode aparecer categorizada por `ai` ou pendente por baixa confiança; ambos são válidos.
 
-- [ ] **Step 4: Fluxo na interface**
+- [x] **Step 4: Fluxo na interface**
 
 Com `pnpm dev` ainda rodando, abrir `http://localhost:5173`, entrar com `f12_<ts>@test.com` (senha no comando) e abrir **Para categorizar**. Conferir, registrando cada item:
 
@@ -3396,7 +3396,7 @@ input.dispatchEvent(new Event("change", { bubbles: true }));
 6. Em **Regras**, **Excluir** a regra (confirmar) e ver que ela some.
 7. No **Dashboard**, selecionando junho de 2026, a despesa total é R$ 72,50 (42,50 + 30,00) e a receita R$ 0,00: os R$ 100 do Pix pareado não entram em nenhum dos dois. Em **Contas**, o saldo de cada conta continua refletindo o Pix (PJ −R$ 172,50, PF +R$ 100,00).
 
-- [ ] **Step 5: Encerrar os servidores**
+- [x] **Step 5: Encerrar os servidores**
 
 ```bash
 pkill -f 'turbo run dev'; pkill -f 'pnpm dev'; pkill -f 'tsx watch'; pkill -f 'nest start'; pkill -f vite
@@ -3406,7 +3406,7 @@ lsof -nP -iTCP:3100 -iTCP:5173 -sTCP:LISTEN | head -3
 
 Esperado: sem saída. Os dados do usuário `f12_*` ficam no banco de desenvolvimento e são apagados pela próxima execução dos testes e2e.
 
-- [ ] **Step 6: README**
+- [x] **Step 6: README**
 
 Em `README.md`:
 1. Trocar `11 migrations` por `12 migrations` e atualizar as contagens da seção "Testes" com os números do Step 1.
@@ -3416,7 +3416,7 @@ Em `README.md`:
 - **Categorização automática e fila "Para categorizar"** — depois de importar, o sistema pareia transferências entre contas próprias (pelo nome do titular e da empresa ou pelo pagamento de fatura), aplica regras e usa IA em lote com limiar de confiança (configurável por workspace); o que sobra vira uma fila de pendentes agrupados por descrição, onde uma decisão cria regra e vale para lançamentos parecidos. Receita e despesa ignoram transferências pareadas e lançamentos ignorados
 ```
 
-- [ ] **Step 7: Marcar o plano e commitar a documentação**
+- [x] **Step 7: Marcar o plano e commitar a documentação**
 
 ```bash
 sed -i '' 's/^- \[ \] \*\*Step/- [x] **Step/' docs/superpowers/plans/2026-09-30-fase-12-categorizacao.md
@@ -3433,7 +3433,7 @@ git status --short
 
 Esperado: `grep -c` imprime `0` e `git status --short` fica vazio.
 
-- [ ] **Step 8: Integrar em `main` (pedir autorização antes do push)**
+- [x] **Step 8: Integrar em `main` (pedir autorização antes do push)**
 
 Com autorização do usuário:
 
