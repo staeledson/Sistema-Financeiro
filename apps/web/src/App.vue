@@ -56,7 +56,7 @@ function onSharedDone() {
         <button :class="{ active: tab === 'accounts' }" @click="tab = 'accounts'">Contas</button>
         <button :class="{ active: tab === 'transactions' }" @click="tab = 'transactions'">Transações</button>
         <button :class="{ active: tab === 'ingest' }" @click="tab = 'ingest'">Lançar por IA</button>
-        <button :class="{ active: tab === 'review' }" @click="tab = 'review'">Revisar</button>
+        <button :class="{ active: tab === 'review' }" @click="tab = 'review'">Para categorizar</button>
         <button :class="{ active: tab === 'import' }" @click="tab = 'import'">Importar</button>
         <button :class="{ active: tab === 'insights' }" @click="tab = 'insights'">Insights</button>
         <button :class="{ active: tab === 'budgets' }" @click="tab = 'budgets'">Orçamentos</button>
