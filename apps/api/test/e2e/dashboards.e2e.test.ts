@@ -235,6 +235,61 @@ describe("GET /dashboard/spending", () => {
   });
 });
 
+describe("GET /transactions (paridade com os dashboards: type, reportable e __none)", () => {
+  async function seedList(tag: string) {
+    const { u, pf1, mercado } = await seedSpending(tag);
+    const tx = (data: Record<string, unknown>) =>
+      prisma.transaction.create({
+        data: { workspaceId: u.workspaceId, type: "expense", source: "manual", createdById: u.userId, ...data } as never,
+      });
+    await tx({ accountId: pf1.id, amountCents: 1111n, date: dayOf("2026-06-15"), description: "sem cat normal" });
+    await tx({ accountId: pf1.id, amountCents: 2222n, date: dayOf("2026-06-16"), description: "sem cat pareada", transferPairId: "p2" });
+    await tx({ accountId: pf1.id, amountCents: 3333n, date: dayOf("2026-06-17"), description: "sem cat ignorada", ignored: true });
+    await tx({ accountId: pf1.id, type: "income", amountCents: 4444n, date: dayOf("2026-06-18"), description: "sem cat receita" });
+    return { u, mercado };
+  }
+  const descs = (res: { json: () => unknown }) => (res.json() as Array<{ description: string | null }>).map((r) => r.description);
+
+  it("categoryId=__none + type=expense + reportable=1 devolve só a despesa sem categoria que entra no dashboard", async () => {
+    const { u } = await seedList("ls1");
+    const res = await get(u, "/transactions?categoryId=__none&type=expense&reportable=1&from=2026-06-01&to=2026-06-30");
+    expect(res.statusCode).toBe(200);
+    expect(descs(res)).toEqual(["sem cat normal"]);
+    const spending = (await get(u, "/dashboard/spending?month=2026-06")).json();
+    const none = spending.byCategory.find((c: { categoryId: string }) => c.categoryId === "__none");
+    expect(none.totalCents).toBe(1111);
+    expect(none.count).toBe(1);
+  });
+
+  it("sem reportable, __none lista também pareadas e ignoradas (todas sem categoria, qualquer tipo)", async () => {
+    const { u } = await seedList("ls2");
+    const res = await get(u, "/transactions?categoryId=__none&from=2026-06-01&to=2026-06-30");
+    expect(descs(res).sort()).toEqual(["sem cat ignorada", "sem cat normal", "sem cat pareada", "sem cat receita"]);
+  });
+
+  it("categoria normal + reportable=1 exclui a linha pareada e a ignorada da mesma categoria", async () => {
+    const { u, mercado } = await seedList("ls3");
+    const all = await get(u, `/transactions?categoryId=${mercado.id}&type=expense&from=2026-06-01&to=2026-06-30`);
+    expect(all.json()).toHaveLength(4);
+    const rep = await get(u, `/transactions?categoryId=${mercado.id}&type=expense&reportable=1&from=2026-06-01&to=2026-06-30`);
+    expect((rep.json() as Array<{ amountCents: number }>).map((r) => Number(r.amountCents)).sort((a, b) => a - b)).toEqual([5000, 10000]);
+    const spending = (await get(u, "/dashboard/spending?month=2026-06")).json();
+    expect(spending.byCategory.find((c: { name: string }) => c.name === "Mercado").totalCents).toBe(15000);
+  });
+
+  it("type filtra por tipo; valores inválidos e reportable sem type income/expense dão 400", async () => {
+    const { u } = await seedList("ls4");
+    const rec = await get(u, "/transactions?type=income");
+    expect(descs(rec)).toEqual(["sem cat receita"]);
+    expect((await get(u, "/transactions?type=xx")).statusCode).toBe(400);
+    expect((await get(u, "/transactions?reportable=1")).statusCode).toBe(400);
+    expect((await get(u, "/transactions?reportable=1&type=transfer")).statusCode).toBe(400);
+    expect((await get(u, "/transactions?reportable=sim&type=expense")).statusCode).toBe(400);
+    expect((await get(u, "/transactions?reportable=1&type=income")).statusCode).toBe(200);
+    expect((await get(u, "/transactions?type=&reportable=")).statusCode).toBe(200);
+  });
+});
+
 describe("GET /balances (SQL, com entidade)", () => {
   async function seedBalances(tag: string) {
     const u = await newUser(tag);

@@ -3,6 +3,7 @@ import { Queue } from "bullmq";
 import { categoryFits, parseInstallment, transactionInputSchema, type AccountEntity, type TransactionInput } from "@app/shared";
 import type { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../database";
+import { REPORTABLE } from "../common/reportable";
 import { findSimilarUncategorizedIds } from "../common/similar-transactions";
 import { CategoryRulesService } from "../category-rules/category-rules.service";
 import { AI_QUEUE } from "../queue/queue.tokens";
@@ -114,9 +115,12 @@ export class TransactionsService {
 
   async list(
     workspaceId: string,
-    filters: { from?: string; to?: string; accountId?: string; categoryId?: string; q?: string; entity?: AccountEntity },
+    filters: {
+      from?: string; to?: string; accountId?: string; categoryId?: string; q?: string; entity?: AccountEntity;
+      type?: "income" | "expense" | "transfer"; reportable?: boolean;
+    },
   ) {
-    const { from, to, accountId, categoryId, q, entity } = filters;
+    const { from, to, accountId, categoryId, q, entity, type, reportable } = filters;
 
     const and: Prisma.TransactionWhereInput[] = [];
     if (accountId) {
@@ -132,7 +136,10 @@ export class TransactionsService {
         ...(from || to
           ? { date: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } }
           : {}),
-        ...(categoryId ? { categoryId } : {}),
+        // "__none" é a categoria "Sem categoria" dos dashboards (categoryId nulo).
+        ...(categoryId ? { categoryId: categoryId === "__none" ? null : categoryId } : {}),
+        ...(type ? { type } : {}),
+        ...(reportable ? REPORTABLE : {}),
         ...(q ? { description: { contains: q, mode: "insensitive" as const } } : {}),
         ...(and.length ? { AND: and } : {}),
       },
