@@ -25,6 +25,7 @@ import { PushModule } from "./push/push.module";
 import { BillsModule } from "./bills/bills.module";
 import { ExportModule } from "./export/export.module";
 import { ReviewModule } from "./review/review.module";
+import { HealthModule } from "./health/health.module";
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { ReviewModule } from "./review/review.module";
     BillsModule,
     ExportModule,
     ReviewModule,
+    HealthModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: ZodExceptionFilter }],
 })

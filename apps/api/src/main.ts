@@ -8,7 +8,11 @@ import { registerAuthHandler } from "./auth/auth-handler";
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ bodyLimit: 20 * 1024 * 1024 }),
+    new FastifyAdapter({
+      bodyLimit: 20 * 1024 * 1024,
+      // Atrás do proxy da Railway/Vercel: IP e protocolo reais vêm de X-Forwarded-*.
+      trustProxy: process.env["TRUST_PROXY"] === "true",
+    }),
   );
   app.enableShutdownHooks();
   registerAuthHandler(app.getHttpAdapter().getInstance());
