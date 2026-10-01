@@ -5,8 +5,8 @@
   "buildCommand": "pnpm --filter @app/web build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/auth/:path*", "destination": "https://API_PUBLICA/api/auth/:path*" },
-    { "source": "/api/:path*", "destination": "https://API_PUBLICA/:path*" },
+    { "source": "/api/auth/:path*", "destination": "https://sistema-financeiro-production-960b.up.railway.app/api/auth/:path*" },
+    { "source": "/api/:path*", "destination": "https://sistema-financeiro-production-960b.up.railway.app/:path*" },
     { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }
   ],
   "headers": [
