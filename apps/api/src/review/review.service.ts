@@ -120,8 +120,9 @@ export class ReviewService {
     if (dto.createRule) {
       // A regra vem do primeiro id listado pelo usuário (a consulta não garante ordem).
       const first = txs.find((t) => t.id === dto.transactionIds[0]) ?? txs[0];
-      await this.rules.learnFromCorrection({ counterparty: first.counterparty, description: first.description }, category.id, workspaceId);
-      ruleCreated = true;
+      ruleCreated = await this.rules.learnFromCorrection(
+        { counterparty: first.counterparty, description: first.description }, category.id, workspaceId,
+      );
     }
     return { updated: ids.size, similarUpdated, ruleCreated };
   }

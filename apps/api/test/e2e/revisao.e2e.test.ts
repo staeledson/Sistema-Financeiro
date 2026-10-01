@@ -5,6 +5,7 @@ import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify
 import { AppModule } from "../../src/app.module";
 import { prisma, cleanDb } from "../helpers/db";
 import { auth } from "../../src/auth";
+import { matchRule } from "@app/shared";
 
 let app: NestFastifyApplication;
 
@@ -125,6 +126,32 @@ describe("POST /review/categorize", () => {
     const t = await tx(u, acc.id, { description: "Cinema" });
     const res = await post(u, "/review/categorize", { transactionIds: [t.id], categoryId: c.id, createRule: false });
     expect(res.json().ruleCreated).toBe(false);
+    expect((await get(u, "/category-rules")).json()).toHaveLength(0);
+  });
+
+  it("regra de um Pix enviado não captura Pix para outro destinatário", async () => {
+    const u = await newUser("cat-pix");
+    const acc = await account(u, "PF", "pf");
+    const c = await category(u, "Padaria", "expense");
+    const t = await tx(u, acc.id, { description: "Pix enviado para Padaria" });
+    const res = await post(u, "/review/categorize", { transactionIds: [t.id], categoryId: c.id, createRule: true });
+    expect(res.json().ruleCreated).toBe(true);
+
+    const rules = (await get(u, "/category-rules")).json() as Array<{ matchType: string; pattern: string }>;
+    expect(rules).toHaveLength(1);
+    expect(rules[0]).toMatchObject({ matchType: "contains", pattern: "padaria" });
+    expect(matchRule("Pix enviado para Padaria 12/03", rules.map((r) => ({ ...r, categoryId: c.id, priority: 120 })) as never)).not.toBeNull();
+    expect(matchRule("Pix enviado para Farmácia", rules.map((r) => ({ ...r, categoryId: c.id, priority: 120 })) as never)).toBeNull();
+  });
+
+  it("descrição só genérica (Pix enviado) não cria regra e ruleCreated é false", async () => {
+    const u = await newUser("cat-gen");
+    const acc = await account(u, "PF", "pf");
+    const c = await category(u, "Diversos g", "expense");
+    const t = await tx(u, acc.id, { description: "Pix enviado" });
+    const res = await post(u, "/review/categorize", { transactionIds: [t.id], categoryId: c.id, createRule: true });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ updated: 1, ruleCreated: false });
     expect((await get(u, "/category-rules")).json()).toHaveLength(0);
   });
 

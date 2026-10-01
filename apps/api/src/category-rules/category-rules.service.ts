@@ -48,9 +48,10 @@ export class CategoryRulesService {
     tx: { counterparty?: string | null; description?: string | null },
     categoryId: string,
     workspaceId: string,
-  ) {
+  ): Promise<boolean> {
     const rule = ruleFromCorrection(tx, categoryId);
-    if (!rule.pattern) return;
+    if (!rule) return false;
     await this.create(workspaceId, rule);
+    return true;
   }
 }

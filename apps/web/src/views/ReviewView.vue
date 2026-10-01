@@ -292,7 +292,7 @@ const confidenceColor = (c: number | null) =>
           <button type="button" class="btn-secondary" :disabled="busy" @click="ignore(g)">Ignorar</button>
         </div>
 
-        <p v-if="ui[g.key]" class="hint">Criar regra: lançamentos futuros iguais já entram categorizados. Aplicar a parecidos: leva junto os lançamentos sem categoria com a mesma descrição, em qualquer conta.</p>
+        <p v-if="ui[g.key]" class="hint">Criar regra: usa o nome do fornecedor (sem prefixos como "Pix enviado para", datas e números), e lançamentos futuros com esse nome já entram categorizados; descrições genéricas não geram regra. Aplicar a parecidos: leva junto os lançamentos sem categoria com a mesma descrição, em qualquer conta.</p>
 
         <div v-if="ui[g.key]?.transferOpen && g.count === 1" class="transfer">
           <p v-if="ui[g.key].candidatesError" role="alert" class="error">{{ ui[g.key].candidatesError }}</p>
