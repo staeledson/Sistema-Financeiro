@@ -20,6 +20,8 @@ export interface CatCategory {
   name: string;
   type: "income" | "expense";
   entity: CategoryEntity;
+  /** Categoria do sistema (ex.: "Outras despesas"): a IA pode sugeri-la, mas nunca a aplica sozinha. */
+  isSystem?: boolean;
 }
 
 export interface CatRule extends Rule {
@@ -56,6 +58,7 @@ const MAX_EXAMPLES = 30;
 export const CATEGORIZE_SYSTEM =
   "Você classifica lançamentos financeiros brasileiros. Para cada lançamento, escolha UMA categoria da lista, " +
   "respeitando o tipo (income/expense). Se não tiver certeza, use categoryId null. " +
+  "Prefira categoryId null a uma categoria genérica (como \"Outras despesas\") quando a descrição não trouxer informação. " +
   "Informe a confiança de 0 a 1. Responda SOMENTE com o JSON do schema.";
 
 export const txText = (tx: { counterparty: string | null; description: string | null }) =>
@@ -150,7 +153,10 @@ export async function planCategorization(
       const byId = new Map((results ?? []).map((r) => [r.transactionId, r]));
       for (const tx of batch) {
         const decision = decideAiResult(byId.get(tx.id), (id) => fits(id, tx), settings.aiConfidenceThreshold);
-        if (decision.status === "ok") {
+        if (decision.status === "ok" && catById.get(decision.categoryId)?.isSystem) {
+          // Categoria genérica nunca é aplicada pela IA: vira pendência com a sugestão registrada.
+          plan.pending.push({ txId: tx.id, suggestedCategoryId: decision.categoryId, confidence: decision.confidence });
+        } else if (decision.status === "ok") {
           plan.byAi.push({ txId: tx.id, categoryId: decision.categoryId, confidence: decision.confidence });
         } else {
           plan.pending.push({ txId: tx.id, suggestedCategoryId: decision.suggestedCategoryId, confidence: decision.confidence });

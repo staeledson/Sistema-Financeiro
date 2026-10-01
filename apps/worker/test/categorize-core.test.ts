@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import type { TransferCandidate } from "@app/shared";
 import {
-  planCategorization,
+  CATEGORIZE_SYSTEM, planCategorization,
   type CatCategory, type CatRule, type CatSettings, type CatTx, type CategorizeAi,
 } from "../src/ai/categorize.core";
 
@@ -96,6 +96,25 @@ describe("planCategorization", () => {
       { txId: errada.id, suggestedCategoryId: null, confidence: null },
       { txId: faltando.id, suggestedCategoryId: null, confidence: null },
     ]);
+  });
+
+  it("categoria isSystem (catch-all) com confiança 0.95 vira pendência com sugestão; normal com 0.95 é aplicada", async () => {
+    const generica = tx({ description: "QXZ 0099 KWRT" });
+    const normal = tx({ description: "Mercado Bom" });
+    const cats: CatCategory[] = [...CATS, { id: "c-outras", name: "Outras despesas", type: "expense", entity: "both", isSystem: true }];
+    const ai = fakeAi(() => [
+      { transactionId: generica.id, categoryId: "c-outras", confidence: 0.95 },
+      { transactionId: normal.id, categoryId: "c-merc", confidence: 0.95 },
+    ]);
+    const plan = await planCategorization(
+      { scope: [generica, normal], pairPool: [], categories: cats, rules: [], examples: [], settings: SETTINGS }, ai,
+    );
+    expect(plan.byAi).toEqual([{ txId: normal.id, categoryId: "c-merc", confidence: 0.95 }]);
+    expect(plan.pending).toEqual([{ txId: generica.id, suggestedCategoryId: "c-outras", confidence: 0.95 }]);
+  });
+
+  it("o prompt orienta preferir categoryId null a uma categoria genérica", () => {
+    expect(CATEGORIZE_SYSTEM).toMatch(/Prefira categoryId null a uma categoria genérica/);
   });
 
   it("falha da IA deixa o lote inteiro pendente e não lança", async () => {

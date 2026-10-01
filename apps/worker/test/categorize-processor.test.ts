@@ -87,6 +87,12 @@ describe("processCategorize", () => {
     expect(job.args.data).toMatchObject({ status: "done", costTokens: 7, result: { total: 3, transfers: 0, byRule: 1, byAi: 1, pending: 1 } });
   });
 
+  it("carrega isSystem das categorias para o plano", async () => {
+    const ai = setup([row("t1", { description: "Coisa estranha" })]);
+    await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });
+    expect(db.categories.mock.calls[0][0].select).toMatchObject({ isSystem: true });
+  });
+
   it("falha da IA deixa pendente, sem sugestão, e o job termina done", async () => {
     const ai = setup([row("t1", { description: "Coisa estranha" })], { aiFails: true });
     await processCategorize({ jobId: "job1", workspaceId: "w1" }, { ai: ai as never });

@@ -111,7 +111,7 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
     }));
 
   const [categories, rules] = await Promise.all([
-    prisma.category.findMany({ where: { workspaceId }, select: { id: true, name: true, type: true, entity: true } }),
+    prisma.category.findMany({ where: { workspaceId }, select: { id: true, name: true, type: true, entity: true, isSystem: true } }),
     prisma.categoryRule.findMany({
       where: { workspaceId },
       orderBy: { priority: "desc" },
