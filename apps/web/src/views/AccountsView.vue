@@ -40,7 +40,17 @@ const visiveis = computed(() => accountsForEntity(store.accounts, filtro.value))
 function saldoDe(acc: BankAccount): number {
   return store.balances?.accounts.find((b) => b.accountId === acc.id)?.balanceCents ?? acc.openingBalanceCents;
 }
-const saldoVisivel = computed(() => visiveis.value.reduce((s, a) => s + saldoDe(a), 0));
+// Saldo em contas = caixa (sem cartões de crédito); a dívida dos cartões é mostrada à parte.
+// Sem filtro usa os totais da API; com PF/PJ soma as contas visíveis.
+const saldoVisivel = computed(() => {
+  if (filtro.value === "all" && store.balances) return store.balances.consolidatedCents;
+  return visiveis.value.filter((a) => a.type !== "credit_card").reduce((s, a) => s + saldoDe(a), 0);
+});
+const temCartao = computed(() => visiveis.value.some((a) => a.type === "credit_card"));
+const cartoesVisivel = computed(() => {
+  if (filtro.value === "all" && store.balances) return store.balances.cardsCents;
+  return visiveis.value.filter((a) => a.type === "credit_card").reduce((s, a) => s + saldoDe(a), 0);
+});
 
 onMounted(async () => {
   await Promise.all([store.loadAccounts(), store.loadBalances()]);
@@ -162,7 +172,8 @@ function detalheCartao(acc: BankAccount): string | null {
     </div>
 
     <div class="consolidated" v-if="store.balances">
-      Saldo {{ filtro === 'all' ? 'consolidado' : filtro.toUpperCase() }}: <strong><Money :cents="saldoVisivel" /></strong>
+      <div>Saldo em contas{{ filtro === 'all' ? '' : ' ' + filtro.toUpperCase() }}: <strong><Money :cents="saldoVisivel" /></strong></div>
+      <div v-if="temCartao" class="cards-owed">Cartões a pagar: <strong><Money :cents="cartoesVisivel" /></strong></div>
     </div>
 
     <p v-if="aviso" role="status" class="notice">{{ aviso }}</p>
@@ -250,6 +261,7 @@ h2, h3 { margin-bottom: calc(var(--space) * 2); }
 .entity-filter button { background: var(--surface-2); color: var(--text); border-color: var(--border); }
 .entity-filter button.active { background: var(--accent); color: var(--accent-text); border-color: transparent; }
 .consolidated { margin-bottom: calc(var(--space) * 3); font-size: 1.1rem; }
+.cards-owed { font-size: 0.95rem; color: var(--text-muted); }
 .account-list { list-style: none; display: flex; flex-direction: column; gap: var(--space); margin-bottom: calc(var(--space) * 4); }
 .account-item { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--space) * 2); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); gap: calc(var(--space) * 2); }
 .account-info { display: flex; flex-direction: column; gap: 4px; }

@@ -98,8 +98,16 @@ const pendingText = computed(() => {
           <template #actions><EntityBadge entity="pj" /></template>
           <p class="big"><Money :cents="data.balances.pjCents" colored /></p>
         </Card>
-        <Card title="Saldo total">
+        <Card title="Saldo total em contas">
           <p class="big"><Money :cents="data.balances.totalCents" colored /></p>
+        </Card>
+      </section>
+
+      <!-- Dívida dos cartões: fica fora do saldo em contas (é gasto futuro, não caixa). -->
+      <section v-if="data.balances.cards.totalCents !== 0" class="cards-owed" aria-label="Cartões a pagar">
+        <Card title="Cartões a pagar">
+          <p class="big"><Money :cents="data.balances.cards.totalCents" colored /></p>
+          <p class="note">PF {{ formatBRL(data.balances.cards.pfCents) }} · PJ {{ formatBRL(data.balances.cards.pjCents) }}</p>
         </Card>
       </section>
 

@@ -19,7 +19,7 @@ export class SummaryService {
   /** Resumo do Início: sempre o workspace inteiro (sem entidade/conta) e o mês de `asOf`. */
   async get(workspaceId: string, asOf: string) {
     const { period } = parseDashboardFilter({ month: asOf.slice(0, 7), asOf });
-    const [balances, pendingCount, { cards }, spending] = await Promise.all([
+    const [{ consolidated, cards: cardBalances }, pendingCount, { cards }, spending] = await Promise.all([
       this.cashflow.consolidated(workspaceId, asOf),
       prisma.transaction.count({ where: pendingReviewWhere(workspaceId) }),
       this.cards.get(workspaceId, { asOf }),
@@ -43,7 +43,8 @@ export class SummaryService {
     const next = candidates.sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
 
     return {
-      balances,
+      // pf/pj/total = saldo em contas (caixa, sem cartões); `cards` = dívida dos cartões (negativo = a pagar), mesmo formato.
+      balances: { ...consolidated, cards: cardBalances },
       pendingCount,
       nextInvoice: next ?? null,
       spending: {

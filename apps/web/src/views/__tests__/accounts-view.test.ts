@@ -22,7 +22,12 @@ function route(method: string, path: string, body?: unknown) {
     const accounts = state.accounts
       .filter((a) => state.balances[a.id] !== undefined)
       .map((a) => ({ accountId: a.id, name: a.name, type: a.type, balanceCents: state.balances[a.id] }));
-    return { accounts, consolidatedCents: accounts.reduce((s, b) => s + b.balanceCents, 0) };
+    const sum = (list: typeof accounts) => list.reduce((s, b) => s + b.balanceCents, 0);
+    return {
+      accounts,
+      consolidatedCents: sum(accounts.filter((b) => b.type !== "credit_card")),
+      cardsCents: sum(accounts.filter((b) => b.type === "credit_card")),
+    };
   }
   const m = /^\/accounts\/([^/]+)\/reconcile$/.exec(path);
   if (method === "POST" && m) {
@@ -51,6 +56,26 @@ beforeEach(() => {
     balances: { a1: 8000, c1: -25000 },
   };
   httpMock.mockReset().mockImplementation(async (method: string, path: string, body?: unknown) => route(method, path, body));
+});
+
+describe("AccountsView: saldos", () => {
+  it("mostra 'Saldo em contas' (sem cartões) e 'Cartões a pagar' à parte", async () => {
+    const w = await mountView();
+    const text = plain(w.find(".consolidated").text());
+    expect(text).toContain("Saldo em contas: R$ 80,00");
+    expect(text).toContain("Cartões a pagar: -R$ 250,00");
+    expect(text).not.toContain("consolidado");
+  });
+
+  it("o filtro PF/PJ recalcula as duas linhas; sem cartão a segunda linha some", async () => {
+    state.accounts.push(account({ id: "p1", name: "Conta PJ", entity: "pj" }));
+    state.balances.p1 = 5000;
+    const w = await mountView();
+    await w.findAll("button").filter((b) => b.text() === "PJ")[0].trigger("click");
+    const text = plain(w.find(".consolidated").text());
+    expect(text).toContain("PJ: R$ 50,00");
+    expect(text).not.toContain("Cartões a pagar");
+  });
 });
 
 describe("AccountsView: Conciliar saldo", () => {

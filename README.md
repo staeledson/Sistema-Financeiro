@@ -121,7 +121,7 @@ sistema-financeiro/
 │   │   │   ├── push/       notificações push (VAPID)
 │   │   │   ├── transactions/
 │   │   │   └── workspaces/ multi-tenant
-│   │   └── test/e2e/       320 testes de integração
+│   │   └── test/e2e/       325 testes de integração
 │   │
 │   ├── worker/             BullMQ job processors
 │   │   └── src/
@@ -201,9 +201,9 @@ pnpm test
 
 # por app
 pnpm --filter @app/shared test   # 274 testes unitários
-pnpm --filter @app/api    test   # 320 testes (e2e e unitários)
+pnpm --filter @app/api    test   # 325 testes (e2e e unitários)
 pnpm --filter @app/worker test   # 64 testes unitários
-pnpm --filter @app/web    test   # 317 testes unitários
+pnpm --filter @app/web    test   # 322 testes unitários
 ```
 
 O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `turbo typecheck` e as quatro suítes de teste a cada push.
@@ -217,7 +217,7 @@ O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `tu
 - **Chat financeiro** — pergunte sobre saldos, gastos e fluxo de caixa em linguagem natural (function calling com guardrails de segurança)
 - **Importação de extratos** — o arquivo é reconhecido sozinho (banco, tipo e conta): OFX de qualquer banco, extrato em PDF do C6 Bank (PF e PJ) e fatura de cartão do C6 em CSV (um ou mais cartões por arquivo, importados um de cada vez, com parcelas, compras em dólar e categoria sugerida a partir da categoria do banco), com preview, marcação de duplicatas (períodos que se sobrepõem não duplicam), conferência dos saldos declarados no extrato, histórico de importações e desfazer. CSV por mapeamento manual; PDF de outros bancos via IA
 - **Categorização automática e fila "Para categorizar"** — depois de importar, o sistema pareia transferências entre contas próprias (pelo nome do titular e da empresa, configuráveis, ou pelo pagamento de fatura), aplica regras e usa IA em lote com limiar de confiança (configurável por workspace); o que sobra vira uma fila de pendentes agrupados por descrição, onde uma decisão cria regra e vale para lançamentos parecidos. Receita e despesa ignoram transferências pareadas e lançamentos ignorados; o saldo de cada conta continua contando todos os movimentos
-- **Painel, Início e Ajustes** — o Início resume saldos (PF, PJ e total), pendentes, próxima fatura e três gráficos; o Painel tem filtro global (todas/PF/PJ, conta e período: mês, trimestre, ano ou intervalo) guardado na URL e três blocos na ordem de prioridade: para onde vai o dinheiro (por categoria, evolução, orçamento, maiores destinos, recorrentes), cartões e faturas (fatura aberta, ciclo, parcelas, pagamentos) e fluxo de caixa (saldos, histórico de 12 meses e previsão de 3 meses). Os gráficos de categorias, orçamento e fluxo abrem a lista de transações já filtrada. Os endpoints `GET /dashboard/{spending,cards,cashflow,summary}` aceitam `entity`, `accountId`, `month|quarter|year|from+to` e `asOf` (data de referência, para testes). Em Ajustes ficam os nomes do titular/empresa, o limiar da IA e o tema; a lista de transações mostra os selos de transferência pareada, ignorado e parcela, com desfazer par e reativar
+- **Painel, Início e Ajustes** — o Início resume saldos em contas (PF, PJ e total, sem cartões de crédito), a dívida dos cartões à parte, pendentes, próxima fatura e três gráficos; o Painel tem filtro global (todas/PF/PJ, conta e período: mês, trimestre, ano ou intervalo) guardado na URL e três blocos na ordem de prioridade: para onde vai o dinheiro (por categoria, evolução, orçamento, maiores destinos, recorrentes), cartões e faturas (fatura aberta, ciclo, parcelas, pagamentos) e fluxo de caixa (saldos, histórico de 12 meses e previsão de 3 meses). Os gráficos de categorias, orçamento e fluxo abrem a lista de transações já filtrada. Os endpoints `GET /dashboard/{spending,cards,cashflow,summary}` aceitam `entity`, `accountId`, `month|quarter|year|from+to` e `asOf` (data de referência, para testes). Em Ajustes ficam os nomes do titular/empresa, o limiar da IA e o tema; a lista de transações mostra os selos de transferência pareada, ignorado e parcela, com desfazer par e reativar
 - **Regras de categorização** — automação baseada em padrões de descrição
 - **Orçamentos e metas** — acompanhamento com progresso
 - **Splits** — divisão de despesas entre participantes de um workspace

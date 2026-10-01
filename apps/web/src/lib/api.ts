@@ -93,7 +93,10 @@ export interface AccountBalance {
 
 export interface Balances {
   accounts: AccountBalance[];
+  /** Saldo em contas (caixa): soma das contas que NÃO são cartão de crédito. */
   consolidatedCents: number;
+  /** Dívida dos cartões de crédito (soma dos saldos dos cartões; negativo = a pagar). */
+  cardsCents: number;
 }
 
 // --- Dashboards (Fase 13) ---------------------------------------------------
@@ -247,13 +250,20 @@ export interface ForecastMonth {
 }
 
 export interface CashflowDashboard {
-  balances: { accounts: CashflowAccountBalance[]; consolidated: ConsolidatedBalance };
+  balances: {
+    accounts: CashflowAccountBalance[];
+    /** Saldo em contas (caixa), sem cartões de crédito. */
+    consolidated: ConsolidatedBalance;
+    /** Dívida dos cartões por entidade (negativo = a pagar). */
+    cards: ConsolidatedBalance;
+  };
   monthly: CashflowMonth[];
   forecast: ForecastMonth[];
 }
 
 export interface SummaryDashboard {
-  balances: ConsolidatedBalance;
+  /** pf/pj/total = saldo em contas (caixa, sem cartões); `cards` = dívida dos cartões (negativo = a pagar). */
+  balances: ConsolidatedBalance & { cards: ConsolidatedBalance };
   pendingCount: number;
   nextInvoice: { accountId: string; name: string; dueDate: string; openInvoiceCents: number } | null;
   spending: {

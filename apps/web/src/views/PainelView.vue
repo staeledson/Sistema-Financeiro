@@ -258,6 +258,14 @@ const consolidatedInsight = computed(() => {
   return c ? `PF ${formatBRL(c.pfCents)} · PJ ${formatBRL(c.pjCents)}` : undefined;
 });
 
+// Dívida dos cartões (negativo = a pagar), mostrada à parte do saldo em contas.
+const cardsOwed = computed(() => {
+  const b = cashflow.data.value?.balances;
+  if (!b) return null;
+  const hasCard = b.accounts.some((a) => a.type === "credit_card");
+  return hasCard || b.cards.totalCents !== 0 ? b.cards.totalCents : null;
+});
+
 const monthFlowInsight = computed(() => {
   const m = currentMonth.value;
   return m ? `Neste mês: receitas ${formatBRL(m.incomeCents)} · despesas ${formatBRL(m.expenseCents)}` : undefined;
@@ -465,10 +473,12 @@ const balanceColumns = [
       <p v-else-if="!cashflow.data.value" class="state" role="status">Carregando…</p>
       <div v-else class="grid" :class="{ stale: cashflow.loading.value }">
         <Card
-          title="Saldo consolidado (todas as contas)"
+          title="Saldo em contas (sem cartões)"
           :value="formatBRL(cashflow.data.value.balances.consolidated.totalCents)"
           :insight="consolidatedInsight"
-        />
+        >
+          <p v-if="cardsOwed !== null" class="cards-owed">Cartões a pagar: {{ formatBRL(cardsOwed) }}</p>
+        </Card>
         <Card
           title="Saldo previsto em 3 meses"
           :value="forecastEnd ? formatBRL(forecastEnd.balanceCents) : undefined"
@@ -500,6 +510,10 @@ const balanceColumns = [
             empty-title="Nenhuma conta"
             empty-hint="Cadastre uma conta em Contas para ver os saldos."
           >
+            <template #cell-name="{ row }">
+              {{ row.name }}
+              <span v-if="row.type === 'credit_card'" class="debt-hint">dívida do cartão</span>
+            </template>
             <template #cell-entity="{ row }"><EntityBadge :entity="row.entity" /></template>
             <template #cell-balanceCents="{ row }">{{ formatBRL(row.balanceCents) }}</template>
           </DataTable>
@@ -529,6 +543,8 @@ const balanceColumns = [
 .bar span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
 .bar span.high { background: var(--danger); }
 .limit-text { margin-top: calc(var(--space) * 0.5); font-size: 0.85rem; color: var(--text-muted); }
+.cards-owed { font-size: 0.9rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.debt-hint { margin-left: calc(var(--space) * 0.5); font-size: 0.75rem; color: var(--text-muted); }
 .transfers { margin-bottom: var(--space); font-size: 0.88rem; color: var(--text-muted); }
 .transfers strong { color: var(--text); font-variant-numeric: tabular-nums; }
 .status { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }

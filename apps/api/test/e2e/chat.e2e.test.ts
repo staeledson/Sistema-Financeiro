@@ -84,6 +84,19 @@ describe("Fase 6 — TOOLS registry (unit)", () => {
     const result = await TOOLS.get_balance.run({}, { workspaceId: a.ws.id }) as { consolidatedCents: number };
     expect(result.consolidatedCents).toBe(100000);
   });
+
+  it("TC3b: get_balance separa o saldo em contas (sem cartões) da dívida dos cartões", async () => {
+    const a = await signUp("tc3b");
+    await prisma.bankAccount.create({ data: { workspaceId: a.ws.id, type: "checking", name: "Nubank", openingBalanceCents: 100000n } });
+    await prisma.bankAccount.create({ data: { workspaceId: a.ws.id, type: "credit_card", name: "Cartão", openingBalanceCents: -30000n } });
+    const r = await TOOLS.get_balance.run({}, { workspaceId: a.ws.id }) as {
+      accounts: Array<{ name: string; balanceCents: number }>; consolidatedCents: number; cardsCents: number;
+    };
+    expect(r.consolidatedCents).toBe(100000);
+    expect(r.cardsCents).toBe(-30000);
+    expect(r.accounts.map((x) => x.name)).toEqual(["Nubank", "Cartão"]);
+    expect(TOOLS.get_balance.def.description).toContain("cartões");
+  });
 });
 
 // ── Task 2: chat.gateway loop (unit) ─────────────────────────────────────────

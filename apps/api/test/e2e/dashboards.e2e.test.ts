@@ -315,6 +315,27 @@ describe("GET /balances (SQL, com entidade)", () => {
       { accountId: pj1.id, name: "PJ1", type: "checking", balanceCents: 80400 },
     ]);
     expect(body.consolidatedCents).toBe(293000);
+    expect(body.cardsCents).toBe(0);
+  });
+
+  // O saldo do cartão é dívida futura (passivo), não caixa: fica fora do consolidado e vai para `cardsCents`.
+  it("consolidatedCents exclui cartões de crédito; cardsCents traz a dívida e a conta do cartão continua na lista", async () => {
+    const u = await newUser("bal-card");
+    const mk = (data: Record<string, unknown>) =>
+      prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, entity: "pf", ...data } as never });
+    const cc = await mk({ type: "checking", name: "Corrente", openingBalanceCents: 100000n });
+    const card = await mk({ type: "credit_card", name: "Cartão", openingBalanceCents: -30000n });
+    const body = (await get(u, "/balances")).json();
+    expect(body.accounts).toEqual([
+      { accountId: cc.id, name: "Corrente", type: "checking", balanceCents: 100000 },
+      { accountId: card.id, name: "Cartão", type: "credit_card", balanceCents: -30000 },
+    ]);
+    expect(body.consolidatedCents).toBe(100000);
+    expect(body.cardsCents).toBe(-30000);
+    const only = (await get(u, `/balances?accountId=${card.id}`)).json();
+    expect(only.accounts).toHaveLength(1);
+    expect(only.consolidatedCents).toBe(0);
+    expect(only.cardsCents).toBe(-30000);
   });
 
   it("entity, accountId e asOf restringem o resultado", async () => {
@@ -610,6 +631,7 @@ describe("GET /dashboard/cashflow", () => {
     expect(res.statusCode).toBe(200);
     const b = res.json();
     expect(b.balances.consolidated).toEqual({ pfCents: 220000, pjCents: 160000, totalCents: 380000 });
+    expect(b.balances.cards).toEqual({ pfCents: 0, pjCents: 0, totalCents: 0 });
     expect(b.balances.accounts.map((a: { name: string; balanceCents: number }) => [a.name, a.balanceCents])).toEqual([["PF1", 220000], ["PJ1", 160000]]);
     expect(b.balances.accounts[0]).toMatchObject({ type: "checking", entity: "pf" });
 
@@ -638,6 +660,7 @@ describe("GET /dashboard/cashflow", () => {
     expect(pf.balances.accounts.map((a: { name: string }) => a.name)).toEqual(["PF1"]);
     expect(pj.balances.consolidated).toEqual(all.balances.consolidated);
     expect(pf.balances.consolidated).toEqual(all.balances.consolidated);
+    expect(pj.balances.cards).toEqual(all.balances.cards);
     // a previsão parte do saldo do escopo
     expect(pj.forecast.map((f: { balanceCents: number }) => f.balanceCents)).toEqual([150000, 140000, 130000]);
 
@@ -730,11 +753,73 @@ describe("GET /dashboard/cashflow", () => {
       } as never,
     });
     const b = (await get(u, `/dashboard/cashflow?${AS_OF}`)).json();
-    // a 2/4 (15/06, depois do fechamento) já está no saldo atual de -20000: faltam 3/4 e 4/4, nas datas de jul e ago
+    // a 2/4 (15/06) é despesa de junho, mas o saldo é CAIXA (o cartão fica fora): o caixa atual é 0 e a dívida de -20000
+    // só sai do caixa quando a fatura for paga. Faltam 3/4 e 4/4, nas datas de jul e ago
     expect(b.forecast.map((f: { installmentsCents: number }) => f.installmentsCents)).toEqual([20000, 20000, 0]);
     expect(b.forecast.map((f: { expenseCents: number }) => f.expenseCents)).toEqual([20000, 20000, 0]);
-    expect(b.forecast.map((f: { balanceCents: number }) => f.balanceCents)).toEqual([-40000, -60000, -60000]);
-    expect(b.monthly[11]).toMatchObject({ month: "2026-06", expenseCents: 20000, balanceCents: -20000 });
+    expect(b.forecast.map((f: { balanceCents: number }) => f.balanceCents)).toEqual([-20000, -40000, -40000]);
+    expect(b.monthly[11]).toMatchObject({ month: "2026-06", expenseCents: 20000, balanceCents: 0 });
+    expect(b.balances.cards.totalCents).toBe(-20000);
+  });
+
+  // Corrente PF (+100000 de abertura, +50000 de receita em junho) e cartão PF (-30000 de abertura, -20000 de compra em junho).
+  async function seedWithCard(tag: string) {
+    const u = await newUser(tag);
+    const mk = (data: Record<string, unknown>) =>
+      prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, entity: "pf", ...data } as never });
+    const chk = await mk({ type: "checking", name: "Corrente", openingBalanceCents: 100000n });
+    const card = await mk({ type: "credit_card", name: "Cartão", openingBalanceCents: -30000n, closingDay: 10, dueDay: 17 });
+    const tx = (data: Record<string, unknown>) =>
+      prisma.transaction.create({ data: { workspaceId: u.workspaceId, source: "manual", createdById: u.userId, date: dayOf("2026-06-05"), ...data } as never });
+    return { u, chk, card, tx };
+  }
+
+  it("cartão fica fora do saldo em contas: consolidado e série mensal são caixa, `cards` traz a dívida", async () => {
+    const { u, chk, card, tx } = await seedWithCard("cf-card1");
+    await tx({ type: "income", accountId: chk.id, amountCents: 50000n });
+    await tx({ type: "expense", accountId: card.id, amountCents: 20000n });
+    const b = (await get(u, `/dashboard/cashflow?${AS_OF}`)).json();
+    expect(b.balances.consolidated).toEqual({ pfCents: 150000, pjCents: 0, totalCents: 150000 });
+    expect(b.balances.cards).toEqual({ pfCents: -50000, pjCents: 0, totalCents: -50000 });
+    // a lista por conta traz o cartão com o próprio saldo (negativo)
+    expect(b.balances.accounts.map((a: { name: string; type: string; balanceCents: number }) => [a.name, a.type, a.balanceCents]))
+      .toEqual([["Corrente", "checking", 150000], ["Cartão", "credit_card", -50000]]);
+    // a compra no cartão continua sendo despesa do mês; o caixa só cai quando a fatura é paga
+    expect(b.monthly[11]).toEqual({ month: "2026-06", incomeCents: 50000, expenseCents: 20000, transfersNetCents: 0, balanceCents: 150000 });
+    expect(b.monthly[0].balanceCents).toBe(100000);
+    for (const q of ["", "&entity=pf", "&entity=pj"]) {
+      const r = (await get(u, `/dashboard/cashflow?${AS_OF}${q}`)).json();
+      const cash = r.balances.accounts.filter((a: { type: string }) => a.type !== "credit_card");
+      expect(r.monthly[11].balanceCents).toBe(sum(cash));
+    }
+    // a previsão parte do caixa (sem a dívida do cartão)
+    expect(b.forecast[0].balanceCents).toBe(150000 - b.forecast[0].expenseCents + b.forecast[0].incomeCents);
+  });
+
+  it("accountId de um cartão: a série mostra o saldo do próprio cartão; o consolidado segue sendo do workspace", async () => {
+    const { u, chk, card, tx } = await seedWithCard("cf-card2");
+    await tx({ type: "income", accountId: chk.id, amountCents: 50000n });
+    await tx({ type: "expense", accountId: card.id, amountCents: 20000n });
+    const b = (await get(u, `/dashboard/cashflow?${AS_OF}&accountId=${card.id}`)).json();
+    expect(b.balances.accounts.map((a: { name: string }) => a.name)).toEqual(["Cartão"]);
+    expect(b.monthly[11].balanceCents).toBe(-50000);
+    expect(b.monthly[0].balanceCents).toBe(-30000);
+    expect(b.monthly[11].balanceCents).toBe(sum(b.balances.accounts));
+    expect(b.balances.consolidated).toEqual({ pfCents: 150000, pjCents: 0, totalCents: 150000 });
+    expect(b.balances.cards).toEqual({ pfCents: -50000, pjCents: 0, totalCents: -50000 });
+    // conta corrente explícita: só ela
+    const c = (await get(u, `/dashboard/cashflow?${AS_OF}&accountId=${chk.id}`)).json();
+    expect(c.monthly[11].balanceCents).toBe(150000);
+  });
+
+  it("simples: corrente +100000 e cartão -30000 dão consolidado 100000 e cartões -30000", async () => {
+    const { u } = await seedWithCard("cf-card3");
+    const b = (await get(u, `/dashboard/cashflow?${AS_OF}`)).json();
+    expect(b.balances.consolidated.totalCents).toBe(100000);
+    expect(b.balances.cards.totalCents).toBe(-30000);
+    expect(b.monthly[11].balanceCents).toBe(100000);
+    const s = (await get(u, `/dashboard/summary?${AS_OF}`)).json();
+    expect(s.balances).toEqual({ pfCents: 100000, pjCents: 0, totalCents: 100000, cards: { pfCents: -30000, pjCents: 0, totalCents: -30000 } });
   });
 
   it("conta de outro workspace e filtro inválido dão 400; sem lançamentos tudo vem zerado", async () => {
@@ -744,7 +829,11 @@ describe("GET /dashboard/cashflow", () => {
     expect((await get(u, "/dashboard/cashflow?entity=xx")).statusCode).toBe(400);
     const empty = await newUser("cf8c");
     const b = (await get(empty, `/dashboard/cashflow?${AS_OF}`)).json();
-    expect(b.balances).toEqual({ accounts: [], consolidated: { pfCents: 0, pjCents: 0, totalCents: 0 } });
+    expect(b.balances).toEqual({
+      accounts: [],
+      consolidated: { pfCents: 0, pjCents: 0, totalCents: 0 },
+      cards: { pfCents: 0, pjCents: 0, totalCents: 0 },
+    });
     expect(b.monthly).toHaveLength(12);
     expect(b.monthly.every((m: { balanceCents: number }) => m.balanceCents === 0)).toBe(true);
     expect(b.forecast).toHaveLength(3);
@@ -780,10 +869,15 @@ describe("GET /dashboard/summary", () => {
     expect(res.statusCode).toBe(200);
     const b = res.json();
 
-    // PF: 220000 - 1500 - 1600 - 1700 - 1800 (as pendentes pesam no saldo) - 27000 (cartão A) - 8000 (cartão B)
+    // PF (caixa): 220000 - 1500 - 1600 - 1700 - 1800 (as pendentes pesam no saldo); os cartões ficam fora do caixa
     const cashflow = (await get(u, `/dashboard/cashflow?${AS_OF}`)).json();
-    expect(b.balances).toEqual(cashflow.balances.consolidated);
-    expect(b.balances).toEqual({ pfCents: 178400, pjCents: 160000, totalCents: 338400 });
+    // O resumo traz o saldo em contas (sem cartões) e, aninhado em `cards`, a dívida dos cartões (negativa = a pagar).
+    expect(b.balances).toEqual({ ...cashflow.balances.consolidated, cards: cashflow.balances.cards });
+    // caixa PF: 220000 - 6600 (pendentes) = 213400; cartões PF: -27000 (A) - 8000 (B) = -35000
+    expect(b.balances).toEqual({
+      pfCents: 213400, pjCents: 160000, totalCents: 373400,
+      cards: { pfCents: -35000, pjCents: 0, totalCents: -35000 },
+    });
 
     expect(b.pendingCount).toBe(2);
     expect(b.nextInvoice).toEqual({ accountId: cardB.id, name: "Cartão B", dueDate: "2026-07-05", openInvoiceCents: 8000 });
@@ -820,12 +914,15 @@ describe("GET /dashboard/summary", () => {
     const b = (await get(u, `/dashboard/summary?${AS_OF}`)).json();
     expect(b.nextInvoice).toBeNull();
     expect(b.pendingCount).toBe(0);
-    expect(b.balances).toEqual({ pfCents: 220000, pjCents: 160000, totalCents: 380000 });
+    expect(b.balances).toEqual({
+      pfCents: 220000, pjCents: 160000, totalCents: 380000,
+      cards: { pfCents: 0, pjCents: 0, totalCents: 0 },
+    });
     expect(b.spending.byCategory.length).toBeLessThanOrEqual(6);
 
     const empty = await newUser("sm3b");
     const z = (await get(empty, `/dashboard/summary?${AS_OF}`)).json();
-    expect(z).toMatchObject({ balances: { pfCents: 0, pjCents: 0, totalCents: 0 }, pendingCount: 0, nextInvoice: null });
+    expect(z).toMatchObject({ balances: { pfCents: 0, pjCents: 0, totalCents: 0, cards: { pfCents: 0, pjCents: 0, totalCents: 0 } }, pendingCount: 0, nextInvoice: null });
     expect(z.spending).toMatchObject({ totalCents: 0, byCategory: [] });
     expect((await get(empty, "/dashboard/summary?asOf=2026-13-40")).statusCode).toBe(400);
   });

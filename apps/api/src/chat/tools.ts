@@ -41,7 +41,8 @@ export const TOOLS = {
     schema: z.object({}),
     def: {
       name: "get_balance",
-      description: "Saldo consolidado e por conta do workspace ativo.",
+      description:
+        "Saldos do workspace ativo: consolidatedCents = saldo em contas (caixa, SEM cartões de crédito); cardsCents = dívida dos cartões de crédito (negativo = a pagar), à parte; e accounts = saldo de cada conta, cartões inclusos.",
       parameters: { type: "object" as const, properties: {} },
     },
     async run(_a: Record<string, never>, ctx: Ctx) {

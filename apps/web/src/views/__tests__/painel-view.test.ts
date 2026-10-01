@@ -47,7 +47,11 @@ const spending = {
   recurring: [],
 };
 const cashflow = {
-  balances: { accounts: [], consolidated: { pfCents: 1000, pjCents: 2000, totalCents: 3000 } },
+  balances: {
+    accounts: [],
+    consolidated: { pfCents: 1000, pjCents: 2000, totalCents: 3000 },
+    cards: { pfCents: 0, pjCents: 0, totalCents: 0 },
+  },
   monthly: [
     { month: "2026-05", incomeCents: 90, expenseCents: 40, transfersNetCents: 0, balanceCents: 2900 },
     { month: "2026-06", incomeCents: 100, expenseCents: 50, transfersNetCents: 700, balanceCents: 3000 },
@@ -93,6 +97,31 @@ describe("PainelView", () => {
     expect(w.text()).toContain("Transferências internas no mês");
   });
 
+  it("saldo em contas exclui cartões; a dívida aparece como linha secundária e o cartão segue na tabela por conta", async () => {
+    cashflowMock.mockResolvedValue({
+      ...cashflow,
+      balances: {
+        accounts: [
+          { accountId: "a1", name: "Corrente", type: "checking", entity: "pf", balanceCents: 7737 },
+          { accountId: "k1", name: "Cartão Nubank", type: "credit_card", entity: "pf", balanceCents: -63113 },
+        ],
+        consolidated: { pfCents: 7737, pjCents: 0, totalCents: 7737 },
+        cards: { pfCents: -63113, pjCents: 0, totalCents: -63113 },
+      },
+    });
+    const { w } = await mountAt("/painel");
+    const text = w.text().replace(/\u00a0/g, " ");
+    expect(text).toContain("Saldo em contas (sem cartões)");
+    expect(text).not.toContain("Saldo consolidado");
+    expect(text).toContain("R$ 77,37");
+    expect(text).toContain("Cartões a pagar: -R$ 631,13");
+    const rows = w.findAll("tbody tr").map((r) => r.text().replace(/\u00a0/g, " "));
+    const cardRow = rows.find((r) => r.includes("Cartão Nubank"));
+    expect(cardRow).toContain("-R$ 631,13");
+    expect(cardRow).toContain("dívida do cartão");
+    expect(rows.find((r) => r.includes("Corrente"))).not.toContain("dívida do cartão");
+  });
+
   it("sem cartões: explica que cartão precisa de dias de fechamento e vencimento", async () => {
     const { w } = await mountAt("/painel");
     expect(w.text()).toContain("Nenhum cartão de crédito");
@@ -118,7 +147,7 @@ describe("PainelView", () => {
     const { w } = await mountAt("/painel");
     expect(w.text()).toContain("falhou cartões");
     expect(w.text()).toContain("Mercado subiu 150%");
-    expect(w.text()).toContain("Saldo consolidado (todas as contas)");
+    expect(w.text()).toContain("Saldo em contas (sem cartões)");
   });
 
   it("mudar a entidade atualiza a URL e recarrega as seções", async () => {
@@ -202,9 +231,9 @@ describe("PainelView", () => {
       expect(hrefs.some((h) => h.includes("from=2026-06-01") && h.includes("to=2026-06-30") && h.includes("entity=pj"))).toBe(true);
     });
 
-    it("Saldo consolidado não é um link", async () => {
+    it("Saldo em contas não é um link", async () => {
       const { w } = await mountAt(SCOPE);
-      const card = w.findAll("section").find((el) => el.text().includes("Saldo consolidado") && !el.text().includes("Fluxo de caixa"))!;
+      const card = w.findAll("section").find((el) => el.text().includes("Saldo em contas") && !el.text().includes("Fluxo de caixa"))!;
       expect(card.element.tagName).toBe("SECTION");
     });
   });
