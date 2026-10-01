@@ -2,13 +2,13 @@
   <div class="insights-view">
     <div class="view-header">
       <h2>Insights</h2>
-      <button class="btn-primary" :disabled="computing" @click="triggerCompute">
+      <button type="button" class="btn-primary" :disabled="computing" @click="triggerCompute">
         {{ computing ? "Calculando…" : "Atualizar" }}
       </button>
     </div>
 
-    <div v-if="loading" class="empty-state">Carregando…</div>
-    <div v-else-if="!insights.length" class="empty-state">Nenhum insight ainda. Clique em Atualizar.</div>
+    <EmptyState v-if="loading" title="Carregando…" />
+    <EmptyState v-else-if="!insights.length" title="Nenhum insight ainda. Clique em Atualizar." />
 
     <div v-else class="insights-list">
       <div
@@ -32,6 +32,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { http } from "../lib/http";
+import { formatBRL } from "../lib/money";
+import EmptyState from "../components/ui/EmptyState.vue";
 
 const insights = ref<any[]>([]);
 const loading = ref(true);
@@ -88,7 +90,7 @@ function titleFor(ins: any) {
 
 function detailFor(ins: any) {
   const p = ins.payload;
-  const fmt = (c: number) => `R$ ${(c / 100).toFixed(2)}`;
+  const fmt = formatBRL;
   switch (ins.type) {
     case "spike":
       return `${p.pctAboveAvg}% acima da média (atual ${fmt(p.currentCents)} vs média ${fmt(p.avgCents)})`;
@@ -110,23 +112,20 @@ onMounted(load);
 .insights-view { padding: 1.5rem; max-width: 720px; margin: 0 auto; }
 .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .view-header h2 { font-size: 1.4rem; font-weight: 600; }
-.empty-state { text-align: center; padding: 3rem; color: var(--color-text-muted, #888); }
 .insights-list { display: flex; flex-direction: column; gap: 0.75rem; }
 .insight-card {
   display: flex; align-items: flex-start; gap: 1rem;
-  padding: 1rem 1.25rem; border-radius: 0.75rem;
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #e5e7eb);
+  padding: 1rem 1.25rem; border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
   cursor: pointer; transition: box-shadow 0.15s;
 }
-.insight-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-.insight-card.unread { border-left: 3px solid var(--color-primary, #6366f1); }
+.insight-card:hover { box-shadow: var(--shadow); }
+.insight-card.unread { border-left: 3px solid var(--accent); }
 .insight-icon { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
 .insight-body { flex: 1; }
 .insight-title { font-weight: 600; margin-bottom: 0.25rem; }
-.insight-detail { font-size: 0.875rem; color: var(--color-text-muted, #6b7280); }
-.insight-period { font-size: 0.75rem; color: var(--color-text-muted, #9ca3af); margin-top: 0.25rem; display: block; }
-.unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-primary, #6366f1); flex-shrink: 0; margin-top: 0.3rem; }
-.btn-primary { padding: 0.5rem 1.25rem; background: var(--color-primary, #6366f1); color: #fff; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.9rem; }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.insight-detail { font-size: 0.875rem; color: var(--text-muted); }
+.insight-period { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block; }
+.unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 0.3rem; }
 </style>

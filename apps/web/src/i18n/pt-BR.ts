@@ -29,12 +29,4 @@ export default {
     register: "Registrar",
     filter: "Filtrar",
   },
-  dashboard: {
-    title: "Dashboard",
-    income: "Receitas",
-    expense: "Despesas",
-    balance: "Saldo do mês",
-    breakdown: "Despesas por categoria",
-    series: "Últimos meses",
-  },
 };

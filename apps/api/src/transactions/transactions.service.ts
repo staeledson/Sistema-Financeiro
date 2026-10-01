@@ -1,8 +1,9 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from "@nestjs/common";
 import { Queue } from "bullmq";
-import { categoryFits, transactionInputSchema, type AccountEntity, type TransactionInput } from "@app/shared";
+import { categoryFits, parseInstallment, transactionInputSchema, type AccountEntity, type TransactionInput } from "@app/shared";
 import type { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../database";
+import { REPORTABLE } from "../common/reportable";
 import { findSimilarUncategorizedIds } from "../common/similar-transactions";
 import { CategoryRulesService } from "../category-rules/category-rules.service";
 import { AI_QUEUE } from "../queue/queue.tokens";
@@ -70,10 +71,14 @@ export class TransactionsService {
     const dto: TransactionInput = transactionInputSchema.parse(body);
 
     const accountIds = [dto.accountId, dto.sourceAccountId, dto.destAccountId].filter(Boolean) as string[];
+    let accountType: string | null = null;
     if (accountIds.length) {
-      const accs = await prisma.bankAccount.findMany({ where: { id: { in: accountIds }, workspaceId }, select: { id: true } });
+      const accs = await prisma.bankAccount.findMany({ where: { id: { in: accountIds }, workspaceId }, select: { id: true, type: true } });
       if (accs.length !== accountIds.length) throw new BadRequestException("conta inexistente no workspace");
+      accountType = accs.find((a) => a.id === dto.accountId)?.type ?? null;
     }
+    // parcela "n/m" só faz sentido em despesa lançada no cartão de crédito
+    const inst = dto.type === "expense" && accountType === "credit_card" ? (parseInstallment(dto.description) ?? parseInstallment(dto.counterparty)) : null;
 
     if (dto.categoryId) {
       const cat = await prisma.category.findFirst({ where: { id: dto.categoryId, workspaceId }, select: { type: true } });
@@ -95,21 +100,27 @@ export class TransactionsService {
         counterparty: dto.counterparty ?? null,
         source: "manual",
         categorySource: dto.categoryId ? "manual" : "none",
+        installmentCurrent: inst?.current ?? null,
+        installmentTotal: inst?.total ?? null,
         createdById: userId,
       },
       select: {
         id: true, type: true, amountCents: true, date: true,
         accountId: true, sourceAccountId: true, destAccountId: true,
         categoryId: true, description: true, counterparty: true, source: true,
+        installmentCurrent: true, installmentTotal: true,
       },
     });
   }
 
   async list(
     workspaceId: string,
-    filters: { from?: string; to?: string; accountId?: string; categoryId?: string; q?: string; entity?: AccountEntity },
+    filters: {
+      from?: string; to?: string; accountId?: string; categoryId?: string; q?: string; entity?: AccountEntity;
+      type?: "income" | "expense" | "transfer"; reportable?: boolean;
+    },
   ) {
-    const { from, to, accountId, categoryId, q, entity } = filters;
+    const { from, to, accountId, categoryId, q, entity, type, reportable } = filters;
 
     const and: Prisma.TransactionWhereInput[] = [];
     if (accountId) {
@@ -125,7 +136,10 @@ export class TransactionsService {
         ...(from || to
           ? { date: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } }
           : {}),
-        ...(categoryId ? { categoryId } : {}),
+        // "__none" é a categoria "Sem categoria" dos dashboards (categoryId nulo).
+        ...(categoryId ? { categoryId: categoryId === "__none" ? null : categoryId } : {}),
+        ...(type ? { type } : {}),
+        ...(reportable ? REPORTABLE : {}),
         ...(q ? { description: { contains: q, mode: "insensitive" as const } } : {}),
         ...(and.length ? { AND: and } : {}),
       },
@@ -133,6 +147,8 @@ export class TransactionsService {
         id: true, type: true, amountCents: true, date: true,
         accountId: true, sourceAccountId: true, destAccountId: true,
         categoryId: true, description: true, counterparty: true, source: true, createdAt: true,
+        transferPairId: true, ignored: true, categorySource: true, reviewStatus: true,
+        installmentCurrent: true, installmentTotal: true,
       },
       orderBy: { date: "desc" },
     });

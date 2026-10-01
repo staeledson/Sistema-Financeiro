@@ -1,5 +1,6 @@
 import { http } from "./http";
 import type { Institution } from "./entity";
+import { formatDateOnly } from "./date";
 
 export type DetectedFormat = "ofx" | "pdf_statement" | "csv" | "pdf" | "unknown";
 
@@ -100,8 +101,7 @@ export function readFileBytes(file: File): Promise<Uint8Array> {
 
 export function formatDate(iso: string): string {
   // "YYYY-MM-DD" puro vira UTC à meia-noite em new Date(); em UTC-3 mostraria o dia anterior.
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (dateOnly) return `${dateOnly[3]}/${dateOnly[2]}/${dateOnly[1]}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return formatDateOnly(iso);
   return new Date(iso).toLocaleDateString("pt-BR");
 }
 

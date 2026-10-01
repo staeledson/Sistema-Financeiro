@@ -3,6 +3,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { categoryFits, normalizeDescriptionKey, type AccountEntity } from "@app/shared";
 import { prisma } from "../database";
 import { findSimilarUncategorizedIds } from "../common/similar-transactions";
+import { pendingReviewWhere } from "../common/pending-review";
 import { CategoryRulesService } from "../category-rules/category-rules.service";
 import { TransactionsService } from "../transactions/transactions.service";
 
@@ -23,15 +24,7 @@ export class ReviewService {
 
   async pending(workspaceId: string, filters: { entity?: AccountEntity; accountId?: string }) {
     const rows = await prisma.transaction.findMany({
-      where: {
-        workspaceId,
-        reviewStatus: "pending",
-        ignored: false,
-        transferPairId: null,
-        type: { in: ["income", "expense"] },
-        ...(filters.accountId ? { accountId: filters.accountId } : {}),
-        ...(filters.entity ? { account: { entity: filters.entity } } : {}),
-      },
+      where: pendingReviewWhere(workspaceId, filters),
       orderBy: [{ date: "desc" }, { id: "asc" }],
       select: {
         id: true, type: true, amountCents: true, counterparty: true, description: true,
@@ -205,6 +198,30 @@ export class ReviewService {
       data: { ignored: true, reviewStatus: "ok" },
     });
     return { ignored: count };
+  }
+
+  /**
+   * Reativa lançamentos ignorados. Só volta para a fila quem a fila aceita (receita/despesa, sem par e sem categoria);
+   * os demais (com categoria, ainda pareados ou transferências) ficam `ok`. 404 se nada mudou.
+   */
+  async unignore(workspaceId: string, transactionIds: string[]) {
+    const ids = [...new Set(transactionIds)];
+    const [toQueue, toOk] = await prisma.$transaction([
+      prisma.transaction.updateMany({
+        where: { id: { in: ids }, workspaceId, ignored: true, categoryId: null, transferPairId: null, type: { in: ["income", "expense"] } },
+        data: { ignored: false, reviewStatus: "pending", categorySource: "none" },
+      }),
+      prisma.transaction.updateMany({
+        where: {
+          id: { in: ids }, workspaceId, ignored: true,
+          OR: [{ categoryId: { not: null } }, { transferPairId: { not: null } }, { type: "transfer" }],
+        },
+        data: { ignored: false, reviewStatus: "ok" },
+      }),
+    ]);
+    const count = toQueue.count + toOk.count;
+    if (count === 0) throw new NotFoundException("lançamento ignorado não encontrado");
+    return { unignored: count };
   }
 
   recategorize(workspaceId: string, userId: string) {

@@ -88,6 +88,39 @@ describe("Fase 6 — TOOLS registry (unit)", () => {
 
 // ── Task 2: chat.gateway loop (unit) ─────────────────────────────────────────
 
+describe("runChat: política de dados do OpenRouter", () => {
+  const okFetch = () =>
+    vi.fn(async (_url: string, _opts: unknown) => ({
+      ok: true,
+      json: async () => ({ choices: [{ message: { role: "assistant", content: "ok", tool_calls: undefined } }] }),
+      text: async (): Promise<string> => "",
+    }));
+  const bodyOf = (f: ReturnType<typeof okFetch>) => JSON.parse((f.mock.calls[0][1] as { body: string }).body);
+
+  it("envia provider.data_collection = deny por padrão e allow só com OPENROUTER_DATA_COLLECTION=allow", async () => {
+    const saved = process.env["OPENROUTER_DATA_COLLECTION"];
+    try {
+      delete process.env["OPENROUTER_DATA_COLLECTION"];
+      const f1 = okFetch();
+      await runChat("key", "mock", [{ role: "user", content: "oi" }], { workspaceId: "w" }, f1 as unknown as typeof fetch);
+      expect(bodyOf(f1).provider).toEqual({ data_collection: "deny" });
+
+      process.env["OPENROUTER_DATA_COLLECTION"] = "talvez";
+      const f2 = okFetch();
+      await runChat("key", "mock", [{ role: "user", content: "oi" }], { workspaceId: "w" }, f2 as unknown as typeof fetch);
+      expect(bodyOf(f2).provider).toEqual({ data_collection: "deny" });
+
+      process.env["OPENROUTER_DATA_COLLECTION"] = " ALLOW ";
+      const f3 = okFetch();
+      await runChat("key", "mock", [{ role: "user", content: "oi" }], { workspaceId: "w" }, f3 as unknown as typeof fetch);
+      expect(bodyOf(f3).provider).toEqual({ data_collection: "allow" });
+    } finally {
+      if (saved === undefined) delete process.env["OPENROUTER_DATA_COLLECTION"];
+      else process.env["OPENROUTER_DATA_COLLECTION"] = saved;
+    }
+  });
+});
+
 describe("Fase 6 — runChat gateway loop (unit)", () => {
   it("TC4: loop executa tool e reinjecta resultado; retorna answer final", async () => {
     const a = await signUp("tc4a");

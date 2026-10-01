@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import type { TransferCandidate } from "@app/shared";
 import {
-  CATEGORIZE_SYSTEM, planCategorization,
+  CATEGORIZE_SYSTEM, MAX_AI_ROWS_PER_JOB, planCategorization,
   type CatCategory, type CatRule, type CatSettings, type CatTx, type CategorizeAi,
 } from "../src/ai/categorize.core";
 
@@ -143,6 +143,8 @@ describe("planCategorization", () => {
     expect(plan.byAi).toEqual([]);
     expect(plan.pending.map((p) => p.txId)).toEqual([a.id, b.id]);
     expect(plan.costTokens).toBe(0);
+    expect(plan.aiFailures).toBe(1);
+    expect(plan.deferred).toBe(0);
   });
 
   it("divide em lotes do tamanho configurado e separa as chamadas por entidade", async () => {
@@ -191,7 +193,7 @@ describe("planCategorization", () => {
 
   it("escopo vazio não chama a IA", async () => {
     const plan = await planCategorization({ scope: [], pairPool: [], categories: CATS, rules: [], examples: [], settings: SETTINGS }, noAi);
-    expect(plan).toEqual({ transferPairs: [], byRule: [], byAi: [], pending: [], costTokens: 0 });
+    expect(plan).toEqual({ transferPairs: [], byRule: [], byAi: [], pending: [], costTokens: 0, aiFailures: 0, deferred: 0, deferredIds: [] });
   });
 
   it("tamanho de lote inválido (0 ou NaN) não lança e ainda categoriza", async () => {
@@ -238,5 +240,61 @@ describe("planCategorization", () => {
     const plan = await planCategorization({ scope: [t], pairPool: [], categories: CATS, rules: [], examples: [], settings: SETTINGS }, ai);
     expect(plan.byAi).toEqual([{ txId: t.id, categoryId: "c-merc", confidence: 0.95 }]);
     expect(plan.pending).toEqual([]);
+  });
+
+  it("falha por lote soma aiFailures; os outros lotes seguem normalmente", async () => {
+    const txs = [tx(), tx(), tx(), tx()];
+    let call = 0;
+    const ai: CategorizeAi = {
+      categorizeBatch: vi.fn(async ({ user }) => {
+        if (++call === 1) throw new Error("timeout");
+        return { results: (JSON.parse(user).transactions as Array<{ id: string }>).map((x) => ({ transactionId: x.id, categoryId: "c-merc", confidence: 0.9 })), costTokens: 5 };
+      }),
+    };
+    const plan = await planCategorization(
+      { scope: txs, pairPool: [], categories: CATS, rules: [], examples: [], settings: { ...SETTINGS, aiBatchSize: 2 } }, ai,
+    );
+    expect(plan.aiFailures).toBe(1);
+    expect(plan.pending.map((p) => p.txId)).toEqual([txs[0].id, txs[1].id]);
+    expect(plan.byAi.map((h) => h.txId)).toEqual([txs[2].id, txs[3].id]);
+  });
+
+  it("teto por job: só as MAX_AI_ROWS_PER_JOB mais recentes vão à IA; o excedente vai para deferredIds", async () => {
+    expect(MAX_AI_ROWS_PER_JOB).toBe(500);
+    // 503 linhas; as 3 mais antigas (jan) ficam de fora, mesmo vindo primeiro no escopo.
+    const old = [1, 2, 3].map((d) => tx({ date: `2026-01-0${d}`, description: `antiga ${d}` }));
+    const recent = Array.from({ length: MAX_AI_ROWS_PER_JOB }, (_, i) => tx({ date: `2026-06-${String(1 + (i % 28)).padStart(2, "0")}`, description: `recente ${i}` }));
+    const sentIds: string[] = [];
+    const ai = fakeAi((u) => {
+      sentIds.push(...u.transactions.map((x) => x.id));
+      return u.transactions.map((x) => ({ transactionId: x.id, categoryId: "c-merc", confidence: 0.9 }));
+    });
+    const plan = await planCategorization(
+      { scope: [...old, ...recent], pairPool: [], categories: CATS, rules: [], examples: [], settings: SETTINGS }, ai,
+    );
+    expect(sentIds).toHaveLength(MAX_AI_ROWS_PER_JOB);
+    expect(sentIds).not.toContain(old[0].id);
+    expect(plan.deferred).toBe(3);
+    expect(plan.byAi).toHaveLength(MAX_AI_ROWS_PER_JOB);
+    expect(plan.deferredIds.slice().sort()).toEqual(old.map((t) => t.id).sort());
+    expect(plan.pending).toEqual([]);
+    expect(plan.aiFailures).toBe(0);
+  });
+
+  it("o texto enviado ao gateway é mascarado, mas as regras ainda casam com o texto original", async () => {
+    const t = tx({ counterparty: "JOAO 123.456.789-00", description: "BOLETO 1234567890123 LOJA 12345" });
+    const r = tx({ description: "Pix chave 98765432100 mercado" });
+    const rules: CatRule[] = [{ id: "r1", matchType: "contains", pattern: "98765432100", categoryId: "c-merc", priority: 100 }];
+    const seen: string[] = [];
+    const ai: CategorizeAi = { categorizeBatch: vi.fn(async ({ user }) => { seen.push(user); return { results: [], costTokens: null }; }) };
+    const plan = await planCategorization(
+      { scope: [t, r], pairPool: [], categories: CATS, rules, examples: [{ text: "CPF 111.222.333-44 padaria", categoryName: "Supermercado", entity: "pf" }], settings: SETTINGS }, ai,
+    );
+    expect(plan.byRule).toEqual([{ txId: r.id, categoryId: "c-merc", ruleId: "r1" }]);
+    expect(seen).toHaveLength(1);
+    const sent = JSON.parse(seen[0]) as { transactions: Array<{ descricao: string }>; examples: Array<{ descricao: string }> };
+    expect(sent.transactions[0].descricao).toBe("JOAO ### BOLETO ### LOJA 12345");
+    expect(sent.examples[0].descricao).toBe("CPF ### padaria");
+    expect(seen[0]).not.toMatch(/123\.456|1234567890123|111\.222/);
   });
 });

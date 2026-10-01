@@ -22,8 +22,8 @@ async function entrar() {
     <h1>Finanças IA</h1>
     <input v-model="email" type="email" placeholder="E-mail" autocomplete="email" />
     <input v-model="password" type="password" placeholder="Senha" autocomplete="current-password" />
-    <button @click="entrar">Entrar</button>
-    <p v-if="erro" role="alert">{{ erro }}</p>
+    <button type="button" @click="entrar">Entrar</button>
+    <p v-if="erro" role="alert" class="text-error">{{ erro }}</p>
   </main>
 </template>
 
@@ -35,26 +35,8 @@ async function entrar() {
   max-width: 360px;
   margin: 10vh auto;
   padding: calc(var(--space) * 3);
-  background: var(--color-surface);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-}
-
-input {
-  padding: calc(var(--space) * 1.5);
-  border: 1px solid #333;
-  border-radius: calc(var(--radius) / 2);
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-size: 1rem;
-}
-
-button {
-  padding: calc(var(--space) * 1.5);
-  border: none;
-  border-radius: calc(var(--radius) / 2);
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 1rem;
-  cursor: pointer;
 }
 </style>

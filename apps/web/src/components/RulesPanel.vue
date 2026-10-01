@@ -58,7 +58,7 @@ async function remove(id: string) {
 <template>
   <div class="rules">
     <h3>Regras de categorização</h3>
-    <p v-if="erro" role="alert" class="error">{{ erro }}</p>
+    <p v-if="erro" role="alert" class="text-error">{{ erro }}</p>
     <p v-if="loaded && !rules.length" class="hint">Nenhuma regra ainda. Elas nascem quando você categoriza um grupo.</p>
     <table v-else-if="rules.length" class="rules-table">
       <thead>
@@ -71,7 +71,7 @@ async function remove(id: string) {
           <td>{{ categoryName(r.categoryId) }}</td>
           <td>{{ r.priority }}</td>
           <td>{{ r.hitCount }}</td>
-          <td><button type="button" class="btn-danger" :disabled="busy" @click="remove(r.id)">Excluir</button></td>
+          <td><button type="button" class="btn-danger btn-small" :disabled="busy" @click="remove(r.id)">Excluir</button></td>
         </tr>
       </tbody>
     </table>
@@ -81,12 +81,9 @@ async function remove(id: string) {
 <style scoped>
 .rules { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
 h3 { margin: 0; font-size: 1rem; }
-.hint { font-size: 0.85rem; opacity: 0.65; font-style: italic; }
-.error { color: #e74c3c; font-size: 0.9rem; }
+.hint { font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
+.text-error { font-size: 0.9rem; }
 .rules-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.rules-table th, .rules-table td { text-align: left; padding: var(--space); border-bottom: 1px solid #222; }
-.rules-table th { opacity: 0.6; font-weight: 600; }
-button { padding: calc(var(--space) * 0.75) calc(var(--space) * 1.5); border: none; border-radius: calc(var(--radius) / 2); color: #fff; cursor: pointer; font-size: 0.8rem; }
-button:disabled { opacity: 0.4; cursor: default; }
-.btn-danger { background: #c0392b; }
+.rules-table th, .rules-table td { text-align: left; padding: var(--space); border-bottom: 1px solid var(--border); }
+.rules-table th { color: var(--text-muted); font-weight: 600; }
 </style>

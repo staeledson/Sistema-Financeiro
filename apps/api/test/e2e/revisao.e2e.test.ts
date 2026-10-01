@@ -92,6 +92,22 @@ describe("GET /review/pending", () => {
     expect((await get(u, "/review/pending?entity=xx")).statusCode).toBe(400);
   });
 
+  it("lista linhas esquecidas (sem categoria, reviewStatus ok, criadas há mais de 15 min), mas não as recentes, pareadas ou ignoradas", async () => {
+    const u = await newUser("rev-forgot");
+    const acc = await account(u, "PF", "pf");
+    const old = new Date(Date.now() - 30 * 60_000);
+    const forgotten = await tx(u, acc.id, { description: "esquecida", reviewStatus: "ok", categorySource: "none", createdAt: old });
+    await tx(u, acc.id, { description: "recente", reviewStatus: "ok", categorySource: "none" });
+    await tx(u, acc.id, { description: "par esquecido", reviewStatus: "ok", categorySource: "none", createdAt: old, transferPairId: "p-forgot" });
+    await tx(u, acc.id, { description: "ignorada esquecida", reviewStatus: "ok", categorySource: "none", createdAt: old, ignored: true });
+    await tx(u, acc.id, { description: "regra", reviewStatus: "ok", categorySource: "rule", createdAt: old });
+
+    const res = (await get(u, "/review/pending")).json();
+    expect(res.total).toBe(1);
+    expect(res.groups[0].description).toBe("esquecida");
+    expect(res.groups[0].transactionIds).toEqual([forgotten.id]);
+  });
+
   it("é isolado por workspace", async () => {
     const a = await newUser("rev3a");
     const b = await newUser("rev3b");
@@ -290,6 +306,47 @@ describe("transferências e ignorar", () => {
     expect(res.json()).toEqual({ ignored: 1 });
     expect(await prisma.transaction.findUniqueOrThrow({ where: { id: t.id } })).toMatchObject({ ignored: true, reviewStatus: "ok" });
     expect((await get(u, "/review/pending")).json().total).toBe(0);
+  });
+
+  it("reativar ignorados: com categoria volta ok, sem categoria volta para a fila", async () => {
+    const u = await newUser("unign1");
+    const acc = await account(u, "PF", "pf");
+    const c = await category(u, "Categoria unignore", "expense");
+    const comCat = await tx(u, acc.id, { ignored: true, reviewStatus: "ok", categoryId: c.id, categorySource: "manual" });
+    const semCat = await tx(u, acc.id, { ignored: true, reviewStatus: "ok", categorySource: "none" });
+    const res = await post(u, "/review/unignore", { transactionIds: [comCat.id, semCat.id, comCat.id] });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ unignored: 2 });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: comCat.id } })).toMatchObject({ ignored: false, reviewStatus: "ok", categoryId: c.id, categorySource: "manual" });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: semCat.id } })).toMatchObject({ ignored: false, reviewStatus: "pending", categorySource: "none" });
+    const pending = (await get(u, "/review/pending")).json();
+    expect(pending.groups.flatMap((g: { transactionIds: string[] }) => g.transactionIds)).toEqual([semCat.id]);
+  });
+
+  it("reativar: linha ainda pareada ou transferência sem categoria não entra na fila", async () => {
+    const u = await newUser("unign4");
+    const acc = await account(u, "PF", "pf");
+    const pareada = await tx(u, acc.id, { ignored: true, reviewStatus: "ok", categorySource: "none", transferPairId: "pair-ign" });
+    const transf = await tx(u, acc.id, { ignored: true, reviewStatus: "ok", categorySource: "none", type: "transfer" });
+    const res = await post(u, "/review/unignore", { transactionIds: [pareada.id, transf.id] });
+    expect(res.json()).toEqual({ unignored: 2 });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: pareada.id } })).toMatchObject({ ignored: false, reviewStatus: "ok", transferPairId: "pair-ign", categoryId: null });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: transf.id } })).toMatchObject({ ignored: false, reviewStatus: "ok" });
+    expect((await get(u, "/review/pending")).json().total).toBe(0);
+  });
+
+  it("reativar: linha não ignorada ou de outro workspace retorna 404; corpo vazio retorna 400", async () => {
+    const u = await newUser("unign2");
+    const other = await newUser("unign3");
+    const acc = await account(u, "PF", "pf");
+    const otherAcc = await account(other, "PF", "pf");
+    const normal = await tx(u, acc.id);
+    const alheia = await tx(other, otherAcc.id, { ignored: true, reviewStatus: "ok" });
+    expect((await post(u, "/review/unignore", { transactionIds: [normal.id] })).statusCode).toBe(404);
+    expect((await post(u, "/review/unignore", { transactionIds: [alheia.id] })).statusCode).toBe(404);
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { id: alheia.id } })).toMatchObject({ ignored: true });
+    expect((await post(u, "/review/unignore", {})).statusCode).toBe(400);
+    expect((await post(u, "/review/unignore", { transactionIds: [] })).statusCode).toBe(400);
   });
 
   it("desfazer par: sem categoria volta para a fila; com categoria só perde o par", async () => {

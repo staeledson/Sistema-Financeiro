@@ -77,7 +77,7 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
     await prisma.$transaction([
       prisma.aiJob.update({
         where: { id: jobId },
-        data: { status: "done", result: { total: 0, transfers: 0, byRule: 0, byAi: 0, pending: 0 } },
+        data: { status: "done", result: { total: 0, transfers: 0, byRule: 0, byAi: 0, pending: 0, aiFailures: 0, deferred: 0 } },
       }),
     ]);
     return;
@@ -214,12 +214,21 @@ export async function processCategorize(data: CategorizeJobData, deps: { ai: Cat
         pending += r.count;
       }
 
+      // Excedente do teto de IA: um único updateMany guardado; só marca como pendente (sugestão/confiança existentes ficam).
+      if (plan.deferredIds.length > 0) {
+        const r = await db.transaction.updateMany({
+          where: { id: { in: plan.deferredIds }, workspaceId, categoryId: null, ignored: false, transferPairId: null },
+          data: { reviewStatus: "pending" },
+        });
+        pending += r.count;
+      }
+
       await db.aiJob.update({
         where: { id: jobId },
         data: {
           status: "done",
           costTokens: plan.costTokens || null,
-          result: { total: scope.length, transfers, byRule, byAi, pending },
+          result: { total: scope.length, transfers, byRule, byAi, pending, aiFailures: plan.aiFailures, deferred: plan.deferred },
         },
       });
     },

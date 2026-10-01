@@ -25,8 +25,8 @@ export default defineConfig({
         name: "Finanças IA",
         short_name: "Finanças",
         description: "Gestão financeira pessoal com inteligência artificial",
-        theme_color: "#0d0d1a",
-        background_color: "#0d0d1a",
+        theme_color: "#ffffff",
+        background_color: "#f6f5f2",
         display: "standalone",
         start_url: "/",
         icons: [
@@ -42,13 +42,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^\/api\/(balances|transactions|dashboard)/,
-            handler: "StaleWhileRevalidate",
-            options: { cacheName: "api-reads", expiration: { maxAgeSeconds: 60 * 60 * 24 } },
-          },
-        ],
+        // SPA com vue-router (history): qualquer navegação cai no index.html, exceto a API.
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api/],
+        // Sem runtimeCaching de /api: o cache por URL ignoraria Authorization e workspace e vazaria dados entre usuários.
       },
     }),
   ],

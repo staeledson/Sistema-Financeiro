@@ -6,6 +6,13 @@ export type OfxTxn = {
   memo: string | null;
 };
 
+/** "1.234,56" (BR) e "1,234.56" (US) viram número; sem vírgula o ponto é decimal ("1234.56"). */
+export function normalizeAmount(raw: string): string {
+  if (!raw.includes(",")) return raw;
+  if (raw.lastIndexOf(".") > raw.lastIndexOf(",")) return raw.replace(/,/g, "");
+  return raw.replace(/\./g, "").replace(",", ".");
+}
+
 export function parseOfx(text: string): OfxTxn[] {
   const blocks = text.split(/<STMTTRN>/i).slice(1);
   const tag = (b: string, t: string): string | null => {
@@ -16,7 +23,8 @@ export function parseOfx(text: string): OfxTxn[] {
     const dt = tag(b, "DTPOSTED") ?? "";
     const dateISO = `${dt.slice(0, 4)}-${dt.slice(4, 6)}-${dt.slice(6, 8)}`;
     // TRNAMT ausente vira NaN (e não 0): o parser de extrato rejeita a transação em vez de importar valor zero
-    const amtRaw = tag(b, "TRNAMT")?.replace(",", ".");
+    const trnAmt = tag(b, "TRNAMT");
+    const amtRaw = trnAmt ? normalizeAmount(trnAmt) : trnAmt;
     const amt = amtRaw ? parseFloat(amtRaw) : NaN;
     return {
       fitid: tag(b, "FITID") || null,

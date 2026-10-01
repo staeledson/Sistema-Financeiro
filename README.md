@@ -121,7 +121,7 @@ sistema-financeiro/
 │   │   │   ├── push/       notificações push (VAPID)
 │   │   │   ├── transactions/
 │   │   │   └── workspaces/ multi-tenant
-│   │   └── test/e2e/       200 testes de integração
+│   │   └── test/e2e/       248 testes de integração
 │   │
 │   ├── worker/             BullMQ job processors
 │   │   └── src/
@@ -132,18 +132,18 @@ sistema-financeiro/
 │   │
 │   └── web/                Vue 3 PWA
 │       └── src/
-│           ├── components/ WorkspaceSwitcher, ChatChart
+│           ├── components/ 12 componentes (ui/, charts/, WorkspaceSwitcher, ChatChart…)
 │           ├── offline/    cache IDB + write queue
 │           ├── pwa/        install prompt
-│           ├── stores/     auth, workspace, finance
-│           └── views/      14 views
+│           ├── stores/     auth, workspace, finance, theme
+│           └── views/      17 views
 │
 ├── packages/
 │   └── shared/             Zod schemas + enums (isomórfico)
 │
 └── prisma/
     ├── schema.prisma       28 modelos
-    └── migrations/         12 migrations
+    └── migrations/         13 migrations
 ```
 
 ---
@@ -191,10 +191,10 @@ VAPID_PRIVATE_KEY=
 pnpm test
 
 # por app
-pnpm --filter @app/shared test   # 145 testes unitários
-pnpm --filter @app/api    test   # 200 testes e2e
-pnpm --filter @app/worker test   # 55 testes unitários
-pnpm --filter @app/web    test   # 51 testes unitários
+pnpm --filter @app/shared test   # 191 testes unitários
+pnpm --filter @app/api    test   # 248 testes e2e
+pnpm --filter @app/worker test   # 61 testes unitários
+pnpm --filter @app/web    test   # 207 testes unitários
 ```
 
 O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `turbo typecheck` e as quatro suítes de teste a cada push.
@@ -208,6 +208,7 @@ O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `tu
 - **Chat financeiro** — pergunte sobre saldos, gastos e fluxo de caixa em linguagem natural (function calling com guardrails de segurança)
 - **Importação de extratos** — o arquivo é reconhecido sozinho (banco, tipo e conta): OFX de qualquer banco e extrato em PDF do C6 Bank (PF e PJ), com preview, marcação de duplicatas (períodos que se sobrepõem não duplicam), conferência dos saldos declarados no extrato, histórico de importações e desfazer. CSV por mapeamento manual; PDF de outros bancos via IA
 - **Categorização automática e fila "Para categorizar"** — depois de importar, o sistema pareia transferências entre contas próprias (pelo nome do titular e da empresa, configuráveis, ou pelo pagamento de fatura), aplica regras e usa IA em lote com limiar de confiança (configurável por workspace); o que sobra vira uma fila de pendentes agrupados por descrição, onde uma decisão cria regra e vale para lançamentos parecidos. Receita e despesa ignoram transferências pareadas e lançamentos ignorados; o saldo de cada conta continua contando todos os movimentos
+- **Painel, Início e Ajustes** — o Início resume saldos (PF, PJ e total), pendentes, próxima fatura e três gráficos; o Painel tem filtro global (todas/PF/PJ, conta e período: mês, trimestre, ano ou intervalo) guardado na URL e três blocos na ordem de prioridade: para onde vai o dinheiro (por categoria, evolução, orçamento, maiores destinos, recorrentes), cartões e faturas (fatura aberta, ciclo, parcelas, pagamentos) e fluxo de caixa (saldos, histórico de 12 meses e previsão de 3 meses). Os gráficos de categorias, orçamento e fluxo abrem a lista de transações já filtrada. Os endpoints `GET /dashboard/{spending,cards,cashflow,summary}` aceitam `entity`, `accountId`, `month|quarter|year|from+to` e `asOf` (data de referência, para testes). Em Ajustes ficam os nomes do titular/empresa, o limiar da IA e o tema; a lista de transações mostra os selos de transferência pareada, ignorado e parcela, com desfazer par e reativar
 - **Regras de categorização** — automação baseada em padrões de descrição
 - **Orçamentos e metas** — acompanhamento com progresso
 - **Splits** — divisão de despesas entre participantes de um workspace
@@ -216,6 +217,12 @@ O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `tu
 - **Exportação** — CSV, XLSX (ExcelJS) e backup JSON completo
 - **Share Target** — compartilhe um extrato ou comprovante direto do celular para lançar
 - **Contas PF e PJ no mesmo workspace** — cada conta tem entidade (PF/PJ), instituição e, nos cartões, fechamento, vencimento e limite; categorias têm escopo PF/PJ/ambos e há filtro PF/PJ em contas e transações
+
+### Regras de fatura e previsão
+
+- **Ciclo da fatura**: as compras vão de `fechamento anterior + 1` até o dia de fechamento (`closingDay`, limitado ao último dia do mês). A fatura vence no `dueDay` do mês do fechamento se `dueDay > closingDay`; senão, no mês seguinte. A fatura aberta é despesas menos estornos (receitas não pareadas) do ciclo; o pagamento é a receita pareada na conta do cartão entre o fechamento e o seguinte. Cartão sem fechamento/vencimento aparece como não configurado.
+- **Parcelas**: `n/m` da descrição vira `installmentCurrent/installmentTotal` só em contas de cartão de crédito (sem retroativo). A visão do cartão mostra as parcelas por **mês de vencimento** da fatura; a previsão de caixa conta as parcelas ainda não lançadas por **mês da data** do lançamento (o saldo e o histórico contam o gasto do cartão na data da compra).
+- **Previsão de 3 meses** (`GET /dashboard/cashflow`): receita = média dos 6 meses fechados anteriores; despesa = parte variável (média das despesas − recorrentes − média das parcelas) + recorrentes detectadas + contas agendadas que não casam com uma recorrente + parcelas futuras ainda não lançadas. O saldo projetado parte do saldo atual do escopo. Aproximação conhecida: uma conta agendada que não casa por nome com uma recorrente pode contar em dobro com a média histórica.
 
 ---
 

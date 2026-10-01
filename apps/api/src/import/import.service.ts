@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import Papa from "papaparse";
 import { Queue } from "bullmq";
-import { csvMappingSchema, csvRowToTransaction, ordinalFingerprints } from "@app/shared";
+import { csvMappingSchema, csvRowToTransaction, ordinalFingerprints, parseInstallment } from "@app/shared";
 import { prisma } from "../database";
 import { StorageService } from "../storage/storage.service";
 import { AI_QUEUE } from "../queue/queue.tokens";
@@ -87,8 +87,8 @@ export class ImportService {
     if (batch.undoneAt) throw new ConflictException("o lote foi desfeito; gere um novo preview");
 
     const accountIds = [...new Set(rows.map((r) => r.accountId))];
-    const owned = await prisma.bankAccount.count({ where: { id: { in: accountIds }, workspaceId } });
-    if (owned !== accountIds.length) throw new BadRequestException("conta inexistente no workspace");
+    const ownedAccounts = await prisma.bankAccount.findMany({ where: { id: { in: accountIds }, workspaceId }, select: { id: true, type: true } });
+    if (ownedAccounts.length !== accountIds.length) throw new BadRequestException("conta inexistente no workspace");
 
     const categoryIds = [...new Set(rows.map((r) => r.categoryId).filter((c): c is string => !!c))];
     if (categoryIds.length) {
@@ -96,21 +96,28 @@ export class ImportService {
       if (ownedCats !== categoryIds.length) throw new BadRequestException("categoria inexistente no workspace");
     }
 
-    const payload = rows.map((r) => ({
-      workspaceId,
-      type: r.type,
-      amountCents: BigInt(r.amountCents),
-      date: new Date(r.date),
-      postedDate: r.postedDate ? new Date(r.postedDate) : null,
-      accountId: r.accountId,
-      categoryId: r.categoryId ?? null,
-      description: r.description,
-      source: "import",
-      categorySource: r.categoryId ? ("import" as const) : ("none" as const),
-      importFingerprint: r.fingerprint,
-      importBatchId: batchId,
-      createdById: userId,
-    }));
+    // parcela "n/m" só em despesa de cartão de crédito, a mesma regra do lançamento manual
+    const cardIds = new Set(ownedAccounts.filter((a) => a.type === "credit_card").map((a) => a.id));
+    const payload = rows.map((r) => {
+      const inst = r.type === "expense" && cardIds.has(r.accountId) ? parseInstallment(r.description) : null;
+      return {
+        workspaceId,
+        type: r.type,
+        amountCents: BigInt(r.amountCents),
+        date: new Date(r.date),
+        postedDate: r.postedDate ? new Date(r.postedDate) : null,
+        accountId: r.accountId,
+        categoryId: r.categoryId ?? null,
+        description: r.description,
+        source: "import",
+        categorySource: r.categoryId ? ("import" as const) : ("none" as const),
+        installmentCurrent: inst?.current ?? null,
+        installmentTotal: inst?.total ?? null,
+        importFingerprint: r.fingerprint,
+        importBatchId: batchId,
+        createdById: userId,
+      };
+    });
 
     // o CSV marca como duplicata a 1ª ocorrência gravada só com a chave legada (sem ordinal): não gravar outra cópia
     const legacyBases = [...new Set(payload.filter((p) => p.importFingerprint.endsWith("|0")).map((p) => p.importFingerprint.slice(0, -2)))];

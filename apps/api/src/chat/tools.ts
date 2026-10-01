@@ -2,8 +2,11 @@ import { z } from "zod";
 import { prisma } from "../database";
 import { REPORTABLE } from "../common/reportable";
 import type { Prisma } from "../../generated/prisma/client";
+import { BalancesService } from "../balances/balances.service";
 
 export type Ctx = { workspaceId: string };
+
+const balances = new BalancesService();
 
 const monthArg = z.object({ month: z.string().regex(/^\d{4}-\d{2}$/) });
 
@@ -42,25 +45,7 @@ export const TOOLS = {
       parameters: { type: "object" as const, properties: {} },
     },
     async run(_a: Record<string, never>, ctx: Ctx) {
-      const accounts = await prisma.bankAccount.findMany({
-        where: { workspaceId: ctx.workspaceId, archived: false },
-        select: { id: true, name: true, type: true, openingBalanceCents: true },
-      });
-      const txs = await prisma.transaction.findMany({
-        where: { workspaceId: ctx.workspaceId },
-        select: { type: true, amountCents: true, accountId: true, sourceAccountId: true, destAccountId: true },
-      });
-      const balances = accounts.map((acc) => {
-        let balance = Number(acc.openingBalanceCents);
-        for (const tx of txs) {
-          if (tx.type === "income" && tx.accountId === acc.id) balance += Number(tx.amountCents);
-          else if (tx.type === "expense" && tx.accountId === acc.id) balance -= Number(tx.amountCents);
-          else if (tx.type === "transfer" && tx.destAccountId === acc.id) balance += Number(tx.amountCents);
-          else if (tx.type === "transfer" && tx.sourceAccountId === acc.id) balance -= Number(tx.amountCents);
-        }
-        return { accountId: acc.id, name: acc.name, type: acc.type, balanceCents: balance };
-      });
-      return { accounts: balances, consolidatedCents: balances.reduce((s, b) => s + b.balanceCents, 0) };
+      return balances.getForWorkspace(ctx.workspaceId);
     },
   },
 

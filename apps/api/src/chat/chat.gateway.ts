@@ -2,6 +2,15 @@ import { TOOLS, TOOL_DEFS, ToolName, Ctx } from "./tools";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const MAX_ITERS = 5;
+
+/**
+ * Dados financeiros: por padrão só provedores que não retêm nem treinam com o conteúdo ("deny").
+ * OPENROUTER_DATA_COLLECTION=allow libera; qualquer outro valor volta a "deny".
+ * Mesma política do worker (`providerPrefs` em apps/worker/src/ai/openrouter.ts): duplicada de propósito, sem import entre apps.
+ */
+export function providerPrefs(): { data_collection: "deny" | "allow" } {
+  return { data_collection: process.env["OPENROUTER_DATA_COLLECTION"]?.trim().toLowerCase() === "allow" ? "allow" : "deny" };
+}
 const SYSTEM =
   "Você é um assistente financeiro pessoal que responde em pt-BR. " +
   "Use SOMENTE as ferramentas disponíveis para obter números e dados; nunca invente valores. " +
@@ -33,7 +42,7 @@ export async function runChat(
     const res = await fetchFn(ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, messages, tools: TOOL_DEFS, tool_choice: "auto" }),
+      body: JSON.stringify({ model, messages, tools: TOOL_DEFS, tool_choice: "auto", provider: providerPrefs() }),
     });
     if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${await res.text()}`);
     const data = (await res.json()) as { choices: Array<{ message: { role: string; content: string | null; tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }> } }> };

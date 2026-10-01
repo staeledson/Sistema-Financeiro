@@ -1,10 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useFinanceStore } from "../stores/finance";
-import type { Transaction, TransactionType } from "../lib/api";
+import { api, type CategorySource, type Transaction, type TransactionType } from "../lib/api";
+import EntityBadge from "../components/ui/EntityBadge.vue";
+import EmptyState from "../components/ui/EmptyState.vue";
+import Money from "../components/ui/Money.vue";
+import { HttpError } from "../lib/http";
+import { isPendingReview } from "../lib/review-queue";
+import { formatDateOnly } from "../lib/date";
+import { localToday } from "../lib/dashboard-client";
 import { ENTITY_SHORT, accountsForEntity, categoriesForEntity, type EntityFilter } from "../lib/entity";
 
 const store = useFinanceStore();
+const route = useRoute();
+const router = useRouter();
 
 // filters
 const filterFrom = ref("");
@@ -12,11 +22,98 @@ const filterTo = ref("");
 const filterAccountId = ref("");
 const filterQ = ref("");
 const filterEntity = ref<EntityFilter>("all");
+const filterCategoryId = ref("");
+const filterType = ref<TransactionType | "">("");
+const filterReportable = ref(false);
+// filtro rápido (sobre as linhas já carregadas)
+type ShowFilter = "all" | "paired" | "ignored" | "pending";
+const SHOW_OPTIONS: { value: ShowFilter; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "paired", label: "Pareados" },
+  { value: "ignored", label: "Ignorados" },
+  { value: "pending", label: "Pendentes" },
+];
+const showFilter = ref<ShowFilter>("all");
+const visibleTransactions = computed(() => {
+  const now = Date.now();
+  return store.transactions.filter((t) => {
+    if (showFilter.value === "paired") return !!t.transferPairId;
+    if (showFilter.value === "ignored") return !!t.ignored;
+    if (showFilter.value === "pending") return isPendingReview(t, now);
+    return true;
+  });
+});
+
+const SOURCE_LABEL: Partial<Record<CategorySource, string>> = { manual: "manual", rule: "regra", ai: "IA", import: "importação" };
+const sourceLabel = (tx: Transaction) => (tx.categoryId ? SOURCE_LABEL[tx.categorySource] : undefined);
+
+const actionErro = ref("");
+const reloadErro = ref("");
+/** Chave da ação em andamento: `pair:<id>` (os dois lados do par ficam bloqueados) ou `tx:<id>`. */
+const busyKey = ref("");
+const pairBusy = (tx: Transaction) => !!tx.transferPairId && busyKey.value === `pair:${tx.transferPairId}`;
+const txBusy = (tx: Transaction) => busyKey.value === `tx:${tx.id}`;
+
+/** Recarrega a lista; falha aqui não é falha da ação (que já aconteceu). */
+async function reload() {
+  try {
+    await filtrar();
+  } catch (e) {
+    reloadErro.value = `Não foi possível atualizar a lista: ${(e as Error).message || "erro desconhecido"}. Use Filtrar para tentar de novo.`;
+  }
+}
+
+/** Executa a ação e recarrega. Se a linha já mudou (404), o erro é mostrado e a lista também é recarregada. */
+async function runAction(key: string, action: () => Promise<unknown>) {
+  actionErro.value = "";
+  reloadErro.value = "";
+  busyKey.value = key;
+  try {
+    try {
+      await action();
+    } catch (e) {
+      actionErro.value = (e as Error).message || "Não foi possível concluir a ação.";
+      if (e instanceof HttpError && e.status === 404) await reload();
+      return;
+    }
+    await reload();
+  } finally {
+    busyKey.value = "";
+  }
+}
+const desfazerPar = (tx: Transaction) => runAction(`pair:${tx.transferPairId}`, () => api.review.unpair(tx.transferPairId!));
+const reativar = (tx: Transaction) => runAction(`tx:${tx.id}`, () => api.review.unignore([tx.id]));
+const descOf = (tx: Transaction) => tx.description ?? "sem descrição";
+
+const filterCategoryName = computed(() =>
+  filterCategoryId.value === "__none" ? "Sem categoria" : (store.categories.find((c) => c.id === filterCategoryId.value)?.name ?? ""),
+);
+
+function queryValue(v: unknown): string {
+  const x = Array.isArray(v) ? v[0] : v;
+  return typeof x === "string" ? x : "";
+}
+
+/** Alimenta os filtros com `from/to/categoryId/accountId/entity/q` da URL (links do Painel); campos ausentes limpam o filtro. */
+function applyRouteQuery() {
+  const q = route.query;
+  filterFrom.value = queryValue(q.from);
+  filterTo.value = queryValue(q.to);
+  filterCategoryId.value = queryValue(q.categoryId);
+  const type = queryValue(q.type);
+  filterType.value = type === "income" || type === "expense" || type === "transfer" ? type : "";
+  // `reportable` só vale com type income/expense (a API devolve 400 nos demais casos)
+  filterReportable.value = queryValue(q.reportable) === "1" && (filterType.value === "income" || filterType.value === "expense");
+  filterAccountId.value = queryValue(q.accountId);
+  filterQ.value = queryValue(q.q);
+  const entity = queryValue(q.entity);
+  filterEntity.value = entity === "pf" || entity === "pj" ? entity : "all";
+}
 
 // new transaction form
 const txType = ref<TransactionType>("expense");
 const txAmount = ref(0);
-const txDate = ref(new Date().toISOString().slice(0, 10));
+const txDate = ref(localToday());
 const txAccountId = ref("");
 const txSrcId = ref("");
 const txDstId = ref("");
@@ -49,12 +146,32 @@ async function onEntityChange() {
 }
 
 onMounted(async () => {
-  await Promise.all([store.loadAccounts(), store.loadCategories(), store.loadTransactions()]);
+  applyRouteQuery();
+  await Promise.all([store.loadAccounts(), store.loadCategories(), filtrar()]);
   if (store.accounts.length > 0) txAccountId.value = store.accounts[0].id;
 });
 
+// Navegar de um link do Painel para esta mesma tela (sem remontar) reaplica os filtros.
+watch(
+  () => route.query,
+  async () => {
+    if (route.path !== "/transacoes") return;
+    applyRouteQuery();
+    await filtrar();
+  },
+);
+
+/** Remove categoria, tipo e "reportable" da URL; o watcher da rota reaplica os filtros e recarrega a lista. */
+async function limparCategoria() {
+  const { categoryId: _c, type: _t, reportable: _r, ...rest } = route.query;
+  await router.replace({ query: rest });
+}
+
 async function filtrar() {
   await store.loadTransactions({
+    categoryId: filterCategoryId.value || undefined,
+    type: filterType.value || undefined,
+    reportable: filterReportable.value || undefined,
     from: filterFrom.value || undefined,
     to: filterTo.value || undefined,
     accountId: filterAccountId.value || undefined,
@@ -81,20 +198,13 @@ async function registrar() {
       body.categoryId = txCategoryId.value || null;
     }
     await store.createTransaction(body);
+    await filtrar(); // a resposta do POST não traz os campos de revisão/par; recarrega a lista com os filtros atuais
     txAmount.value = 0;
     txDesc.value = "";
     txCategoryId.value = "";
   } catch (e) {
     txErro.value = (e as Error).message;
   }
-}
-
-function formatBRL(cents: number) {
-  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR");
 }
 
 const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expense: "Despesa", transfer: "Transferência" };
@@ -144,7 +254,7 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
 
       <input v-model="txDesc" placeholder="Descrição (opcional)" />
       <button type="submit">Registrar</button>
-      <p v-if="txErro" role="alert">{{ txErro }}</p>
+      <p v-if="txErro" role="alert" class="text-error">{{ txErro }}</p>
     </form>
 
     <!-- Filters -->
@@ -161,23 +271,70 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
         <option v-for="a in filterAccounts" :key="a.id" :value="a.id">{{ a.name }} · {{ ENTITY_SHORT[a.entity] }}</option>
       </select>
       <input v-model="filterQ" placeholder="Buscar descrição" />
-      <button @click="filtrar">Filtrar</button>
+      <button type="button" @click="filtrar">Filtrar</button>
     </div>
+    <p v-if="filterCategoryId" class="category-chip">
+      Categoria: <strong>{{ filterCategoryName || "selecionada" }}</strong>
+      <span v-if="filterReportable">(despesas, sem transferências internas nem ignoradas)</span>
+      <button type="button" aria-label="Remover filtro de categoria" @click="limparCategoria">Limpar</button>
+    </p>
+
+    <div class="show-filter" role="group" aria-label="Mostrar">
+      <span class="show-label">Mostrar:</span>
+      <button
+        v-for="o in SHOW_OPTIONS"
+        :key="o.value"
+        type="button"
+        class="chip-btn"
+        :class="{ active: showFilter === o.value }"
+        :aria-pressed="showFilter === o.value"
+        @click="showFilter = o.value"
+      >{{ o.label }}</button>
+    </div>
+    <p v-if="actionErro" role="alert" class="text-error">{{ actionErro }}</p>
+    <p v-if="reloadErro" role="alert" class="text-error">{{ reloadErro }}</p>
 
     <!-- List -->
     <ul class="tx-list">
-      <li v-for="tx in store.transactions" :key="tx.id" class="tx-item" :class="tx.type">
-        <div class="tx-info">
-          <span class="tx-type">{{ txTypeLabel[tx.type] }}</span>
-          <span v-if="entityOf(tx)" class="tx-entity">{{ ENTITY_SHORT[entityOf(tx)!] }}</span>
-          <span class="tx-desc">{{ tx.description ?? "—" }}</span>
-          <span class="tx-date">{{ formatDate(tx.date) }}</span>
+      <li v-for="tx in visibleTransactions" :key="tx.id" class="tx-item" :class="[tx.type, { dim: tx.ignored }]">
+        <div class="tx-main">
+          <div class="tx-info">
+            <span class="tx-type">{{ txTypeLabel[tx.type] }}</span>
+            <EntityBadge v-if="entityOf(tx)" :entity="entityOf(tx)!" />
+            <span class="tx-desc">{{ tx.description ?? "—" }}</span>
+            <span class="tx-date">{{ formatDateOnly(tx.date) }}</span>
+          </div>
+          <div class="tx-tags">
+            <span v-if="tx.transferPairId" class="tag paired">Transferência pareada</span>
+            <button
+              v-if="tx.transferPairId"
+              type="button"
+              class="btn-small btn-outline"
+              title="Desfazer o par (os dois lançamentos)"
+              :aria-label="`Desfazer o par (os dois lançamentos): ${descOf(tx)}`"
+              :disabled="pairBusy(tx)"
+              @click="desfazerPar(tx)"
+            >Desfazer par</button>
+            <span v-if="tx.ignored" class="tag ignored">Ignorado</span>
+            <button
+              v-if="tx.ignored"
+              type="button"
+              class="btn-small btn-outline"
+              :aria-label="`Reativar lançamento: ${descOf(tx)}`"
+              :disabled="txBusy(tx)"
+              @click="reativar(tx)"
+            >Reativar</button>
+            <span v-if="tx.installmentCurrent && tx.installmentTotal" class="tag">Parcela {{ tx.installmentCurrent }}/{{ tx.installmentTotal }}</span>
+            <span v-if="isPendingReview(tx)" class="tag pending">Sem categoria</span>
+            <span v-if="sourceLabel(tx)" class="source">Categoria: {{ sourceLabel(tx) }}</span>
+          </div>
         </div>
         <span class="tx-amount" :class="{ negative: tx.type === 'expense' }">
-          {{ tx.type === 'expense' ? '−' : tx.type === 'income' ? '+' : '⇄' }}{{ formatBRL(tx.amountCents) }}
+          {{ tx.type === 'expense' ? '−' : tx.type === 'income' ? '+' : '⇄' }}<Money :cents="tx.amountCents" />
         </span>
       </li>
-      <li v-if="store.transactions.length === 0" class="empty">Nenhuma transação encontrada.</li>
+      <li v-if="store.transactions.length === 0" class="empty"><EmptyState title="Nenhuma transação encontrada." /></li>
+      <li v-else-if="visibleTransactions.length === 0" class="empty"><EmptyState title="Nenhuma transação neste filtro." hint="Troque o filtro “Mostrar” para ver as demais." /></li>
     </ul>
   </section>
 </template>
@@ -185,23 +342,34 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
 <style scoped>
 .transactions { padding: calc(var(--space) * 3); max-width: 720px; margin: 0 auto; }
 h2, h3 { margin-bottom: calc(var(--space) * 2); }
-.quick-form, .filters { background: var(--color-surface); padding: calc(var(--space) * 3); border-radius: var(--radius); margin-bottom: calc(var(--space) * 3); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.quick-form, .filters { background: var(--surface); border: 1px solid var(--border); padding: calc(var(--space) * 3); border-radius: var(--radius); margin-bottom: calc(var(--space) * 3); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
 .row { display: flex; gap: calc(var(--space) * 2); flex-wrap: wrap; }
 .row > * { flex: 1; min-width: 120px; }
 .filters { flex-direction: row; flex-wrap: wrap; align-items: center; }
 .filters > * { flex: 1; min-width: 140px; }
-input, select { padding: calc(var(--space) * 1.5); border: 1px solid #333; border-radius: calc(var(--radius) / 2); background: var(--color-bg); color: var(--color-text); font-size: 0.9rem; }
-button { padding: calc(var(--space) * 1.5) calc(var(--space) * 2); border: none; border-radius: calc(var(--radius) / 2); background: var(--color-primary); color: #fff; cursor: pointer; white-space: nowrap; }
+button { white-space: nowrap; }
 .tx-list { list-style: none; display: flex; flex-direction: column; gap: var(--space); }
-.tx-item { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--space) * 2); background: var(--color-surface); border-radius: var(--radius); }
+.tx-item { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--space) * 2); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.tx-main { display: flex; flex-direction: column; gap: calc(var(--space) * 0.75); min-width: 0; }
+.tx-tags { display: flex; gap: var(--space); align-items: center; flex-wrap: wrap; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); background: var(--surface-2); }
+.tag.paired { color: var(--c-transfer); background: color-mix(in srgb, var(--c-transfer) 15%, transparent); }
+.tag.ignored { color: var(--text-muted); }
+.tag.pending { color: var(--warning); background: color-mix(in srgb, var(--warning) 15%, transparent); }
+.source { font-size: 0.75rem; color: var(--text-muted); }
+.dim .tx-desc, .dim .tx-amount { opacity: 0.6; }
+.show-filter { display: flex; align-items: center; gap: var(--space); flex-wrap: wrap; margin-bottom: calc(var(--space) * 2); }
+.show-label { font-size: 0.85rem; color: var(--text-muted); }
+.chip-btn { padding: 2px 12px; border-radius: 999px; font-size: 0.85rem; background: var(--surface-2); color: var(--text-muted); border-color: var(--border); }
+.chip-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 700; }
 .tx-info { display: flex; gap: calc(var(--space) * 2); align-items: baseline; flex-wrap: wrap; }
-.tx-type { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em; opacity: 0.7; }
-.tx-entity { font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--color-primary); color: #fff; }
+.tx-type { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
 .tx-desc { font-weight: 500; }
-.tx-date { font-size: 0.8rem; opacity: 0.5; }
-.tx-amount { font-weight: 700; }
-.tx-amount.negative { color: #e74c3c; }
-.income .tx-amount { color: #2ecc71; }
-.empty { opacity: 0.5; font-style: italic; padding: var(--space); }
-p[role="alert"] { color: #e74c3c; font-size: 0.9rem; }
+.tx-date { font-size: 0.8rem; color: var(--text-muted); }
+.tx-amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+.tx-amount.negative { color: var(--c-expense); }
+.income .tx-amount { color: var(--c-income); }
+.empty { list-style: none; }
+.category-chip { display: flex; align-items: center; gap: var(--space); margin-bottom: calc(var(--space) * 2); font-size: 0.9rem; color: var(--text-muted); }
+p[role="alert"] { font-size: 0.9rem; }
 </style>

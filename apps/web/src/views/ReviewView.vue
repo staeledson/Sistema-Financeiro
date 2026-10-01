@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { http } from "../lib/http";
+import { formatBRL as formatMoney } from "../lib/money";
 import { useFinanceStore } from "../stores/finance";
 import { ENTITY_SHORT, accountsForEntity, type EntityFilter } from "../lib/entity";
 import { formatDate as formatDateOnly } from "../lib/import-client";
@@ -9,16 +10,17 @@ import {
   ignoreTransactions, markTransfer, recategorize,
   type PendingGroup, type PendingResponse, type TransferCandidate,
 } from "../lib/review-client";
-import RulesPanel from "../components/RulesPanel.vue";
+import { useRouter } from "vue-router";
+import EntityBadge from "../components/ui/EntityBadge.vue";
+import EmptyState from "../components/ui/EmptyState.vue";
 
 const finance = useFinanceStore();
+const router = useRouter();
 
 // ───── pendentes de categoria ─────
 const pending = ref<PendingResponse>({ total: 0, groups: [] });
 const entityFilter = ref<EntityFilter>("all");
 const accountFilter = ref("");
-const showRules = ref(false);
-const rulesPanel = ref<InstanceType<typeof RulesPanel> | null>(null);
 const loaded = ref(false);
 const erro = ref("");
 const info = ref("");
@@ -122,7 +124,6 @@ const categorize = (g: PendingGroup) => {
       applyToSimilar: s.applyToSimilar,
     });
     info.value = `${r.updated} lançamento(s) categorizado(s)${r.similarUpdated ? ` (${r.similarUpdated} parecidos)` : ""}${r.ruleCreated ? " e regra criada" : ""}.`;
-    if (r.ruleCreated) void rulesPanel.value?.reload();
   });
 };
 const accept = (g: PendingGroup) =>
@@ -230,8 +231,7 @@ async function discard(id: string) {
 }
 
 function formatBRL(cents: number | null) {
-  if (cents == null) return "—";
-  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return cents == null ? "—" : formatMoney(cents);
 }
 
 // Datas só-dia ("YYYY-MM-DD") não podem passar por new Date(): em UTC-3 mostrariam o dia anterior.
@@ -241,7 +241,7 @@ function formatDate(iso: string | null) {
 }
 
 const confidenceColor = (c: number | null) =>
-  !c ? "#555" : c >= 0.85 ? "#2ecc71" : c >= 0.65 ? "#f39c12" : "#e74c3c";
+  !c ? "var(--text-muted)" : c >= 0.85 ? "var(--c-income)" : c >= 0.65 ? "var(--warning)" : "var(--c-expense)";
 </script>
 
 <template>
@@ -250,14 +250,12 @@ const confidenceColor = (c: number | null) =>
       <h2>Para categorizar <span v-if="loaded" class="counter">{{ pending.total }}</span></h2>
       <div class="head-actions">
         <button type="button" class="btn-secondary" :disabled="busy" @click="recat">Recategorizar pendentes</button>
-        <button type="button" class="btn-secondary" @click="showRules = !showRules">{{ showRules ? "Ocultar regras" : "Regras" }}</button>
+        <button type="button" class="btn-secondary" @click="router.push('/regras')">Regras</button>
       </div>
     </header>
 
-    <p v-if="erro" role="alert" class="error">{{ erro }}</p>
-    <p v-if="info" role="status" class="info">{{ info }}</p>
-
-    <RulesPanel v-if="showRules" ref="rulesPanel" />
+    <p v-if="erro" role="alert" class="text-error">{{ erro }}</p>
+    <p v-if="info" role="status" class="text-success">{{ info }}</p>
 
     <div class="filters">
       <select v-model="entityFilter" aria-label="Entidade">
@@ -272,13 +270,13 @@ const confidenceColor = (c: number | null) =>
     </div>
 
     <p v-if="!loaded && !erro" class="hint">Carregando…</p>
-    <p v-else-if="loaded && !pending.groups.length" class="empty">Nada pendente de categoria.</p>
+    <EmptyState v-else-if="loaded && !pending.groups.length" title="Nada pendente de categoria." />
 
     <ul class="groups">
       <li v-for="g in pending.groups" :key="g.key" class="group">
         <div class="group-head">
           <strong class="group-desc">{{ g.description }}</strong>
-          <span class="group-meta">{{ g.count }} lançamento(s) · {{ formatBRL(g.totalCents) }} · {{ g.type === "income" ? "receita" : "despesa" }}<template v-if="g.entity"> · {{ ENTITY_SHORT[g.entity] }}</template></span>
+          <span class="group-meta">{{ g.count }} lançamento(s) · {{ formatBRL(g.totalCents) }} · {{ g.type === "income" ? "receita" : "despesa" }}<template v-if="g.entity"> · <EntityBadge :entity="g.entity" /></template></span>
         </div>
         <p v-if="suggestedName(g.suggestedCategoryId)" class="suggested">IA sugere: {{ suggestedName(g.suggestedCategoryId) }}<template v-if="g.count > 1"> (aplicada a cada lançamento pela sugestão dele)</template></p>
 
@@ -298,7 +296,7 @@ const confidenceColor = (c: number | null) =>
         <p v-if="ui[g.key]" class="hint">Criar regra: usa o nome do fornecedor (sem prefixos como "Pix enviado para", datas e números), e lançamentos futuros com esse nome já entram categorizados; descrições genéricas não geram regra. Aplicar a parecidos: leva junto os lançamentos sem categoria com a mesma descrição, em qualquer conta.</p>
 
         <div v-if="ui[g.key]?.transferOpen && g.count === 1" class="transfer">
-          <p v-if="ui[g.key].candidatesError" role="alert" class="error">{{ ui[g.key].candidatesError }}</p>
+          <p v-if="ui[g.key].candidatesError" role="alert" class="text-error">{{ ui[g.key].candidatesError }}</p>
           <p v-else-if="!ui[g.key].candidatesLoaded" class="hint">Buscando contrapartes…</p>
           <p v-else-if="!ui[g.key].candidates.length" class="hint">Nenhuma contraparte encontrada (mesmo valor, outra conta, até 7 dias).</p>
           <template v-else>
@@ -316,8 +314,8 @@ const confidenceColor = (c: number | null) =>
 
     <h2 class="drafts-title">Rascunhos</h2>
 
-    <p v-if="drafts.length === 0" class="empty">Nenhum rascunho pendente.</p>
-    <p v-if="draftErro" role="alert" class="error">{{ draftErro }}</p>
+    <EmptyState v-if="drafts.length === 0" title="Nenhum rascunho pendente." />
+    <p v-if="draftErro" role="alert" class="text-error">{{ draftErro }}</p>
 
     <ul class="draft-list">
       <li v-for="d in drafts" :key="d.id" class="draft-item">
@@ -347,7 +345,7 @@ const confidenceColor = (c: number | null) =>
             >{{ c.name }}</option>
           </select>
           <button type="button" @click="confirm(d)" :disabled="!overrides[d.id]?.accountId && d.type !== 'transfer'">Confirmar</button>
-          <button type="button" class="btn-discard" @click="discard(d.id)">Descartar</button>
+          <button type="button" class="btn-secondary" @click="discard(d.id)">Descartar</button>
         </div>
       </li>
     </ul>
@@ -358,40 +356,33 @@ const confidenceColor = (c: number | null) =>
 .review { padding: calc(var(--space) * 3); max-width: 720px; margin: 0 auto; }
 h2 { margin-bottom: calc(var(--space) * 3); }
 .draft-list { list-style: none; display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
-.draft-item { background: var(--color-surface); border-radius: var(--radius); padding: calc(var(--space) * 3); display: flex; flex-direction: column; gap: calc(var(--space) * 1.5); }
+.draft-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: calc(var(--space) * 3); display: flex; flex-direction: column; gap: calc(var(--space) * 1.5); }
 .draft-header { display: flex; gap: calc(var(--space) * 2); align-items: center; flex-wrap: wrap; }
-.draft-type { text-transform: uppercase; font-size: 0.75rem; letter-spacing: .05em; opacity: 0.7; }
-.draft-amount { font-weight: 700; font-size: 1.1rem; }
-.draft-date { font-size: 0.85rem; opacity: 0.6; }
+.draft-type { text-transform: uppercase; font-size: 0.75rem; letter-spacing: .05em; color: var(--text-muted); }
+.draft-amount { font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.draft-date { font-size: 0.85rem; color: var(--text-muted); }
 .confidence { font-size: 0.8rem; font-weight: 600; }
 .draft-desc { font-size: 0.95rem; }
-.suggested-cat { font-size: 0.8rem; opacity: 0.6; font-style: italic; }
+.suggested-cat { font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
 .draft-actions { display: flex; gap: var(--space); flex-wrap: wrap; align-items: center; margin-top: var(--space); }
 .draft-actions > * { flex: 1; min-width: 120px; }
-select { padding: calc(var(--space) * 1.2); border: 1px solid #333; border-radius: calc(var(--radius) / 2); background: var(--color-bg); color: var(--color-text); font-size: 0.9rem; }
-button { padding: calc(var(--space) * 1.2) calc(var(--space) * 2); border: none; border-radius: calc(var(--radius) / 2); background: var(--color-primary); color: #fff; cursor: pointer; }
-button:disabled { opacity: 0.4; cursor: default; }
-.btn-discard { background: #555; }
-.empty { opacity: 0.5; font-style: italic; }
-.error { color: #e74c3c; }
-
+.text-error { font-size: 0.9rem; }
 .head { display: flex; justify-content: space-between; align-items: center; gap: calc(var(--space) * 2); flex-wrap: wrap; margin-bottom: calc(var(--space) * 3); }
 .head h2 { margin: 0; }
 .head-actions { display: flex; gap: var(--space); flex-wrap: wrap; }
-.counter { display: inline-block; min-width: 1.6em; padding: 0 calc(var(--space) * 1); border-radius: 999px; background: var(--color-primary); color: #fff; font-size: 0.8rem; text-align: center; vertical-align: middle; }
+.counter { display: inline-block; min-width: 1.6em; padding: 0 var(--space); border-radius: 999px; background: var(--accent); color: var(--accent-text); font-size: 0.8rem; text-align: center; vertical-align: middle; }
 .filters { display: flex; gap: var(--space); flex-wrap: wrap; margin-bottom: calc(var(--space) * 3); }
 .groups { list-style: none; display: flex; flex-direction: column; gap: calc(var(--space) * 2); margin-bottom: calc(var(--space) * 4); }
-.group { background: var(--color-surface); border-radius: var(--radius); padding: calc(var(--space) * 3); display: flex; flex-direction: column; gap: calc(var(--space) * 1.5); }
+.group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: calc(var(--space) * 3); display: flex; flex-direction: column; gap: calc(var(--space) * 1.5); }
 .group-head { display: flex; flex-direction: column; gap: calc(var(--space) * 0.5); }
 .group-desc { font-size: 0.95rem; overflow-wrap: anywhere; }
-.group-meta { font-size: 0.8rem; opacity: 0.65; }
-.suggested { font-size: 0.8rem; opacity: 0.6; font-style: italic; }
+.group-meta { font-size: 0.8rem; color: var(--text-muted); }
+.suggested { font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
 .group-actions { display: flex; gap: var(--space); flex-wrap: wrap; align-items: center; }
 .check { display: inline-flex; align-items: center; gap: calc(var(--space) * 0.5); font-size: 0.85rem; }
 .transfer { display: flex; gap: var(--space); flex-wrap: wrap; align-items: center; }
 .transfer select { flex: 1; min-width: 200px; }
-.hint { font-size: 0.85rem; opacity: 0.65; font-style: italic; }
-.info { color: #2ecc71; font-size: 0.9rem; }
-.btn-secondary { background: #555; }
+.hint { font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
+.text-success { font-size: 0.9rem; }
 .drafts-title { margin: calc(var(--space) * 4) 0 calc(var(--space) * 3); }
 </style>

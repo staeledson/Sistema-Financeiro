@@ -1,13 +1,12 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { api, type BankAccount, type Category, type Transaction, type Balances, type Dashboard, type NewAccount, type UpdateAccount } from "../lib/api";
+import { api, type BankAccount, type Category, type Transaction, type Balances, type NewAccount, type UpdateAccount } from "../lib/api";
 
 export const useFinanceStore = defineStore("finance", () => {
   const accounts = ref<BankAccount[]>([]);
   const categories = ref<Category[]>([]);
   const transactions = ref<Transaction[]>([]);
   const balances = ref<Balances | null>(null);
-  const dashboard = ref<Dashboard | null>(null);
 
   async function loadAccounts() {
     accounts.value = await api.accounts.list();
@@ -42,23 +41,18 @@ export const useFinanceStore = defineStore("finance", () => {
   }
 
   async function createTransaction(data: Parameters<typeof api.transactions.create>[0]) {
-    const tx = await api.transactions.create(data);
-    transactions.value.unshift(tx);
-    return tx;
+    // Não entra em `transactions`: a resposta é parcial; quem lança recarrega a lista com os filtros atuais.
+    return api.transactions.create(data);
   }
 
   async function loadBalances() {
     balances.value = await api.balances.get();
   }
 
-  async function loadDashboard(month: string) {
-    dashboard.value = await api.dashboard.get(month);
-  }
-
   return {
-    accounts, categories, transactions, balances, dashboard,
+    accounts, categories, transactions, balances,
     loadAccounts, createAccount, updateAccount, archiveAccount,
     loadCategories, loadTransactions, createTransaction,
-    loadBalances, loadDashboard,
+    loadBalances,
   };
 });

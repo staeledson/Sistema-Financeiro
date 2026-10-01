@@ -60,4 +60,28 @@ describe("parseOfx", () => {
     expect(txs[0].memo).toBe("iFood Pagamento");
     expect(txs[1].memo).toBe("Salário");
   });
+
+  describe("formatos de TRNAMT", () => {
+    const one = (amt: string) => parseOfx(`<STMTTRN><DTPOSTED>20260605<TRNAMT>${amt}<FITID>x\n</STMTTRN>`)[0].amountCents;
+
+    it("milhar com ponto e decimal com vírgula (BR)", () => {
+      expect(one("1.234,56")).toBe(123456);
+      expect(one("-1.234,56")).toBe(-123456);
+      expect(one("1.234.567,89")).toBe(123456789);
+    });
+
+    it("decimal com vírgula ou ponto sem milhar", () => {
+      expect(one("1234,56")).toBe(123456);
+      expect(one("1234.56")).toBe(123456);
+      expect(one("-35.00")).toBe(-3500);
+    });
+
+    it("milhar com vírgula e decimal com ponto (US)", () => {
+      expect(one("1,234.56")).toBe(123456);
+    });
+
+    it("TRNAMT ausente continua NaN", () => {
+      expect(parseOfx("<STMTTRN><DTPOSTED>20260605<FITID>x\n</STMTTRN>")[0].amountCents).toBeNaN();
+    });
+  });
 });

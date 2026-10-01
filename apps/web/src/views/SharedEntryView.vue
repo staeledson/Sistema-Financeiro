@@ -6,15 +6,15 @@
       <div v-if="status === 'loading'" class="status-msg">Processando imagem…</div>
       <div v-else-if="status === 'success'" class="status-msg success">
         <p>Rascunho criado! Acesse "Para categorizar" para confirmar.</p>
-        <button class="btn-primary" @click="emit('done')">Abrir Para categorizar</button>
+        <button type="button" class="btn-primary" @click="router.replace('/categorizar')">Abrir Para categorizar</button>
       </div>
       <div v-else-if="status === 'error'" class="status-msg error">
         <p>{{ errorMsg }}</p>
-        <button class="btn-secondary" @click="emit('done')">Voltar</button>
+        <button type="button" class="btn-secondary" @click="router.replace('/')">Voltar</button>
       </div>
       <div v-else class="status-msg">
         <p>Nenhuma imagem recebida.</p>
-        <button class="btn-secondary" @click="emit('done')">Voltar</button>
+        <button type="button" class="btn-secondary" @click="router.replace('/')">Voltar</button>
       </div>
     </div>
   </div>
@@ -22,9 +22,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { http } from "../lib/http";
 
-const emit = defineEmits<{ (e: "done"): void }>();
+const router = useRouter();
 
 const status = ref<"idle" | "loading" | "success" | "error">("idle");
 const errorMsg = ref("");
@@ -64,12 +65,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.shared-entry { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--color-bg, #0d0d1a); }
-.shared-card { background: var(--color-surface, #1a1a2e); border: 1px solid #333; border-radius: 0.75rem; padding: 2rem; min-width: 300px; text-align: center; }
+.shared-entry { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); }
+.shared-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; min-width: 300px; max-width: calc(100vw - 2rem); text-align: center; }
 .shared-card h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; }
-.status-msg { font-size: 0.95rem; color: #ccc; }
-.status-msg.success p { color: #4ade80; margin-bottom: 1rem; }
-.status-msg.error p { color: #f87171; margin-bottom: 1rem; }
-.btn-primary { padding: 0.5rem 1.25rem; background: var(--color-primary, #4f7cff); color: #fff; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.9rem; }
-.btn-secondary { padding: 0.5rem 1.25rem; background: transparent; border: 1px solid #444; color: var(--color-text, #fff); border-radius: 0.5rem; cursor: pointer; font-size: 0.9rem; }
+.status-msg { font-size: 0.95rem; color: var(--text-muted); }
+.status-msg.success p { color: var(--c-income); margin-bottom: 1rem; }
+.status-msg.error p { color: var(--danger); margin-bottom: 1rem; }
 </style>
