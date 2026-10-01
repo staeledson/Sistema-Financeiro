@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../http", () => ({ http: vi.fn(async () => ({})) }));
 
 import { http } from "../http";
-import { bytesToBase64, fileToBase64, decodeText, readFileBytes, formatDate, balanceSummary, detectFile, previewStatement, undoBatch, listBatches } from "../import-client";
+import { bytesToBase64, fileToBase64, decodeText, readFileBytes, formatDate, balanceSummary, detectFile, previewStatement, undoBatch, listBatches, nextCardRef, rowTags } from "../import-client";
 
 const lastCall = () => {
   const calls = vi.mocked(http).mock.calls;
@@ -91,5 +91,27 @@ describe("formatDate", () => {
 
   it("timestamp ISO completo passa por Date", () => {
     expect(formatDate("2026-06-10T12:00:00.000Z")).toBe("10/06/2026");
+  });
+});
+
+describe("fatura em CSV", () => {
+  it("previewStatement envia cardRef e format csv_invoice", async () => {
+    await previewStatement({ accountId: "a1", text: "t", format: "csv_invoice", cardRef: "1591" });
+    expect(lastCall()).toEqual(["POST", "/import/preview", { accountId: "a1", text: "t", format: "csv_invoice", cardRef: "1591" }]);
+  });
+
+  it("nextCardRef devolve o primeiro cartão ainda não importado", () => {
+    expect(nextCardRef(["1111", "2222"], [])).toBe("1111");
+    expect(nextCardRef(["1111", "2222"], ["1111"])).toBe("2222");
+    expect(nextCardRef(["1111", "2222"], ["1111", "2222"])).toBeNull();
+    expect(nextCardRef([], [])).toBeNull();
+  });
+
+  it("rowTags marca parcela e dólar pelo texto da descrição", () => {
+    expect(rowTags("Loja X 3/10")).toEqual({ installment: "3/10", usd: false });
+    expect(rowTags("Loja X 2/6 (US$ 5.00 @ 5.44)")).toEqual({ installment: "2/6", usd: true });
+    expect(rowTags("Apple (US$ 5.00 @ 5.44)")).toEqual({ installment: null, usd: true });
+    expect(rowTags("Mercado")).toEqual({ installment: null, usd: false });
+    expect(rowTags(null)).toEqual({ installment: null, usd: false });
   });
 });

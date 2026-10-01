@@ -2,10 +2,12 @@
 import { ref, computed, onMounted } from "vue";
 import { http } from "../lib/http";
 import { useFinanceStore } from "../stores/finance";
-import { INSTITUTION_LABEL } from "../lib/entity";
 import { formatBRL } from "../lib/money";
+import { ENTITY_LABEL, INSTITUTION_LABEL, type AccountEntity } from "../lib/entity";
+import { buildCreateAccountPayload, emptyAccountForm } from "../lib/account-form";
 import {
   balanceSummary, detectFile, previewStatement, undoBatch, listBatches, decodeText, readFileBytes, formatDate,
+  nextCardRef, rowTags,
   type BatchSummary, type DetectResponse, type PreviewRow, type StatementPreview,
 } from "../lib/import-client";
 
@@ -29,6 +31,14 @@ const previewRows = ref<SelectableRow[]>([]);
 const batchId = ref("");
 const batches = ref<BatchSummary[]>([]);
 
+// Fatura de cartão em CSV: o arquivo traz vários cartões e importamos um por vez
+const NEW_CARD = "__new__";
+const doneCardRefs = ref<string[]>([]);
+const currentCardRef = ref<string | null>(null);
+const invoiceInserted = ref(0);
+const invoiceSkipped = ref(0);
+const newCard = ref({ name: "", entity: "pf" as AccountEntity, closingDay: null as number | null, dueDay: null as number | null, limitReais: null as number | null });
+
 // CSV (mapeamento manual)
 const csvText = ref("");
 const csvHeaders = ref<string[]>([]);
@@ -46,6 +56,13 @@ const mapping = ref({
 
 onMounted(async () => {
   await finance.loadAccounts();
+  if (!finance.categories.length) {
+    try {
+      await finance.loadCategories();
+    } catch {
+      /* os nomes das categorias sugeridas são secundários */
+    }
+  }
   await loadBatches();
 });
 
@@ -60,7 +77,64 @@ const canRemember = computed(
     !finance.accounts.some((a) => a.externalId === detected.value?.accountRef),
 );
 const kindLabel = computed(() => (detected.value?.kind === "card_invoice" ? "Fatura de cartão" : "Extrato de conta"));
-const isStatement = computed(() => detected.value?.format === "ofx" || detected.value?.format === "pdf_statement");
+const isInvoice = computed(() => detected.value?.format === "csv_invoice");
+const isStatement = computed(() => detected.value?.format === "ofx" || detected.value?.format === "pdf_statement" || isInvoice.value);
+const cardAccounts = computed(() => finance.accounts.filter((a) => a.type === "credit_card"));
+const destinationAccounts = computed(() => (isInvoice.value ? cardAccounts.value : finance.accounts));
+const creatingCard = computed(() => isInvoice.value && selectedAccountId.value === NEW_CARD);
+const cardPosition = computed(() => {
+  const total = detected.value?.accountRefs.length ?? 0;
+  return `${doneCardRefs.value.length + 1} de ${total}`;
+});
+const showBankCategory = computed(() => previewRows.value.some((r) => !!r.bankCategory));
+const showSuggestion = computed(() => previewRows.value.some((r) => !!r.categoryId));
+const previewColumns = computed(
+  () => `28px 100px 80px 110px ${showBankCategory.value ? "minmax(90px, 1fr) " : ""}${showSuggestion.value ? "minmax(90px, 1fr) " : ""}minmax(120px, 2fr)`,
+);
+
+function categoryName(id: string | null | undefined): string {
+  return (id && finance.categories.find((c) => c.id === id)?.name) || "—";
+}
+
+function selectCard(ref: string) {
+  currentCardRef.value = ref;
+  selectedAccountId.value = detected.value?.matchedAccounts[ref] ?? "";
+  newCard.value = { name: `Cartão final ${ref}`, entity: "pf", closingDay: null, dueDay: null, limitReais: null };
+}
+
+async function createCard() {
+  erro.value = "";
+  const ref = currentCardRef.value;
+  const nc = newCard.value;
+  if (!ref || !nc.name.trim()) { erro.value = "Nome obrigatório"; return; }
+  for (const day of [nc.closingDay, nc.dueDay]) {
+    if (typeof day === "number" && (!Number.isInteger(day) || day < 1 || day > 31)) {
+      erro.value = "Os dias de fechamento e vencimento vão de 1 a 31.";
+      return;
+    }
+  }
+  busy.value = true;
+  try {
+    const acc = await finance.createAccount(
+      buildCreateAccountPayload({
+        ...emptyAccountForm(),
+        type: "credit_card",
+        name: nc.name,
+        entity: nc.entity,
+        institution: detected.value?.institution ?? "other",
+        externalId: ref,
+        closingDay: nc.closingDay,
+        dueDay: nc.dueDay,
+        creditLimitReais: nc.limitReais,
+      }),
+    );
+    selectedAccountId.value = acc.id;
+  } catch (e) {
+    erro.value = (e as Error).message;
+  } finally {
+    busy.value = false;
+  }
+}
 
 async function loadBatches() {
   try {
@@ -93,7 +167,18 @@ async function handleFile(f: File) {
     const d = await detectFile(f);
     detected.value = d;
     status.value = "";
-    if (d.format === "ofx" || d.format === "pdf_statement") {
+    if (d.format === "csv_invoice") {
+      doneCardRefs.value = [];
+      invoiceInserted.value = 0;
+      invoiceSkipped.value = 0;
+      const first = nextCardRef(d.accountRefs, []);
+      if (!first) {
+        erro.value = "Não encontrei cartões neste arquivo.";
+      } else {
+        selectCard(first);
+        step.value = "confirm";
+      }
+    } else if (d.format === "ofx" || d.format === "pdf_statement") {
       selectedAccountId.value = d.matchedAccountId ?? "";
       step.value = "confirm";
     } else if (d.format === "csv") {
@@ -159,15 +244,17 @@ async function runStatementPreview() {
   status.value = "Analisando...";
   busy.value = true;
   try {
-    if (rememberAccount.value && canRemember.value) {
+    if (!isInvoice.value && rememberAccount.value && canRemember.value) {
       try {
         await finance.updateAccount(selectedAccountId.value, { externalId: detected.value.accountRef });
       } catch {
         /* lembrar a conta é opcional e não bloqueia o preview */
       }
     }
-    const format = detected.value.format === "ofx" ? "ofx" : "pdf_statement";
-    const p = await previewStatement({ accountId: selectedAccountId.value, text: detected.value.text, format });
+    const body = isInvoice.value
+      ? { accountId: selectedAccountId.value, text: detected.value.text, format: "csv_invoice" as const, cardRef: currentCardRef.value ?? undefined }
+      : { accountId: selectedAccountId.value, text: detected.value.text, format: (detected.value.format === "ofx" ? "ofx" : "pdf_statement") as "ofx" | "pdf_statement" };
+    const p = await previewStatement(body);
     showPreview(p, p);
   } catch (e) {
     erro.value = (e as Error).message;
@@ -204,12 +291,34 @@ async function commit() {
   try {
     const rows = previewRows.value.filter((r) => r.selected);
     const result = await http<{ inserted: number; skipped: number }>("POST", `/import/${batchId.value}/commit`, {
-      rows: rows.map(({ type, amountCents, date, postedDate, fingerprint, description }) => ({
+      rows: rows.map(({ type, amountCents, date, postedDate, fingerprint, description, categoryId }) => ({
         type, amountCents, date, postedDate: postedDate ?? null, fingerprint, description, accountId: selectedAccountId.value,
+        categoryId: categoryId ?? null,
       })),
     });
-    status.value = `${result.inserted} transações importadas${result.skipped ? ` (${result.skipped} já existiam)` : ""}.`;
-    step.value = "done";
+    const skipped = (n: number) => (n ? ` (${n} já existiam)` : "");
+    if (isInvoice.value && detected.value && currentCardRef.value) {
+      const doneRef = currentCardRef.value;
+      doneCardRefs.value.push(doneRef);
+      invoiceInserted.value += result.inserted;
+      invoiceSkipped.value += result.skipped;
+      const next = nextCardRef(detected.value.accountRefs, doneCardRefs.value);
+      if (next) {
+        selectCard(next);
+        preview.value = null;
+        previewRows.value = [];
+        batchId.value = "";
+        status.value = `Cartão final ${doneRef}: ${result.inserted} transações importadas${skipped(result.skipped)}.`;
+        step.value = "confirm";
+      } else {
+        const cards = doneCardRefs.value.length;
+        status.value = `${cards} ${cards === 1 ? "cartão" : "cartões"}, ${invoiceInserted.value} transações importadas${skipped(invoiceSkipped.value)}.`;
+        step.value = "done";
+      }
+    } else {
+      status.value = `${result.inserted} transações importadas${skipped(result.skipped)}.`;
+      step.value = "done";
+    }
     await loadBatches();
   } catch (e) {
     erro.value = (e as Error).message;
@@ -267,6 +376,10 @@ function reset() {
   csvText.value = "";
   csvHeaders.value = [];
   selectedAccountId.value = "";
+  doneCardRefs.value = [];
+  currentCardRef.value = null;
+  invoiceInserted.value = 0;
+  invoiceSkipped.value = 0;
   rememberAccount.value = true;
   selectedMappingId.value = "";
   mappingName.value = "";
@@ -303,25 +416,52 @@ function reset() {
     <!-- 2: arquivo reconhecido -->
     <div v-if="step === 'confirm' && detected" class="card">
       <h3>Arquivo reconhecido</h3>
+      <p v-if="isInvoice && currentCardRef" class="card-step">Cartão final {{ currentCardRef }} ({{ cardPosition }})</p>
       <dl class="detected">
         <dt>Banco</dt>
         <dd>{{ detected.institution ? INSTITUTION_LABEL[detected.institution] : "—" }}</dd>
         <dt>Tipo</dt>
         <dd>{{ kindLabel }}</dd>
-        <dt>Conta no arquivo</dt>
-        <dd>{{ detected.accountRef ?? "—" }}</dd>
+        <template v-if="isInvoice">
+          <dt>Cartão no arquivo</dt>
+          <dd>final {{ currentCardRef }}</dd>
+        </template>
+        <template v-else>
+          <dt>Conta no arquivo</dt>
+          <dd>{{ detected.accountRef ?? "—" }}</dd>
+        </template>
       </dl>
 
       <p v-if="detected.kind === 'card_invoice'" class="hint">
         Faturas de cartão em OFX são importadas como lançamentos da conta de cartão escolhida.
       </p>
 
-      <label class="field-label" for="import-account">Conta de destino</label>
+      <label class="field-label" for="import-account">{{ isInvoice ? "Cartão de destino" : "Conta de destino" }}</label>
       <select id="import-account" v-model="selectedAccountId">
-        <option value="">— Selecione uma conta —</option>
-        <option v-for="a in finance.accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+        <option value="">{{ isInvoice ? "— Selecione um cartão —" : "— Selecione uma conta —" }}</option>
+        <option v-for="a in destinationAccounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+        <option v-if="isInvoice" :value="NEW_CARD">Criar cartão</option>
       </select>
-      <p v-if="detected.matchedAccountId" class="hint">Conta reconhecida pelo número do arquivo.</p>
+      <p v-if="isInvoice && currentCardRef && detected.matchedAccounts[currentCardRef]" class="hint">Cartão reconhecido pelo final do arquivo.</p>
+      <p v-else-if="!isInvoice && detected.matchedAccountId" class="hint">Conta reconhecida pelo número do arquivo.</p>
+
+      <div v-if="creatingCard" class="new-card">
+        <label class="field-label" for="new-card-name">Nome do cartão</label>
+        <input id="new-card-name" v-model="newCard.name" type="text" />
+        <label class="field-label" for="new-card-entity">Titular</label>
+        <select id="new-card-entity" v-model="newCard.entity">
+          <option v-for="(label, value) in ENTITY_LABEL" :key="value" :value="value">{{ label }}</option>
+        </select>
+        <label class="field-label" for="new-card-closing">Dia de fechamento (1–31)</label>
+        <input id="new-card-closing" v-model.number="newCard.closingDay" type="number" min="1" max="31" />
+        <label class="field-label" for="new-card-due">Dia de vencimento (1–31)</label>
+        <input id="new-card-due" v-model.number="newCard.dueDay" type="number" min="1" max="31" />
+        <label class="field-label" for="new-card-limit">Limite (R$, opcional)</label>
+        <input id="new-card-limit" v-model.number="newCard.limitReais" type="number" min="0" step="0.01" />
+        <div class="btn-row">
+          <button id="new-card-create" type="button" :disabled="busy" @click="createCard">Criar e selecionar</button>
+        </div>
+      </div>
 
       <label v-if="canRemember" class="remember">
         <input type="checkbox" v-model="rememberAccount" />
@@ -330,7 +470,7 @@ function reset() {
 
       <div class="btn-row">
         <button type="button" class="btn-secondary" @click="reset">Trocar arquivo</button>
-        <button type="button" :disabled="busy || !selectedAccountId || !isStatement" @click="runStatementPreview">Ver preview</button>
+        <button type="button" :disabled="busy || !selectedAccountId || creatingCard || !isStatement" @click="runStatementPreview">Ver preview</button>
       </div>
     </div>
 
@@ -430,9 +570,10 @@ function reset() {
         <button type="button" class="btn-small btn-secondary" @click="previewRows.forEach(r => r.selected = !r.dup)">Reset seleção</button>
       </div>
 
-      <div class="preview-table">
+      <div class="preview-table" :style="{ '--cols': previewColumns }">
         <div class="preview-row header">
-          <span></span><span>Data</span><span>Tipo</span><span>Valor</span><span>Descrição</span>
+          <span></span><span>Data</span><span>Tipo</span><span>Valor</span>
+          <span v-if="showBankCategory">Categoria do banco</span><span v-if="showSuggestion">Sugestão</span><span>Descrição</span>
         </div>
         <div
           v-for="(row, i) in previewRows" :key="i"
@@ -443,7 +584,15 @@ function reset() {
           <span>{{ formatDate(row.date) }}</span>
           <span :class="row.type">{{ row.type === 'income' ? 'receita' : 'despesa' }}</span>
           <span>{{ formatBRL(row.amountCents) }}</span>
-          <span class="desc">{{ row.description ?? '—' }} {{ row.dup ? '⚠' : '' }}</span>
+          <span v-if="showBankCategory" class="desc">{{ row.bankCategory ?? '—' }}</span>
+          <span v-if="showSuggestion" class="desc">{{ categoryName(row.categoryId) }}</span>
+          <span class="desc">
+            {{ row.description ?? '—' }} {{ row.dup ? '⚠' : '' }}
+            <template v-if="isInvoice">
+              <span v-if="rowTags(row.description).installment" class="tag">parcela {{ rowTags(row.description).installment }}</span>
+              <span v-if="rowTags(row.description).usd" class="tag">US$</span>
+            </template>
+          </span>
         </div>
       </div>
 
@@ -495,7 +644,7 @@ h3 { margin: 0; font-size: 1rem; }
 .detected dd { margin: 0; font-weight: 600; }
 .remember { display: flex; align-items: center; gap: var(--space); font-size: 0.85rem; cursor: pointer; }
 .field-label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: -8px; }
-select, input[type="text"], input:not([type]) { width: 100%; }
+select, input[type="text"], input[type="number"], input:not([type]) { width: 100%; }
 .mapping-saved { display: flex; align-items: center; gap: var(--space); flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted); }
 .mapping-grid { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space) calc(var(--space) * 2); align-items: center; font-size: 0.9rem; }
 .save-mapping { display: flex; gap: var(--space); align-items: center; }
@@ -510,12 +659,15 @@ select, input[type="text"], input:not([type]) { width: 100%; }
 .mismatches { margin: 0; padding-left: calc(var(--space) * 3); font-size: 0.85rem; color: var(--warning); }
 .preview-controls { display: flex; gap: var(--space); }
 .preview-table { border: 1px solid var(--border); border-radius: calc(var(--radius) / 1.5); overflow: hidden; }
-.preview-row { display: grid; grid-template-columns: 28px 100px 80px 110px 1fr; gap: var(--space); padding: calc(var(--space) * 1.2) calc(var(--space) * 2); align-items: center; font-size: 0.85rem; cursor: pointer; border-bottom: 1px solid var(--border); }
+.preview-row { display: grid; grid-template-columns: var(--cols, 28px 100px 80px 110px 1fr); gap: var(--space); padding: calc(var(--space) * 1.2) calc(var(--space) * 2); align-items: center; font-size: 0.85rem; cursor: pointer; border-bottom: 1px solid var(--border); }
 .preview-row:last-child { border-bottom: none; }
 .preview-row.header { font-weight: 600; color: var(--text-muted); cursor: default; background: var(--surface-2); }
 .preview-row:hover:not(.header) { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .preview-row.selected { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .preview-row.dup { opacity: 0.5; }
+.card-step { margin: 0; font-weight: 600; }
+.new-card { display: flex; flex-direction: column; gap: var(--space); padding: calc(var(--space) * 2); border: 1px dashed var(--border); border-radius: calc(var(--radius) / 1.5); }
+.tag { margin-left: calc(var(--space)); padding: 0 6px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 999px; color: var(--text-muted); }
 .income { color: var(--c-income); }
 .expense { color: var(--c-expense); }
 .desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

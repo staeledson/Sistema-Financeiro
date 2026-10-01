@@ -194,7 +194,7 @@ pnpm test
 pnpm --filter @app/shared test   # 270 testes unitários
 pnpm --filter @app/api    test   # 263 testes e2e
 pnpm --filter @app/worker test   # 61 testes unitários
-pnpm --filter @app/web    test   # 207 testes unitários
+pnpm --filter @app/web    test   # 215 testes unitários
 ```
 
 O CI (GitHub Actions) executa PostgreSQL 16 + Redis 7 como services e roda o `turbo typecheck` e as quatro suítes de teste a cada push.
