@@ -31,6 +31,10 @@ describe("parseInstallment", () => {
     expect(parseInstallment("LOJA X 03/10")).toEqual({ current: 3, total: 10 });
     expect(parseInstallment("Parcela 2/12 Amazon")).toEqual({ current: 2, total: 12 });
   });
+  it("com vários n/m prefere o último e aceita zeros à esquerda", () => {
+    expect(parseInstallment("COMPRA 04/06 LOJA 2/5")).toEqual({ current: 2, total: 5 });
+    expect(parseInstallment("LOJA 003/010")).toEqual({ current: 3, total: 10 });
+  });
   it("ignora datas, mês/ano, total 1 e parcela maior que o total", () => {
     expect(parseInstallment("PAGAMENTO 12/03/2026")).toBeNull();
     expect(parseInstallment("Netflix 01/2026")).toBeNull();

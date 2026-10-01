@@ -29,9 +29,9 @@ export const dashboardFilterSchema = z
   .object({
     entity: z.enum(["pf", "pj", "all"]).default("all"),
     accountId: z.string().min(1).optional(),
-    month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
-    quarter: z.string().regex(/^\d{4}-Q[1-4]$/).optional(),
-    year: z.string().regex(/^\d{4}$/).optional(),
+    month: z.string().regex(/^(19|20)\d{2}-(0[1-9]|1[0-2])$/).optional(),
+    quarter: z.string().regex(/^(19|20)\d{2}-Q[1-4]$/).optional(),
+    year: z.string().regex(/^(19|20)\d{2}$/).optional(),
     from: z.string().refine(isRealDate, "data inválida").optional(),
     to: z.string().refine(isRealDate, "data inválida").optional(),
     asOf: z.string().refine(isRealDate, "data inválida").optional(),

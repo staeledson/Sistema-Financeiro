@@ -17,17 +17,26 @@ export function detectRecurring(rows: RecurringInput[]): RecurringGroup[] {
   }
   const out: RecurringGroup[] = [];
   for (const [key, list] of groups) {
-    if (list.length < 3) continue;
-    const sorted = [...list].sort((a, b) => a.date.localeCompare(b.date));
+    // Mesma chave e mesma data: uma só ocorrência (soma dos valores).
+    const byDate = new Map<string, number>();
+    for (const r of list) byDate.set(r.date, (byDate.get(r.date) ?? 0) + r.amountCents);
+    const sorted = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, amountCents]) => ({ date, amountCents }));
+    if (sorted.length < 3) continue;
     const gaps = sorted.slice(1).map((r, i) => daysBetweenISO(sorted[i].date, r.date));
     const intervalDays = gaps.reduce((s, g) => s + g, 0) / gaps.length;
     const avg = sorted.reduce((s, r) => s + r.amountCents, 0) / sorted.length;
     if (avg <= 0 || sorted.some((r) => Math.abs(r.amountCents - avg) / avg > 0.15)) continue;
     const frequency = intervalDays >= 25 && intervalDays <= 35 ? "monthly" : intervalDays >= 6 && intervalDays <= 8 ? "weekly" : null;
     if (!frequency) continue;
-    const counts = new Map<string, number>();
-    for (const r of sorted) counts.set(r.description, (counts.get(r.description) ?? 0) + 1);
-    const label = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    const [minGap, maxGap] = frequency === "monthly" ? [15, 45] : [3, 11];
+    if (gaps.some((g) => g < minGap || g > maxGap)) continue;
+    // Rótulo: descrição bruta mais frequente; empate fica com a mais recente.
+    const counts = new Map<string, { n: number; last: string }>();
+    for (const r of [...list].sort((a, b) => a.date.localeCompare(b.date))) {
+      const c = counts.get(r.description);
+      counts.set(r.description, { n: (c?.n ?? 0) + 1, last: r.date });
+    }
+    const label = [...counts.entries()].sort((a, b) => b[1].n - a[1].n || b[1].last.localeCompare(a[1].last))[0][0];
     out.push({
       key, label, frequency, avgCents: Math.round(avg), intervalDays: Math.round(intervalDays), occurrences: sorted.length,
       monthlyEstimateCents: frequency === "monthly" ? Math.round(avg) : Math.round((avg * 52) / 12),
@@ -80,9 +89,15 @@ export function forecastCashflow(input: ForecastInput): ForecastMonth[] {
   const avgExpense = n ? input.history.reduce((s, h) => s + h.expenseCents, 0) / n : 0;
   const recurringCents = input.recurring.reduce((s, g) => s + g.monthlyEstimateCents, 0);
   const variableCents = Math.max(0, Math.round(avgExpense) - recurringCents - input.historyInstallmentsAvgCents);
+  const tokens = (text: string) => new Set(text.split(" ").filter(Boolean));
+  const subset = (a: Set<string>, b: Set<string>) => [...a].every((t) => b.has(t));
   const covered = (name: string) => {
-    const k = normalizeDescriptionKey(name);
-    return !!k && input.recurring.some((g) => g.key.includes(k) || k.includes(g.key));
+    const k = tokens(normalizeDescriptionKey(name));
+    if (!k.size) return false;
+    return input.recurring.some((g) => {
+      const t = tokens(g.key);
+      return t.size > 0 && (subset(k, t) || subset(t, k));
+    });
   };
   const bills = input.bills.filter((b) => !covered(b.name));
 

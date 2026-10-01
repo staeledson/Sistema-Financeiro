@@ -5,6 +5,15 @@ import {
 } from "../dashboard";
 
 describe("dashboardFilterSchema", () => {
+  it("rejeita anos fora de 1900-2099 (year, month e quarter)", () => {
+    expect(() => dashboardFilterSchema.parse({ year: "0000" })).toThrow();
+    expect(() => dashboardFilterSchema.parse({ year: "1800" })).toThrow();
+    expect(() => dashboardFilterSchema.parse({ month: "0000-01" })).toThrow();
+    expect(() => dashboardFilterSchema.parse({ month: "1800-05" })).toThrow();
+    expect(() => dashboardFilterSchema.parse({ quarter: "1800-Q1" })).toThrow();
+    expect(dashboardFilterSchema.parse({ year: "1999" }).year).toBe("1999");
+    expect(dashboardFilterSchema.parse({ year: "2099" }).year).toBe("2099");
+  });
   it("aceita só um tipo de período e entity padrão all", () => {
     expect(dashboardFilterSchema.parse({}).entity).toBe("all");
     expect(dashboardFilterSchema.parse({ month: "2026-06", entity: "pj" })).toMatchObject({ month: "2026-06", entity: "pj" });

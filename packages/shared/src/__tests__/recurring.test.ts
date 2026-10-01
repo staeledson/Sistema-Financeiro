@@ -29,6 +29,36 @@ describe("detectRecurring", () => {
       { description: "Padaria", amountCents: 1000, date: "2026-02-20" },
     ])).toEqual([]);
   });
+  it("cobranças no mesmo dia viram uma ocorrência (soma) e não quebram a detecção", () => {
+    const rows = [
+      { description: "NETFLIX", amountCents: 5590, date: "2026-01-10" },
+      { description: "NETFLIX", amountCents: 5590, date: "2026-02-10" },
+      { description: "NETFLIX", amountCents: 5590, date: "2026-03-10" },
+      { description: "NETFLIX", amountCents: 100, date: "2026-03-10" },
+      { description: "NETFLIX", amountCents: 5590, date: "2026-04-10" },
+    ];
+    const out = detectRecurring(rows);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ key: "netflix", occurrences: 4, intervalDays: 30 });
+    expect(out[0].avgCents).toBe(Math.round((5590 * 3 + 5690) / 4));
+  });
+  it("todo intervalo precisa estar na faixa: um par colado e um vão não é recorrente", () => {
+    expect(detectRecurring([
+      { description: "Padaria", amountCents: 1000, date: "2026-01-02" },
+      { description: "Padaria", amountCents: 1000, date: "2026-01-03" },
+      { description: "Padaria", amountCents: 1000, date: "2026-02-28" },
+    ])).toEqual([]);
+  });
+  it("rótulo é a descrição mais frequente; empate fica com a mais recente", () => {
+    const rows = [
+      { description: "PADARIA 1", amountCents: 1000, date: "2026-01-10" },
+      { description: "PADARIA 2", amountCents: 1000, date: "2026-02-10" },
+      { description: "PADARIA 1", amountCents: 1000, date: "2026-03-10" },
+      { description: "PADARIA 2", amountCents: 1000, date: "2026-04-10" },
+    ];
+    expect(detectRecurring(rows)[0].label).toBe("PADARIA 2");
+    expect(detectRecurring([...rows, { description: "PADARIA 1", amountCents: 1000, date: "2026-05-10" }])[0].label).toBe("PADARIA 1");
+  });
   it("semanal estima o total mensal e parcelas ficam de fora", () => {
     const weekly = ["2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23"].map((date) => ({ description: "Feira", amountCents: 3000, date }));
     expect(detectRecurring(weekly)[0]).toMatchObject({ frequency: "weekly", monthlyEstimateCents: Math.round((3000 * 52) / 12) });
@@ -70,6 +100,18 @@ describe("forecastCashflow", () => {
       billsCents: 200_000, installmentsCents: 80_000, expenseCents: 830_000, balanceCents: 270_000,
     });
     expect(out[1]).toMatchObject({ month: "2026-08", installmentsCents: 0, expenseCents: 750_000, balanceCents: 520_000 });
+  });
+  it("casamento conta x recorrente é por palavra inteira, não por substring", () => {
+    const gasolina = [{ key: "gasolina posto shell", label: "Gasolina Posto Shell", frequency: "monthly" as const, avgCents: 20_000, intervalDays: 30, occurrences: 4, monthlyEstimateCents: 20_000, lastDate: "2026-05-10" }];
+    const run = (name: string, rec: typeof recurring) =>
+      forecastCashflow({
+        firstMonth: "2026-07", months: 1, history: [], historyInstallmentsAvgCents: 0, recurring: rec,
+        bills: [{ name, amountCents: 9000, dueDate: "2026-07-10", recurrence: "monthly", active: true }],
+        installments: [], startBalanceCents: 0,
+      })[0].billsCents;
+    expect(run("Gás", gasolina)).toBe(9000);
+    expect(run("Gasolina Posto", gasolina)).toBe(0);
+    expect(run("Netflix", recurring)).toBe(0);
   });
   it("conta que casa com uma recorrente detectada não entra em dobro; sem histórico tudo é zero", () => {
     const out = forecastCashflow({
