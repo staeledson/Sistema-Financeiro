@@ -433,7 +433,7 @@ function reset() {
       </dl>
 
       <p v-if="detected.kind === 'card_invoice'" class="hint">
-        Faturas de cartão em OFX são importadas como lançamentos da conta de cartão escolhida.
+        Faturas de cartão (CSV do C6 ou OFX) são importadas como lançamentos da conta de cartão escolhida.
       </p>
 
       <label class="field-label" for="import-account">{{ isInvoice ? "Cartão de destino" : "Conta de destino" }}</label>
