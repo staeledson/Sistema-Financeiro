@@ -3,6 +3,7 @@ import { CurrentUserGuard, type AuthenticatedUser } from "../auth/current-user.g
 import { CurrentUser } from "../auth/current-user.decorator";
 import { DashboardService } from "./dashboard.service";
 import { SpendingService } from "./spending.service";
+import { CardsService } from "./cards.service";
 import { parseDashboardFilter } from "./dashboard-filter";
 
 @Controller("dashboard")
@@ -11,6 +12,7 @@ export class DashboardController {
   constructor(
     private readonly service: DashboardService,
     private readonly spending: SpendingService,
+    private readonly cards: CardsService,
   ) {}
 
   @Get()
@@ -24,5 +26,11 @@ export class DashboardController {
   @Get("spending")
   getSpending(@CurrentUser() user: AuthenticatedUser, @Query() query: Record<string, string>) {
     return this.spending.get(user.workspaceId, parseDashboardFilter(query));
+  }
+
+  @Get("cards")
+  getCards(@CurrentUser() user: AuthenticatedUser, @Query() query: Record<string, string>) {
+    const { entity, accountId, asOf } = parseDashboardFilter(query);
+    return this.cards.get(user.workspaceId, { entity, accountId, asOf });
   }
 }

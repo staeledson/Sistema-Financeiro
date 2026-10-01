@@ -271,3 +271,145 @@ describe("GET /balances (SQL, com entidade)", () => {
     expect((await get(u, `/balances?accountId=${other.pf1.id}`)).statusCode).toBe(400);
   });
 });
+
+describe("GET /dashboard/cards", () => {
+  async function seedCard(tag: string) {
+    const u = await newUser(tag);
+    const card = await prisma.bankAccount.create({
+      data: {
+        workspaceId: u.workspaceId, type: "credit_card", name: "Cartão", entity: "pf",
+        closingDay: 10, dueDay: 17, creditLimitCents: 500000n, openingBalanceCents: 0n,
+      },
+    });
+    const tx = (data: Record<string, unknown>) =>
+      prisma.transaction.create({
+        data: { workspaceId: u.workspaceId, accountId: card.id, source: "manual", createdById: u.userId, ...data } as never,
+      });
+    await tx({ type: "expense", amountCents: 10000n, date: dayOf("2026-06-12"), description: "MERCADO" });
+    await tx({
+      type: "expense", amountCents: 20000n, date: dayOf("2026-06-15"), description: "LOJA X 02/10",
+      installmentCurrent: 2, installmentTotal: 10,
+    });
+    await tx({ type: "income", amountCents: 3000n, date: dayOf("2026-06-18"), description: "Estorno" });
+    await tx({ type: "expense", amountCents: 40000n, date: dayOf("2026-05-20"), description: "Compra maio" });
+    await tx({ type: "income", amountCents: 40000n, date: dayOf("2026-06-14"), description: "Pagamento fatura", transferPairId: "pp" });
+    return { u, card, tx };
+  }
+  const AS_OF = "asOf=2026-06-20";
+
+  it("fatura aberta, limite usado, ciclo diário, parcelas e pagamentos (valores calculados à mão)", async () => {
+    const { u, card } = await seedCard("cd1");
+    const res = await get(u, `/dashboard/cards?${AS_OF}`);
+    expect(res.statusCode).toBe(200);
+    const { cards } = res.json();
+    expect(cards).toHaveLength(1);
+    const c = cards[0];
+    expect(c).toMatchObject({
+      accountId: card.id, name: "Cartão", entity: "pf", configured: true, closingDay: 10, dueDay: 17,
+      creditLimitCents: 500000, usedCents: 27000, limitUsedPct: 5.4,
+      openInvoiceCents: 27000, closingDate: "2026-07-10", dueDate: "2026-07-17",
+    });
+
+    // ciclo aberto: 11/06 (dia 1) a 10/07; o maior ciclo recente tem 31 dias
+    expect(c.cycleDaily).toHaveLength(31);
+    const day = (n: number) => c.cycleDaily[n - 1];
+    expect(day(1).currentCents).toBe(0);
+    expect(day(2).currentCents).toBe(10000);
+    expect(day(5).currentCents).toBe(30000);
+    expect(day(8).currentCents).toBe(27000);
+    expect(day(10).currentCents).toBe(27000); // 20/06 = asOf
+    expect(day(11).currentCents).toBeNull();
+    expect(day(31).currentCents).toBeNull();
+    for (const d of c.cycleDaily) expect(typeof d.avgPreviousCents).toBe("number");
+    // média dos 3 ciclos fechados (abr, mai, jun): só o de junho teve compra (40000 no dia 10)
+    expect(day(9).avgPreviousCents).toBe(0);
+    expect(day(10).avgPreviousCents).toBe(13333);
+    expect(day(31).avgPreviousCents).toBe(13333);
+
+    expect(c.installmentsAhead).toHaveLength(12);
+    expect(c.installmentsAhead[0]).toEqual({ month: "2026-08", amountCents: 20000, count: 1 });
+    expect(c.installmentsAhead.slice(0, 8).every((e: { amountCents: number; count: number }) => e.amountCents === 20000 && e.count === 1)).toBe(true);
+    expect(c.installmentsAhead[7].month).toBe("2027-03");
+    expect(c.installmentsAhead.slice(8)).toEqual([
+      { month: "2027-04", amountCents: 0, count: 0 }, { month: "2027-05", amountCents: 0, count: 0 },
+      { month: "2027-06", amountCents: 0, count: 0 }, { month: "2027-07", amountCents: 0, count: 0 },
+    ]);
+
+    expect(c.invoicePayments).toEqual([
+      { closing: "2026-06-10", due: "2026-06-17", invoiceCents: 40000, paidCents: 40000, status: "paid" },
+    ]);
+  });
+
+  it("fatura vencida sem pagamento é overdue e pagamento menor que a fatura é partial", async () => {
+    const u = await newUser("cd2");
+    const mk = (name: string) =>
+      prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name, closingDay: 10, dueDay: 17 } });
+    const a = await mk("A");
+    const b = await mk("B");
+    const tx = (accountId: string, data: Record<string, unknown>) =>
+      prisma.transaction.create({ data: { workspaceId: u.workspaceId, accountId, source: "manual", createdById: u.userId, ...data } as never });
+    await tx(a.id, { type: "expense", amountCents: 40000n, date: dayOf("2026-05-20") });
+    await tx(b.id, { type: "expense", amountCents: 40000n, date: dayOf("2026-05-20") });
+    await tx(b.id, { type: "income", amountCents: 15000n, date: dayOf("2026-06-14"), transferPairId: "q" });
+    const { cards } = (await get(u, `/dashboard/cards?${AS_OF}`)).json();
+    const byName = (n: string) => cards.find((c: { name: string }) => c.name === n);
+    expect(byName("A").invoicePayments).toEqual([
+      { closing: "2026-06-10", due: "2026-06-17", invoiceCents: 40000, paidCents: 0, status: "overdue" },
+    ]);
+    expect(byName("B").invoicePayments).toEqual([
+      { closing: "2026-06-10", due: "2026-06-17", invoiceCents: 40000, paidCents: 15000, status: "partial" },
+    ]);
+    // antes do vencimento (asOf 15/06) a mesma fatura sem pagamento ainda está aberta
+    const early = (await get(u, `/dashboard/cards?accountId=${a.id}&asOf=2026-06-15`)).json();
+    expect(early.cards[0].invoicePayments[0]).toMatchObject({ invoiceCents: 40000, paidCents: 0, status: "open" });
+  });
+
+  it("pagamento só conta até o fechamento seguinte e até asOf", async () => {
+    const u = await newUser("cd3");
+    const card = await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "C", closingDay: 10, dueDay: 17 } });
+    const tx = (data: Record<string, unknown>) =>
+      prisma.transaction.create({ data: { workspaceId: u.workspaceId, accountId: card.id, source: "manual", createdById: u.userId, ...data } as never });
+    await tx({ type: "expense", amountCents: 10000n, date: dayOf("2026-04-20") }); // fatura de 10/05
+    await tx({ type: "income", amountCents: 10000n, date: dayOf("2026-05-12"), transferPairId: "a" }); // paga a de 10/05
+    await tx({ type: "income", amountCents: 7000n, date: dayOf("2026-06-12"), transferPairId: "b" }); // fora da janela da de 10/05
+    await tx({ type: "income", amountCents: 9999n, date: dayOf("2026-06-25"), transferPairId: "c" }); // depois de asOf
+    const { cards } = (await get(u, `/dashboard/cards?${AS_OF}`)).json();
+    expect(cards[0].invoicePayments).toEqual([
+      { closing: "2026-05-10", due: "2026-05-17", invoiceCents: 10000, paidCents: 10000, status: "paid" },
+      { closing: "2026-06-10", due: "2026-06-17", invoiceCents: 0, paidCents: 7000, status: "paid" },
+    ]);
+  });
+
+  it("cartão sem fechamento/vencimento aparece como não configurado", async () => {
+    const u = await newUser("cd4");
+    await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "Sem dia", creditLimitCents: 100000n } });
+    const { cards } = (await get(u, `/dashboard/cards?${AS_OF}`)).json();
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({
+      name: "Sem dia", configured: false, openInvoiceCents: null, closingDate: null, dueDate: null,
+      cycleDaily: [], installmentsAhead: [], invoicePayments: [], usedCents: 0, limitUsedPct: 0,
+    });
+  });
+
+  it("entity e accountId filtram; período não restringe; conta de outro workspace dá 400; só cartões não arquivados", async () => {
+    const { u, card } = await seedCard("cd5");
+    const other = await seedCard("cd5b");
+    const pj = await prisma.bankAccount.create({
+      data: { workspaceId: u.workspaceId, type: "credit_card", name: "Cartão PJ", entity: "pj", closingDay: 5, dueDay: 12 },
+    });
+    await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "checking", name: "Corrente" } });
+    await prisma.bankAccount.create({ data: { workspaceId: u.workspaceId, type: "credit_card", name: "Velho", archived: true, closingDay: 1, dueDay: 8 } });
+
+    const names = async (q: string) =>
+      ((await get(u, `/dashboard/cards?${AS_OF}${q}`)).json().cards as Array<{ name: string }>).map((c) => c.name);
+    expect(await names("")).toEqual(["Cartão", "Cartão PJ"]);
+    expect(await names("&entity=pj")).toEqual(["Cartão PJ"]);
+    expect(await names("&entity=pf")).toEqual(["Cartão"]);
+    expect(await names(`&accountId=${pj.id}`)).toEqual(["Cartão PJ"]);
+    // o período do filtro não muda a fatura aberta
+    const jan = (await get(u, `/dashboard/cards?${AS_OF}&month=2026-01&accountId=${card.id}`)).json();
+    expect(jan.cards[0].openInvoiceCents).toBe(27000);
+    expect((await get(u, `/dashboard/cards?${AS_OF}&accountId=${other.card.id}`)).statusCode).toBe(400);
+    expect((await get(u, `/dashboard/cards?entity=xx`)).statusCode).toBe(400);
+  });
+});

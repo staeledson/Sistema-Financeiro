@@ -1,0 +1,227 @@
+import { Injectable } from "@nestjs/common";
+import {
+  addDaysISO, addMonths, cycleOf, daysBetweenISO, normalizeDescriptionKey, recentCycles, type AccountEntity, type InvoiceCycle,
+} from "@app/shared";
+import { prisma } from "../database";
+import { BalancesService } from "../balances/balances.service";
+import { assertScopeAccount, type Scope } from "./dashboard-filter";
+
+export type CardsFilter = Scope & { asOf: string };
+
+export type InvoiceStatus = "paid" | "partial" | "open" | "overdue";
+export type Card = {
+  accountId: string;
+  name: string;
+  entity: AccountEntity;
+  configured: boolean;
+  closingDay: number | null;
+  dueDay: number | null;
+  creditLimitCents: number | null;
+  usedCents: number;
+  limitUsedPct: number | null;
+  openInvoiceCents: number | null;
+  closingDate: string | null;
+  dueDate: string | null;
+  cycleDaily: Array<{ day: number; currentCents: number | null; avgPreviousCents: number }>;
+  installmentsAhead: Array<{ month: string; amountCents: number; count: number }>;
+  invoicePayments: Array<{ closing: string; due: string; invoiceCents: number; paidCents: number; status: InvoiceStatus }>;
+};
+
+type Row = {
+  date: string;
+  type: string;
+  amountCents: bigint;
+  paired: boolean;
+  installmentCurrent: number | null;
+  installmentTotal: number | null;
+  description: string | null;
+};
+type Movement = { date: string; type: string; cents: number; paired: boolean; installmentCurrent: number | null; installmentTotal: number | null; description: string };
+
+type CardAccount = {
+  id: string;
+  name: string;
+  entity: AccountEntity;
+  closingDay: number | null;
+  dueDay: number | null;
+  creditLimitCents: bigint | null;
+};
+
+const CLOSED_CYCLES = 6;
+const AVG_CYCLES = 3;
+const AHEAD_MONTHS = 12;
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+const min = (a: string, b: string) => (a < b ? a : b);
+
+/** Efeito do lançamento na fatura: despesa soma, estorno (receita não pareada) subtrai; pagamento (pareada) não entra. */
+function invoiceEffect(m: Movement): number {
+  if (m.type === "expense") return m.cents;
+  if (m.type === "income" && !m.paired) return -m.cents;
+  return 0;
+}
+
+@Injectable()
+export class CardsService {
+  constructor(private readonly balances: BalancesService) {}
+
+  async get(workspaceId: string, filter: CardsFilter): Promise<{ cards: Card[] }> {
+    await assertScopeAccount(workspaceId, filter.accountId);
+    const accounts = await this.cardAccounts(workspaceId, filter);
+    const balances = await this.balances.accountBalances(workspaceId, { entity: filter.entity, accountId: filter.accountId }, filter.asOf);
+    const balanceOf = new Map(balances.map((b) => [b.accountId, b.balanceCents]));
+    const cards = await Promise.all(accounts.map((a) => this.build(workspaceId, a, balanceOf.get(a.id) ?? 0, filter.asOf)));
+    return { cards };
+  }
+
+  /** Soma das parcelas futuras de todos os cartões do escopo, por mês (usado pela previsão). */
+  async installmentsAheadMonthly(workspaceId: string, scope: Scope, asOf: string): Promise<Array<{ month: string; amountCents: number }>> {
+    await assertScopeAccount(workspaceId, scope.accountId);
+    const accounts = (await this.cardAccounts(workspaceId, scope)).filter((a) => a.closingDay != null && a.dueDay != null);
+    const perCard = await Promise.all(accounts.map((a) => this.installmentsFor(workspaceId, a, asOf)));
+    const sums = new Map<string, number>();
+    for (const list of perCard) for (const e of list) sums.set(e.month, (sums.get(e.month) ?? 0) + e.amountCents);
+    return [...sums.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, amountCents]) => ({ month, amountCents }));
+  }
+
+  private cardAccounts(workspaceId: string, scope: Scope): Promise<CardAccount[]> {
+    return prisma.bankAccount.findMany({
+      where: {
+        workspaceId, type: "credit_card", archived: false,
+        ...(scope.entity ? { entity: scope.entity } : {}),
+        ...(scope.accountId ? { id: scope.accountId } : {}),
+      },
+      select: { id: true, name: true, entity: true, closingDay: true, dueDay: true, creditLimitCents: true },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+  }
+
+  private async movements(workspaceId: string, accountId: string, from: string, to: string): Promise<Movement[]> {
+    const rows = await prisma.$queryRaw<Row[]>`
+      SELECT to_char(t."date", 'YYYY-MM-DD') AS "date", t."type"::text AS "type", t."amountCents",
+        (t."transferPairId" IS NOT NULL) AS "paired", t."installmentCurrent", t."installmentTotal", t."description"
+      FROM transactions t
+      WHERE t."workspaceId" = ${workspaceId} AND t."accountId" = ${accountId}
+        AND t."ignored" = false
+        AND t."type" IN ('expense', 'income')
+        AND t."date" >= ${from}::date AND t."date" <= ${to}::date
+      ORDER BY t."date" ASC
+      LIMIT 50000`;
+    return rows.map((r) => ({
+      date: r.date, type: r.type, cents: Number(r.amountCents), paired: r.paired,
+      installmentCurrent: r.installmentCurrent, installmentTotal: r.installmentTotal, description: r.description ?? "",
+    }));
+  }
+
+  private async build(workspaceId: string, a: CardAccount, balanceCents: number, asOf: string): Promise<Card> {
+    const limit = a.creditLimitCents != null ? Number(a.creditLimitCents) : null;
+    const usedCents = Math.max(0, -balanceCents);
+    const base = {
+      accountId: a.id, name: a.name, entity: a.entity, closingDay: a.closingDay, dueDay: a.dueDay,
+      creditLimitCents: limit, usedCents,
+      limitUsedPct: limit ? round1((usedCents / limit) * 100) : null,
+    };
+    if (a.closingDay == null || a.dueDay == null) {
+      return {
+        ...base, configured: false, openInvoiceCents: null, closingDate: null, dueDate: null,
+        cycleDaily: [], installmentsAhead: [], invoicePayments: [],
+      };
+    }
+
+    const { open, closed } = recentCycles(asOf, a.closingDay, a.dueDay, CLOSED_CYCLES);
+    const rows = await this.movements(workspaceId, a.id, closed[0].start, asOf);
+    return {
+      ...base,
+      configured: true,
+      openInvoiceCents: this.invoice(rows, open),
+      closingDate: open.closing,
+      dueDate: open.due,
+      cycleDaily: this.cycleDaily(rows, open, closed, asOf),
+      installmentsAhead: this.installmentsAhead(rows, open.ym, a.closingDay, a.dueDay),
+      invoicePayments: this.invoicePayments(rows, open, closed, asOf),
+    };
+  }
+
+  private invoice(rows: Movement[], cycle: InvoiceCycle) {
+    return rows.filter((m) => m.date >= cycle.start && m.date <= cycle.closing).reduce((s, m) => s + invoiceEffect(m), 0);
+  }
+
+  /** Faturas fechadas com movimento: valor, pago entre o fechamento e o fechamento seguinte (limitado a hoje) e situação. */
+  private invoicePayments(rows: Movement[], open: InvoiceCycle, closed: InvoiceCycle[], asOf: string) {
+    const out: Card["invoicePayments"] = [];
+    closed.forEach((c, i) => {
+      const nextClosing = i + 1 < closed.length ? closed[i + 1].closing : open.closing;
+      const paidEnd = min(nextClosing, asOf);
+      const invoiceCents = this.invoice(rows, c);
+      const paidCents = rows
+        .filter((m) => m.type === "income" && m.paired && m.date > c.closing && m.date <= paidEnd)
+        .reduce((s, m) => s + m.cents, 0);
+      if (invoiceCents === 0 && paidCents === 0) return;
+      const status: InvoiceStatus =
+        paidCents >= invoiceCents ? "paid" : paidCents > 0 ? "partial" : c.due < asOf ? "overdue" : "open";
+      out.push({ closing: c.closing, due: c.due, invoiceCents, paidCents, status });
+    });
+    return out;
+  }
+
+  /** Acumulado líquido por dia do ciclo (índice 1..n); `last` repete o último valor além do fim do ciclo. */
+  private cumulative(rows: Movement[], cycle: InvoiceCycle, n: number, until?: string) {
+    const length = daysBetweenISO(cycle.start, cycle.closing) + 1;
+    const perDay = new Array<number>(length + 1).fill(0);
+    for (const m of rows) {
+      if (m.date < cycle.start || m.date > cycle.closing || (until && m.date > until)) continue;
+      perDay[daysBetweenISO(cycle.start, m.date) + 1] += invoiceEffect(m);
+    }
+    const out: number[] = [];
+    let acc = 0;
+    for (let d = 1; d <= n; d++) {
+      if (d <= length) acc += perDay[d];
+      out.push(acc);
+    }
+    return out;
+  }
+
+  private cycleDaily(rows: Movement[], open: InvoiceCycle, closed: InvoiceCycle[], asOf: string): Card["cycleDaily"] {
+    const previous = closed.slice(-AVG_CYCLES);
+    const duration = (c: InvoiceCycle) => daysBetweenISO(c.start, c.closing) + 1;
+    const n = Math.max(duration(open), ...previous.map(duration));
+    const current = this.cumulative(rows, open, n, asOf);
+    const prevSeries = previous.map((c) => this.cumulative(rows, c, n));
+    const lastOpenDay = Math.min(duration(open), daysBetweenISO(open.start, asOf) + 1);
+    return Array.from({ length: n }, (_, i) => ({
+      day: i + 1,
+      currentCents: i + 1 <= lastOpenDay ? current[i] : null,
+      avgPreviousCents: Math.round(prevSeries.reduce((s, series) => s + series[i], 0) / prevSeries.length),
+    }));
+  }
+
+  private async installmentsFor(workspaceId: string, a: CardAccount, asOf: string) {
+    const { open, closed } = recentCycles(asOf, a.closingDay!, a.dueDay!, CLOSED_CYCLES);
+    const rows = await this.movements(workspaceId, a.id, closed[0].start, asOf);
+    return this.installmentsAhead(rows, open.ym, a.closingDay!, a.dueDay!);
+  }
+
+  /** Parcelas que ainda vão cair: por compra (descrição normalizada), a linha de maior parcela projeta o restante mês a mês. */
+  private installmentsAhead(rows: Movement[], openYm: string, closingDay: number, dueDay: number): Card["installmentsAhead"] {
+    const latest = new Map<string, Movement>();
+    for (const m of rows) {
+      if (m.type !== "expense" || m.installmentCurrent == null || m.installmentTotal == null) continue;
+      const key = normalizeDescriptionKey(m.description) || m.description.trim().toLowerCase();
+      const prev = latest.get(key);
+      if (!prev || m.installmentCurrent > prev.installmentCurrent! || (m.installmentCurrent === prev.installmentCurrent && m.date > prev.date)) {
+        latest.set(key, m);
+      }
+    }
+    const months = Array.from({ length: AHEAD_MONTHS }, (_, i) => addMonths(openYm, i + 1));
+    const byMonth = new Map(months.map((month) => [month, { month, amountCents: 0, count: 0 }]));
+    for (const m of latest.values()) {
+      const remaining = m.installmentTotal! - m.installmentCurrent!;
+      const rowYm = cycleOf(m.date, closingDay, dueDay).ym;
+      for (let k = 1; k <= remaining; k++) {
+        const slot = byMonth.get(addMonths(rowYm, k));
+        if (slot) { slot.amountCents += m.cents; slot.count += 1; }
+      }
+    }
+    return months.map((month) => byMonth.get(month)!);
+  }
+}
