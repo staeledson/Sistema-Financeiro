@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { http } from "../lib/http";
 import { useFinanceStore } from "../stores/finance";
 import { INSTITUTION_LABEL } from "../lib/entity";
+import { formatBRL } from "../lib/money";
 import {
   balanceSummary, detectFile, previewStatement, undoBatch, listBatches, decodeText, readFileBytes, formatDate,
   type BatchSummary, type DetectResponse, type PreviewRow, type StatementPreview,
@@ -255,9 +256,6 @@ async function undo(b: BatchSummary) {
   }
 }
 
-function formatBRL(cents: number) {
-  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 function reset() {
   step.value = "upload";
@@ -284,7 +282,7 @@ function reset() {
   <section class="import">
     <h2>Importar extrato</h2>
 
-    <p v-if="erro" role="alert" class="error">{{ erro }}</p>
+    <p v-if="erro" role="alert" class="text-error">{{ erro }}</p>
     <p v-if="status" class="status">{{ status }}</p>
 
     <!-- 1: solte o arquivo -->
@@ -331,8 +329,8 @@ function reset() {
       </label>
 
       <div class="btn-row">
-        <button class="btn-secondary" @click="reset">Trocar arquivo</button>
-        <button :disabled="busy || !selectedAccountId || !isStatement" @click="runStatementPreview">Ver preview</button>
+        <button type="button" class="btn-secondary" @click="reset">Trocar arquivo</button>
+        <button type="button" :disabled="busy || !selectedAccountId || !isStatement" @click="runStatementPreview">Ver preview</button>
       </div>
     </div>
 
@@ -349,7 +347,8 @@ function reset() {
         <span>Usar salvo:</span>
         <button
           v-for="m in savedMappings" :key="m.id"
-          :class="['btn-small', { active: selectedMappingId === m.id }]"
+          type="button"
+          :class="['btn-small', 'btn-secondary', { active: selectedMappingId === m.id }]"
           @click="applyMapping(m)"
         >{{ m.name }}</button>
       </div>
@@ -388,12 +387,12 @@ function reset() {
 
       <div class="save-mapping">
         <input v-model="mappingName" placeholder="Nome do mapeamento (ex: Bradesco)" />
-        <button class="btn-small" @click="saveMapping" :disabled="!mappingName.trim()">Salvar mapeamento</button>
+        <button type="button" class="btn-small btn-secondary" @click="saveMapping" :disabled="!mappingName.trim()">Salvar mapeamento</button>
       </div>
 
       <div class="btn-row">
-        <button class="btn-secondary" @click="reset">Trocar arquivo</button>
-        <button :disabled="busy || !selectedAccountId || !csvText" @click="runCsvPreview">Ver preview</button>
+        <button type="button" class="btn-secondary" @click="reset">Trocar arquivo</button>
+        <button type="button" :disabled="busy || !selectedAccountId || !csvText" @click="runCsvPreview">Ver preview</button>
       </div>
     </div>
 
@@ -402,8 +401,8 @@ function reset() {
       <h3>Não reconheci o banco deste PDF</h3>
       <p class="hint">A IA pode extrair os lançamentos. Eles aparecerão em "Para categorizar" para confirmação.</p>
       <div class="btn-row">
-        <button class="btn-secondary" @click="reset">Trocar arquivo</button>
-        <button :disabled="busy" @click="enqueuePdf">Interpretar com IA</button>
+        <button type="button" class="btn-secondary" @click="reset">Trocar arquivo</button>
+        <button type="button" :disabled="busy" @click="enqueuePdf">Interpretar com IA</button>
       </div>
     </div>
 
@@ -427,8 +426,8 @@ function reset() {
       <p class="hint" v-if="previewRows.some(r => r.dup)">Linhas marcadas com ⚠ já existem e estão desmarcadas por padrão.</p>
 
       <div class="preview-controls">
-        <button class="btn-small" @click="previewRows.forEach(r => !r.dup && (r.selected = true))">Selecionar novos</button>
-        <button class="btn-small" @click="previewRows.forEach(r => r.selected = !r.dup)">Reset seleção</button>
+        <button type="button" class="btn-small btn-secondary" @click="previewRows.forEach(r => !r.dup && (r.selected = true))">Selecionar novos</button>
+        <button type="button" class="btn-small btn-secondary" @click="previewRows.forEach(r => r.selected = !r.dup)">Reset seleção</button>
       </div>
 
       <div class="preview-table">
@@ -449,8 +448,8 @@ function reset() {
       </div>
 
       <div class="btn-row">
-        <button class="btn-secondary" @click="reset">Cancelar</button>
-        <button @click="commit" :disabled="busy || selectedCount === 0">
+        <button type="button" class="btn-secondary" @click="reset">Cancelar</button>
+        <button type="button" @click="commit" :disabled="busy || selectedCount === 0">
           Importar {{ selectedCount }} lançamento{{ selectedCount !== 1 ? 's' : '' }}
         </button>
       </div>
@@ -460,7 +459,7 @@ function reset() {
     <div v-if="step === 'done'" class="card">
       <h3>Concluído</h3>
       <p>{{ status }}</p>
-      <button @click="reset">Nova importação</button>
+      <button type="button" @click="reset">Nova importação</button>
     </div>
 
     <!-- histórico -->
@@ -475,7 +474,7 @@ function reset() {
           </div>
           <span v-if="b.undoneAt" class="hint">desfeita</span>
           <span v-else-if="b.balanceOk === false" class="balance warn" title="Houve divergência de saldo no preview">⚠ saldo</span>
-          <button v-if="!b.undoneAt" class="btn-small" :disabled="busy" @click="undo(b)">Desfazer</button>
+          <button v-if="!b.undoneAt" type="button" class="btn-small btn-secondary" :disabled="busy" @click="undo(b)">Desfazer</button>
         </div>
       </div>
     </div>
@@ -485,54 +484,46 @@ function reset() {
 <style scoped>
 .import { padding: calc(var(--space) * 3); max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: calc(var(--space) * 3); }
 h2 { margin-bottom: 0; }
-.card { background: var(--color-surface); padding: calc(var(--space) * 3); border-radius: var(--radius); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.card { background: var(--surface); border: 1px solid var(--border); padding: calc(var(--space) * 3); border-radius: var(--radius); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
 h3 { margin: 0; font-size: 1rem; }
-.dropzone { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--space); padding: calc(var(--space) * 6) calc(var(--space) * 3); border: 2px dashed #444; border-radius: var(--radius); cursor: pointer; text-align: center; }
-.dropzone.dragging { border-color: var(--color-primary); background: rgba(79,124,255,.07); }
+.dropzone { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--space); padding: calc(var(--space) * 6) calc(var(--space) * 3); border: 2px dashed var(--border); border-radius: var(--radius); cursor: pointer; text-align: center; }
+.dropzone.dragging { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .dropzone input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0 0 0 0); }
-.dropzone:focus-within { border-color: var(--color-primary); }
+.dropzone:focus-within { border-color: var(--accent); }
 .detected { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space) calc(var(--space) * 2); margin: 0; font-size: 0.9rem; }
-.detected dt { opacity: 0.6; }
+.detected dt { color: var(--text-muted); }
 .detected dd { margin: 0; font-weight: 600; }
 .remember { display: flex; align-items: center; gap: var(--space); font-size: 0.85rem; cursor: pointer; }
-.field-label { font-size: 0.85rem; opacity: 0.7; margin-bottom: -8px; }
-select, input[type="text"], input:not([type]) {
-  background: var(--color-bg); color: var(--color-text);
-  border: 1px solid #333; border-radius: calc(var(--radius)/2);
-  padding: calc(var(--space)*1.2); font-size: 0.9rem; width: 100%;
-}
-.mapping-saved { display: flex; align-items: center; gap: var(--space); flex-wrap: wrap; font-size: 0.85rem; opacity: 0.7; }
-.mapping-grid { display: grid; grid-template-columns: 1fr 2fr; gap: calc(var(--space)) calc(var(--space)*2); align-items: center; font-size: 0.9rem; }
+.field-label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: -8px; }
+select, input[type="text"], input:not([type]) { width: 100%; }
+.mapping-saved { display: flex; align-items: center; gap: var(--space); flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted); }
+.mapping-grid { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space) calc(var(--space) * 2); align-items: center; font-size: 0.9rem; }
 .save-mapping { display: flex; gap: var(--space); align-items: center; }
 .save-mapping input { flex: 1; }
-.hint { font-size: 0.85rem; opacity: 0.65; font-style: italic; }
+.hint { font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
 .btn-row { display: flex; gap: var(--space); justify-content: flex-end; }
-button { padding: calc(var(--space)*1.5) calc(var(--space)*2); border: none; border-radius: calc(var(--radius)/2); background: var(--color-primary); color: #fff; cursor: pointer; font-size: 0.9rem; }
-button:disabled { opacity: 0.4; cursor: default; }
-.btn-secondary { background: #444; }
-.btn-small { padding: calc(var(--space)) calc(var(--space)*1.5); font-size: 0.8rem; background: #333; }
-.btn-small.active { background: var(--color-primary); }
+.btn-small.active { background: var(--accent); color: var(--accent-text); }
 .balance { font-size: 0.9rem; font-weight: 600; }
-.balance.ok { color: #2ecc71; }
-.balance.warn { color: #f39c12; }
-.balance.neutral { opacity: 0.7; font-weight: 400; }
-.mismatches { margin: 0; padding-left: calc(var(--space) * 3); font-size: 0.85rem; color: #f39c12; }
+.balance.ok { color: var(--c-income); }
+.balance.warn { color: var(--warning); }
+.balance.neutral { color: var(--text-muted); font-weight: 400; }
+.mismatches { margin: 0; padding-left: calc(var(--space) * 3); font-size: 0.85rem; color: var(--warning); }
 .preview-controls { display: flex; gap: var(--space); }
-.preview-table { border: 1px solid #333; border-radius: calc(var(--radius)/2); overflow: hidden; }
-.preview-row { display: grid; grid-template-columns: 28px 100px 80px 110px 1fr; gap: var(--space); padding: calc(var(--space)*1.2) calc(var(--space)*2); align-items: center; font-size: 0.85rem; cursor: pointer; border-bottom: 1px solid #222; }
+.preview-table { border: 1px solid var(--border); border-radius: calc(var(--radius) / 1.5); overflow: hidden; }
+.preview-row { display: grid; grid-template-columns: 28px 100px 80px 110px 1fr; gap: var(--space); padding: calc(var(--space) * 1.2) calc(var(--space) * 2); align-items: center; font-size: 0.85rem; cursor: pointer; border-bottom: 1px solid var(--border); }
 .preview-row:last-child { border-bottom: none; }
-.preview-row.header { font-weight: 600; opacity: 0.6; cursor: default; background: #1a1a1a; }
-.preview-row:hover:not(.header) { background: rgba(79,124,255,.07); }
-.preview-row.selected { background: rgba(79,124,255,.12); }
+.preview-row.header { font-weight: 600; color: var(--text-muted); cursor: default; background: var(--surface-2); }
+.preview-row:hover:not(.header) { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.preview-row.selected { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .preview-row.dup { opacity: 0.5; }
-.income { color: #2ecc71; }
-.expense { color: #e74c3c; }
+.income { color: var(--c-income); }
+.expense { color: var(--c-expense); }
 .desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .history { display: flex; flex-direction: column; gap: var(--space); }
-.history-row { display: flex; align-items: center; gap: calc(var(--space) * 2); padding: calc(var(--space) * 1.5) 0; border-bottom: 1px solid #222; }
+.history-row { display: flex; align-items: center; gap: calc(var(--space) * 2); padding: calc(var(--space) * 1.5) 0; border-bottom: 1px solid var(--border); }
 .history-row:last-child { border-bottom: none; }
 .history-row.undone { opacity: 0.5; }
 .history-info { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 0.9rem; }
-.error { color: #e74c3c; font-size: 0.9rem; }
-.status { font-size: 0.9rem; opacity: 0.8; }
+.text-error { font-size: 0.9rem; }
+.status { font-size: 0.9rem; color: var(--text-muted); }
 </style>

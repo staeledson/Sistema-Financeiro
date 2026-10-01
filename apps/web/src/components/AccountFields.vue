@@ -36,5 +36,4 @@ const form = defineModel<AccountFormState>({ required: true });
 
 <style scoped>
 .account-fields { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
-input, select { padding: calc(var(--space) * 1.5); border: 1px solid #333; border-radius: calc(var(--radius) / 2); background: var(--color-bg); color: var(--color-text); font-size: 1rem; }
 </style>

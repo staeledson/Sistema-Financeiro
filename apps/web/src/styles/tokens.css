@@ -93,7 +93,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Controles de formulário globais (as telas migram para eles na Task 9). */
+/* Controles de formulário globais. */
 input,
 select,
 textarea,
@@ -110,6 +110,12 @@ textarea {
   border-radius: calc(var(--radius) / 1.5);
   padding: calc(var(--space) * 0.9) calc(var(--space) * 1.4);
   min-width: 0;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  padding: 0;
+  accent-color: var(--accent);
 }
 
 input::placeholder,
@@ -143,3 +149,40 @@ a { color: var(--accent); }
 
 .num,
 .tabular { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
+/* Variantes de botão globais (as telas não redefinem button). */
+button.btn-secondary,
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+button.btn-danger,
+.btn-danger {
+  background: var(--danger);
+  color: var(--accent-text);
+}
+button.btn-outline,
+.btn-outline {
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+button.btn-icon,
+.btn-icon {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: transparent;
+  padding: calc(var(--space) * 0.4) calc(var(--space) * 0.9);
+}
+button.btn-small,
+.btn-small {
+  font-size: 0.8rem;
+  padding: calc(var(--space) * 0.6) calc(var(--space) * 1.2);
+}
+
+/* Textos de estado. */
+.text-error { color: var(--danger); }
+.text-success { color: var(--c-income); }
+.text-warn { color: var(--warning); }
+.text-muted { color: var(--text-muted); }

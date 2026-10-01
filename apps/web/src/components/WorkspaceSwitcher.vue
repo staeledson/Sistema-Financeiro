@@ -1,6 +1,6 @@
 <template>
   <div class="ws-switcher">
-    <button class="ws-trigger" @click="open = !open">
+    <button class="ws-trigger" type="button" @click="open = !open">
       {{ active?.name ?? "Workspace" }} ▾
     </button>
 
@@ -34,8 +34,8 @@
           </select>
         </label>
         <div class="ws-modal-actions">
-          <button class="btn-secondary" @click="showCreate = false">Cancelar</button>
-          <button class="btn-primary" :disabled="creating || !form.name" @click="create">
+          <button class="btn-secondary" type="button" @click="showCreate = false">Cancelar</button>
+          <button class="btn-primary" type="button" :disabled="creating || !form.name" @click="create">
             {{ creating ? "Criando…" : "Criar" }}
           </button>
         </div>
@@ -85,12 +85,9 @@ onMounted(() => store.load().catch(() => {}));
 <style scoped>
 .ws-switcher { position: relative; }
 .ws-trigger {
-  padding: 0.4rem 0.85rem;
-  background: rgba(79,124,255,.12);
-  border: 1px solid rgba(79,124,255,.3);
-  border-radius: 0.4rem;
-  color: var(--color-text, #fff);
-  cursor: pointer;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--text);
   font-size: 0.875rem;
   white-space: nowrap;
 }
@@ -99,51 +96,42 @@ onMounted(() => store.load().catch(() => {}));
   top: calc(100% + 6px);
   right: 0;
   min-width: 220px;
-  background: var(--color-surface, #1a1a2e);
-  border: 1px solid #333;
-  border-radius: 0.6rem;
-  padding: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space);
   z-index: 100;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--text) 22%, transparent);
 }
-.ws-section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .05em; color: #666; padding: 0.25rem 0.5rem 0.4rem; }
+.ws-section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); padding: 0.25rem 0.5rem 0.4rem; }
 .ws-item {
-  display: flex; align-items: center; gap: 0.5rem;
+  display: flex; align-items: center; gap: var(--space);
   width: 100%; text-align: left;
-  padding: 0.45rem 0.6rem;
   background: transparent;
-  border: none; border-radius: 0.4rem;
-  color: var(--color-text, #fff);
-  cursor: pointer; font-size: 0.875rem;
+  border-color: transparent;
+  color: var(--text);
+  font-size: 0.875rem;
 }
-.ws-item:hover { background: rgba(255,255,255,.05); }
-.ws-item.active { background: rgba(79,124,255,.15); color: var(--color-primary, #4f7cff); }
+.ws-item:hover { background: var(--surface-2); }
+.ws-item.active { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
 .ws-type-badge {
   font-size: 0.65rem; text-transform: uppercase; letter-spacing: .04em;
-  background: rgba(255,255,255,.08); border-radius: 0.25rem;
-  padding: 0.1rem 0.35rem; color: #aaa;
+  background: var(--surface-2); border-radius: 0.25rem;
+  padding: 0.1rem 0.35rem; color: var(--text-muted);
 }
-.ws-divider { height: 1px; background: #333; margin: 0.4rem 0; }
-.ws-create { color: var(--color-primary, #4f7cff) !important; }
+.ws-divider { height: 1px; background: var(--border); margin: 0.4rem 0; }
+.ws-create { color: var(--accent); }
 .ws-modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  position: fixed; inset: 0; background: color-mix(in srgb, var(--text) 50%, transparent);
   display: flex; align-items: center; justify-content: center; z-index: 200;
 }
 .ws-modal {
-  background: var(--color-surface, #1a1a2e);
-  border: 1px solid #333; border-radius: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius);
   padding: 1.5rem; min-width: 320px;
 }
 .ws-modal h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; }
-.ws-modal label { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.85rem; font-size: 0.875rem; color: #aaa; }
-.ws-modal input, .ws-modal select {
-  padding: 0.5rem 0.75rem;
-  background: rgba(255,255,255,.05); border: 1px solid #444;
-  border-radius: 0.4rem; color: var(--color-text, #fff); font-size: 0.9rem;
-}
-.ws-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
-.btn-primary { padding: 0.45rem 1rem; background: var(--color-primary, #4f7cff); color: #fff; border: none; border-radius: 0.4rem; cursor: pointer; font-size: 0.875rem; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-secondary { padding: 0.45rem 1rem; background: transparent; border: 1px solid #444; border-radius: 0.4rem; color: var(--color-text, #fff); cursor: pointer; font-size: 0.875rem; }
-.ws-error { margin-top: 0.5rem; color: #f87171; font-size: 0.8rem; }
+.ws-modal label { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.85rem; font-size: 0.875rem; color: var(--text-muted); }
+.ws-modal-actions { display: flex; justify-content: flex-end; gap: var(--space); margin-top: 1rem; }
+.ws-error { margin-top: 0.5rem; color: var(--danger); font-size: 0.8rem; }
 </style>

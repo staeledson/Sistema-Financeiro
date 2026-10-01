@@ -7,7 +7,7 @@
       </div>
     </div>
 
-    <div v-if="loading" class="empty-state">Carregando…</div>
+    <EmptyState v-if="loading" title="Carregando…" />
 
     <template v-else>
       <section class="members-section">
@@ -24,7 +24,7 @@
               <option value="viewer">Leitor</option>
             </select>
             <span v-else class="role-badge" :class="m.role">{{ m.role }}</span>
-            <button v-if="canManage && m.role !== 'owner'" class="btn-remove" @click="removeMember(m)">Remover</button>
+            <button v-if="canManage && m.role !== 'owner'" type="button" class="btn-remove btn-small" @click="removeMember(m)">Remover</button>
           </div>
         </div>
       </section>
@@ -38,7 +38,7 @@
             <option value="admin">Admin</option>
             <option value="viewer">Leitor</option>
           </select>
-          <button class="btn-primary" :disabled="sending || !inviteEmail" @click="sendInvite">
+          <button type="button" class="btn-primary" :disabled="sending || !inviteEmail" @click="sendInvite">
             {{ sending ? "Enviando…" : "Convidar" }}
           </button>
         </div>
@@ -52,7 +52,7 @@
             <span>{{ inv.email }}</span>
             <span class="role-badge" :class="inv.role">{{ inv.role }}</span>
             <span class="inv-expires">expira {{ inv.expiresAt.slice(0, 10) }}</span>
-            <button class="btn-remove" @click="revokeInvitation(inv)">Revogar</button>
+            <button type="button" class="btn-remove btn-small" @click="revokeInvitation(inv)">Revogar</button>
           </div>
         </div>
       </section>
@@ -64,6 +64,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useWorkspaceStore } from "../stores/workspace";
 import { http, HttpError } from "../lib/http";
+import EmptyState from "../components/ui/EmptyState.vue";
 
 const wsStore = useWorkspaceStore();
 
@@ -140,47 +141,31 @@ onMounted(loadAll);
 .members-view { padding: 1.5rem; max-width: 720px; margin: 0 auto; }
 .view-header { margin-bottom: 1.5rem; }
 .view-header h2 { font-size: 1.4rem; font-weight: 600; }
-.subtitle { font-size: 0.875rem; color: #888; margin-top: 0.2rem; }
-.empty-state { text-align: center; padding: 3rem; color: #888; }
+.subtitle { font-size: 0.875rem; color: var(--text-muted); margin-top: 0.2rem; }
 section { margin-bottom: 2rem; }
-h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: #aaa; }
+h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-muted); }
 .members-list, .invitations-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .member-row, .invitation-row {
   display: flex; align-items: center; gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: var(--color-surface, #1a1a2e);
-  border: 1px solid #333; border-radius: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: calc(var(--radius) / 1.5);
 }
 .member-info { flex: 1; }
 .member-name { display: block; font-size: 0.9rem; font-weight: 500; }
-.member-email { display: block; font-size: 0.75rem; color: #888; }
+.member-email { display: block; font-size: 0.75rem; color: var(--text-muted); }
 .role-badge {
   font-size: 0.7rem; text-transform: uppercase; letter-spacing: .04em;
-  padding: 0.2rem 0.5rem; border-radius: 0.3rem; background: rgba(255,255,255,.08);
+  padding: 0.2rem 0.5rem; border-radius: 0.3rem; background: var(--surface-2); color: var(--text-muted);
 }
-.role-badge.owner { background: rgba(250,204,21,.15); color: #fbbf24; }
-.role-badge.admin { background: rgba(79,124,255,.15); color: #4f7cff; }
-.inv-expires { font-size: 0.75rem; color: #888; }
-select {
-  padding: 0.3rem 0.5rem; background: rgba(255,255,255,.05);
-  border: 1px solid #444; border-radius: 0.35rem;
-  color: var(--color-text, #fff); font-size: 0.8rem;
-}
-.btn-remove {
-  padding: 0.3rem 0.65rem; background: transparent;
-  border: 1px solid #f87171; color: #f87171;
-  border-radius: 0.35rem; cursor: pointer; font-size: 0.8rem;
-}
+.role-badge.owner { background: color-mix(in srgb, var(--warning) 15%, transparent); color: var(--warning); }
+.role-badge.admin { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
+.inv-expires { font-size: 0.75rem; color: var(--text-muted); }
+select { font-size: 0.8rem; padding: 0.3rem 0.5rem; }
+.btn-remove { background: transparent; border-color: var(--danger); color: var(--danger); }
 .invite-form { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.invite-form input {
-  flex: 1; min-width: 180px;
-  padding: 0.5rem 0.75rem; background: rgba(255,255,255,.05);
-  border: 1px solid #444; border-radius: 0.4rem;
-  color: var(--color-text, #fff); font-size: 0.9rem;
-}
-.btn-primary { padding: 0.5rem 1rem; background: var(--color-primary, #4f7cff); color: #fff; border: none; border-radius: 0.4rem; cursor: pointer; font-size: 0.875rem; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.invite-form input { flex: 1; min-width: 180px; }
 .invite-msg { margin-top: 0.5rem; font-size: 0.85rem; }
-.invite-msg.success { color: #4ade80; }
-.invite-msg.error { color: #f87171; }
+.invite-msg.success { color: var(--c-income); }
+.invite-msg.error { color: var(--danger); }
 </style>

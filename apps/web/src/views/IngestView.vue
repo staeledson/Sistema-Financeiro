@@ -81,20 +81,20 @@ async function toggleRecording() {
     <div class="card">
       <h3>Texto livre</h3>
       <textarea v-model="text" rows="3" placeholder="Ex: paguei 45 no almoço no iFood ontem"></textarea>
-      <button @click="submitText" :disabled="!text.trim()">Enviar para IA</button>
+      <button type="button" @click="submitText" :disabled="!text.trim()">Enviar para IA</button>
       <p v-if="textStatus" class="status">{{ textStatus }}</p>
     </div>
 
     <div class="card">
       <h3>Foto de comprovante</h3>
       <input type="file" accept="image/*" @change="(e) => imageFile = (e.target as HTMLInputElement).files?.[0] ?? null" />
-      <button @click="submitImage" :disabled="!imageFile">Enviar imagem</button>
+      <button type="button" @click="submitImage" :disabled="!imageFile">Enviar imagem</button>
       <p v-if="imageStatus" class="status">{{ imageStatus }}</p>
     </div>
 
     <div class="card">
       <h3>Voz</h3>
-      <button @click="toggleRecording" :class="{ recording }">
+      <button type="button" :class="{ recording, 'btn-danger': recording }" @click="toggleRecording">
         {{ recording ? '⏹ Parar gravação' : '🎤 Gravar' }}
       </button>
       <p v-if="audioStatus" class="status">{{ audioStatus }}</p>
@@ -105,12 +105,10 @@ async function toggleRecording() {
 <style scoped>
 .ingest { padding: calc(var(--space) * 3); max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: calc(var(--space) * 3); }
 h2 { margin-bottom: 0; }
-.card { background: var(--color-surface); padding: calc(var(--space) * 3); border-radius: var(--radius); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.card { background: var(--surface); border: 1px solid var(--border); padding: calc(var(--space) * 3); border-radius: var(--radius); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
 h3 { margin: 0; font-size: 1rem; }
-textarea, input[type="file"] { background: var(--color-bg); color: var(--color-text); border: 1px solid #333; border-radius: calc(var(--radius) / 2); padding: calc(var(--space) * 1.5); font-size: 0.9rem; resize: vertical; }
-button { padding: calc(var(--space) * 1.5) calc(var(--space) * 2); border: none; border-radius: calc(var(--radius) / 2); background: var(--color-primary); color: #fff; cursor: pointer; font-size: 0.95rem; }
-button:disabled { opacity: 0.4; cursor: default; }
-button.recording { background: #c0392b; animation: pulse 1s infinite; }
+textarea { resize: vertical; }
+button.recording { animation: pulse 1s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.7 } }
-.status { font-size: 0.85rem; opacity: 0.8; }
+.status { font-size: 0.85rem; color: var(--text-muted); }
 </style>

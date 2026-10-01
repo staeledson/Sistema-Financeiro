@@ -3,7 +3,7 @@
     <aside class="chat-sidebar">
       <div class="sidebar-header">
         <span>Conversas</span>
-        <button class="btn-icon" title="Nova conversa" @click="newConversation">+</button>
+        <button type="button" class="btn-icon" title="Nova conversa" @click="newConversation">+</button>
       </div>
       <div v-if="loadingList" class="sidebar-empty">Carregando…</div>
       <div v-else-if="!conversations.length" class="sidebar-empty">Nenhuma conversa ainda.</div>
@@ -11,6 +11,7 @@
         v-for="conv in conversations"
         :key="conv.id"
         :class="['conv-item', { active: activeId === conv.id }]"
+        type="button"
         @click="loadConversation(conv.id)"
       >
         {{ conv.title || "Sem título" }}
@@ -24,7 +25,7 @@
           <h3>Pergunte às suas finanças</h3>
           <p>Ex.: "Quanto gastei em alimentação este mês?" ou "Como está meu saldo?"</p>
           <div class="suggestions">
-            <button v-for="s in suggestions" :key="s" class="suggestion" @click="input = s">{{ s }}</button>
+            <button v-for="s in suggestions" :key="s" type="button" class="suggestion" @click="input = s">{{ s }}</button>
           </div>
         </div>
 
@@ -141,41 +142,41 @@ onMounted(loadList);
 </script>
 
 <style scoped>
-.chat-layout { display: flex; height: calc(100vh - 57px); overflow: hidden; }
+.chat-layout { display: flex; height: 100vh; overflow: hidden; }
 .chat-sidebar {
   width: 240px; flex-shrink: 0;
   display: flex; flex-direction: column;
-  border-right: 1px solid #222;
-  background: var(--color-surface, #1a1a2e);
+  border-right: 1px solid var(--border);
+  background: var(--surface);
 }
 .sidebar-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0.85rem 1rem; font-size: 0.85rem; font-weight: 600;
-  border-bottom: 1px solid #222; color: #aaa;
+  border-bottom: 1px solid var(--border); color: var(--text-muted);
 }
-.btn-icon { background: transparent; border: 1px solid #444; border-radius: 0.35rem; color: #fff; width: 24px; height: 24px; cursor: pointer; font-size: 1rem; }
-.sidebar-empty { padding: 1rem; font-size: 0.8rem; color: #666; text-align: center; }
+.btn-icon { border: 1px solid var(--border); border-radius: 0.35rem; color: var(--text); width: 24px; height: 24px; padding: 0; font-size: 1rem; }
+.sidebar-empty { padding: 1rem; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
 .conv-item {
   display: flex; flex-direction: column; align-items: flex-start;
   width: 100%; padding: 0.6rem 1rem;
-  background: transparent; border: none; border-bottom: 1px solid #1e1e2e;
-  color: var(--color-text, #fff); cursor: pointer; font-size: 0.8rem;
+  background: transparent; border: none; border-bottom: 1px solid var(--border); border-radius: 0;
+  color: var(--text); font-size: 0.8rem;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;
 }
-.conv-item:hover { background: rgba(255,255,255,.04); }
-.conv-item.active { background: rgba(79,124,255,.12); color: var(--color-primary, #4f7cff); }
-.conv-date { font-size: 0.7rem; color: #555; margin-top: 2px; }
+.conv-item:hover { background: var(--surface-2); }
+.conv-item.active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.conv-date { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
 
-.chat-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.chat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 .messages { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
-.welcome-msg { text-align: center; margin: auto; color: #888; max-width: 480px; }
-.welcome-msg h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; color: #ccc; }
+.welcome-msg { text-align: center; margin: auto; color: var(--text-muted); max-width: 480px; }
+.welcome-msg h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text); }
 .welcome-msg p { font-size: 0.875rem; margin-bottom: 1.5rem; }
 .suggestions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
 .suggestion {
-  padding: 0.4rem 0.85rem; background: rgba(79,124,255,.1);
-  border: 1px solid rgba(79,124,255,.3); border-radius: 1rem;
-  color: var(--color-primary, #4f7cff); cursor: pointer; font-size: 0.8rem;
+  padding: 0.4rem 0.85rem; background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 1rem;
+  color: var(--accent); font-size: 0.8rem;
 }
 
 .bubble { max-width: 72%; }
@@ -185,34 +186,34 @@ onMounted(loadList);
   padding: 0.7rem 1rem; border-radius: 1rem; font-size: 0.9rem; line-height: 1.55;
 }
 .bubble.user .bubble-text {
-  background: var(--color-primary, #4f7cff); color: #fff;
+  background: var(--accent); color: var(--accent-text);
   border-bottom-right-radius: 0.2rem;
 }
 .bubble.assistant .bubble-text {
-  background: var(--color-surface, #1a1a2e); border: 1px solid #333;
+  background: var(--surface); border: 1px solid var(--border);
   border-bottom-left-radius: 0.2rem;
 }
-.bubble-chart { margin-top: 0.5rem; border-radius: 0.6rem; overflow: hidden; border: 1px solid #333; }
+.bubble-chart { margin-top: 0.5rem; border-radius: 0.6rem; overflow: hidden; border: 1px solid var(--border); background: var(--surface); }
 .thinking { display: flex; align-items: center; gap: 6px; padding: 0.6rem 1rem; }
-.dot { width: 7px; height: 7px; border-radius: 50%; background: #555; animation: blink 1.2s infinite; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); animation: blink 1.2s infinite; }
 .dot:nth-child(2) { animation-delay: .2s; }
 .dot:nth-child(3) { animation-delay: .4s; }
 @keyframes blink { 0%,80%,100% { opacity: .3 } 40% { opacity: 1 } }
 
 .chat-input-row {
   display: flex; gap: 0.5rem; padding: 0.85rem 1rem;
-  border-top: 1px solid #222; background: var(--color-surface, #1a1a2e);
+  border-top: 1px solid var(--border); background: var(--surface);
 }
 .chat-input {
   flex: 1; resize: none; padding: 0.6rem 0.85rem;
-  background: rgba(255,255,255,.05); border: 1px solid #333; border-radius: 0.6rem;
-  color: var(--color-text, #fff); font-size: 0.9rem; line-height: 1.4;
+  border-radius: 0.6rem; line-height: 1.4;
   max-height: 120px; overflow-y: auto;
 }
-.btn-send {
-  padding: 0.6rem 1.2rem; background: var(--color-primary, #4f7cff); color: #fff;
-  border: none; border-radius: 0.6rem; cursor: pointer; font-size: 0.875rem;
-  white-space: nowrap;
+.btn-send { white-space: nowrap; }
+
+@media (max-width: 768px) {
+  .chat-layout { height: calc(100vh - 56px); }
+  .chat-sidebar { width: 160px; }
+  .bubble { max-width: 88%; }
 }
-.btn-send:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>

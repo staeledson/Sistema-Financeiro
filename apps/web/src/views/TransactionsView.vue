@@ -2,6 +2,9 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { useFinanceStore } from "../stores/finance";
 import type { Transaction, TransactionType } from "../lib/api";
+import EntityBadge from "../components/ui/EntityBadge.vue";
+import EmptyState from "../components/ui/EmptyState.vue";
+import Money from "../components/ui/Money.vue";
 import { ENTITY_SHORT, accountsForEntity, categoriesForEntity, type EntityFilter } from "../lib/entity";
 
 const store = useFinanceStore();
@@ -89,10 +92,6 @@ async function registrar() {
   }
 }
 
-function formatBRL(cents: number) {
-  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR");
 }
@@ -144,7 +143,7 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
 
       <input v-model="txDesc" placeholder="Descrição (opcional)" />
       <button type="submit">Registrar</button>
-      <p v-if="txErro" role="alert">{{ txErro }}</p>
+      <p v-if="txErro" role="alert" class="text-error">{{ txErro }}</p>
     </form>
 
     <!-- Filters -->
@@ -161,7 +160,7 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
         <option v-for="a in filterAccounts" :key="a.id" :value="a.id">{{ a.name }} · {{ ENTITY_SHORT[a.entity] }}</option>
       </select>
       <input v-model="filterQ" placeholder="Buscar descrição" />
-      <button @click="filtrar">Filtrar</button>
+      <button type="button" @click="filtrar">Filtrar</button>
     </div>
 
     <!-- List -->
@@ -169,15 +168,15 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
       <li v-for="tx in store.transactions" :key="tx.id" class="tx-item" :class="tx.type">
         <div class="tx-info">
           <span class="tx-type">{{ txTypeLabel[tx.type] }}</span>
-          <span v-if="entityOf(tx)" class="tx-entity">{{ ENTITY_SHORT[entityOf(tx)!] }}</span>
+          <EntityBadge v-if="entityOf(tx)" :entity="entityOf(tx)!" />
           <span class="tx-desc">{{ tx.description ?? "—" }}</span>
           <span class="tx-date">{{ formatDate(tx.date) }}</span>
         </div>
         <span class="tx-amount" :class="{ negative: tx.type === 'expense' }">
-          {{ tx.type === 'expense' ? '−' : tx.type === 'income' ? '+' : '⇄' }}{{ formatBRL(tx.amountCents) }}
+          {{ tx.type === 'expense' ? '−' : tx.type === 'income' ? '+' : '⇄' }}<Money :cents="tx.amountCents" />
         </span>
       </li>
-      <li v-if="store.transactions.length === 0" class="empty">Nenhuma transação encontrada.</li>
+      <li v-if="store.transactions.length === 0" class="empty"><EmptyState title="Nenhuma transação encontrada." /></li>
     </ul>
   </section>
 </template>
@@ -185,23 +184,21 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
 <style scoped>
 .transactions { padding: calc(var(--space) * 3); max-width: 720px; margin: 0 auto; }
 h2, h3 { margin-bottom: calc(var(--space) * 2); }
-.quick-form, .filters { background: var(--color-surface); padding: calc(var(--space) * 3); border-radius: var(--radius); margin-bottom: calc(var(--space) * 3); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.quick-form, .filters { background: var(--surface); border: 1px solid var(--border); padding: calc(var(--space) * 3); border-radius: var(--radius); margin-bottom: calc(var(--space) * 3); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
 .row { display: flex; gap: calc(var(--space) * 2); flex-wrap: wrap; }
 .row > * { flex: 1; min-width: 120px; }
 .filters { flex-direction: row; flex-wrap: wrap; align-items: center; }
 .filters > * { flex: 1; min-width: 140px; }
-input, select { padding: calc(var(--space) * 1.5); border: 1px solid #333; border-radius: calc(var(--radius) / 2); background: var(--color-bg); color: var(--color-text); font-size: 0.9rem; }
-button { padding: calc(var(--space) * 1.5) calc(var(--space) * 2); border: none; border-radius: calc(var(--radius) / 2); background: var(--color-primary); color: #fff; cursor: pointer; white-space: nowrap; }
+button { white-space: nowrap; }
 .tx-list { list-style: none; display: flex; flex-direction: column; gap: var(--space); }
-.tx-item { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--space) * 2); background: var(--color-surface); border-radius: var(--radius); }
+.tx-item { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--space) * 2); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .tx-info { display: flex; gap: calc(var(--space) * 2); align-items: baseline; flex-wrap: wrap; }
-.tx-type { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em; opacity: 0.7; }
-.tx-entity { font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--color-primary); color: #fff; }
+.tx-type { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
 .tx-desc { font-weight: 500; }
-.tx-date { font-size: 0.8rem; opacity: 0.5; }
-.tx-amount { font-weight: 700; }
-.tx-amount.negative { color: #e74c3c; }
-.income .tx-amount { color: #2ecc71; }
-.empty { opacity: 0.5; font-style: italic; padding: var(--space); }
-p[role="alert"] { color: #e74c3c; font-size: 0.9rem; }
+.tx-date { font-size: 0.8rem; color: var(--text-muted); }
+.tx-amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+.tx-amount.negative { color: var(--c-expense); }
+.income .tx-amount { color: var(--c-income); }
+.empty { list-style: none; }
+p[role="alert"] { font-size: 0.9rem; }
 </style>
