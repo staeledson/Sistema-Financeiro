@@ -326,6 +326,26 @@ describe("Fase 11 — POST /import/preview e commit (extrato C6)", () => {
     expect(res.statusCode).toBe(400);
     expect(await prisma.transaction.count({ where: { workspaceId: b.workspaceId } })).toBe(0);
   });
+
+  it("confirmar o mesmo lote duas vezes responde 409 e não insere nada", async () => {
+    const u = await newUser("recommit");
+    const accountId = await newAccount(u);
+    const body = await previewC6(u, accountId);
+    const first = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, accountId));
+    expect(first.statusCode).toBe(200);
+    const again = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, accountId));
+    expect(again.statusCode).toBe(409);
+    expect(await prisma.transaction.count({ where: { importBatchId: body.batchId } })).toBe(first.json().inserted);
+  });
+
+  it("linhas de outra conta do mesmo workspace são recusadas (400)", async () => {
+    const u = await newUser("outraconta");
+    const accountId = await newAccount(u);
+    const other = await newAccount(u, { name: "Outra" });
+    const body = await previewC6(u, accountId);
+    const res = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, other));
+    expect(res.statusCode).toBe(400);
+  });
 });
 
 describe("Fase 11 — extratos com períodos sobrepostos", () => {

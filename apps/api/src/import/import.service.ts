@@ -83,11 +83,15 @@ export class ImportService {
   ) {
     const batch = await prisma.importBatch.findFirst({
       where: { id: batchId, workspaceId },
-      select: { id: true, undoneAt: true },
+      select: { id: true, status: true, undoneAt: true, accountId: true },
     });
     if (!batch) throw new NotFoundException("lote não encontrado");
     // lote desfeito não volta a ser gravado: as linhas ficariam órfãs (undoneAt fica marcado e novo undo dá 409)
     if (batch.undoneAt) throw new ConflictException("o lote foi desfeito; gere um novo preview");
+    if (batch.status !== "preview") throw new ConflictException("o lote já foi confirmado");
+    if (batch.accountId && rows.some((r) => r.accountId !== batch.accountId)) {
+      throw new BadRequestException("as linhas devem ser da conta escolhida no preview");
+    }
 
     const accountIds = [...new Set(rows.map((r) => r.accountId))];
     const ownedAccounts = await prisma.bankAccount.findMany({
@@ -168,10 +172,10 @@ export class ImportService {
     const inserted = await prisma.$transaction(async (tx) => {
       // a troca condicional de status serializa o commit com um desfazer concorrente
       const claimed = await tx.importBatch.updateMany({
-        where: { id: batchId, workspaceId, undoneAt: null },
+        where: { id: batchId, workspaceId, undoneAt: null, status: "preview" },
         data: { status: "committed" },
       });
-      if (claimed.count === 0) throw new ConflictException("o lote foi desfeito; gere um novo preview");
+      if (claimed.count === 0) throw new ConflictException("o lote já foi confirmado ou desfeito; gere um novo preview");
       const { count } = await tx.transaction.createMany({ data: toInsert, skipDuplicates: true });
       return count;
     }, { timeout: 30_000 });

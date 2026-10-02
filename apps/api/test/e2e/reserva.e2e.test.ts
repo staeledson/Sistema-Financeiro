@@ -81,7 +81,12 @@ describe("Reserva como conta: movimentos viram transferência na importação", 
     });
     const rows = [row(ctx.mp.id, 1, "expense", 350, "Reserva programada Reserva Emergência")];
     expect((await commit(ctx, rows)).json().inserted).toBe(1);
-    expect((await commit(ctx, rows)).json().inserted).toBe(0);
+    // reimportar = novo preview (outro lote): o mesmo lote não pode ser confirmado duas vezes
+    const outro = await prisma.importBatch.create({
+      data: { workspaceId: ctx.ws.id, accountId: ctx.mp.id, format: "pdf_statement", status: "preview", createdById: ctx.batch.createdById },
+    });
+    const again = await app.inject({ method: "POST", url: `/import/${outro.id}/commit`, headers: ctx.h, payload: { rows } });
+    expect(again.json().inserted).toBe(0);
     expect(await prisma.transaction.count({ where: { workspaceId: ctx.ws.id } })).toBe(1);
   });
 

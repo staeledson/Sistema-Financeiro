@@ -62,7 +62,7 @@ describe("Fase 3 — Import CSV/OFX", () => {
     expect(body.rows[1].type).toBe("income");
   });
 
-  it("TM2: POST /import/:batchId/commit insere transações idempotentemente", async () => {
+  it("TM2: POST /import/:batchId/commit insere uma vez e recusa reconfirmar o lote (409)", async () => {
     const ts = Date.now();
     const u = await auth.api.signUpEmail({ body: { email: `tm2_${ts}@test.com`, password: "senha123!", name: "TM2" } });
     const ws = await prisma.workspace.findFirst({ where: { createdById: u!.user.id } });
@@ -87,14 +87,14 @@ describe("Fase 3 — Import CSV/OFX", () => {
     });
     expect(commit1.statusCode).toBe(200);
 
-    // Second commit — same fingerprints → 0 new inserted (idempotent)
+    // Segundo commit do mesmo lote: já confirmado → 409, sem inserir nada
     const commit2 = await app.inject({
       method: "POST",
       url: `/import/${batchId}/commit`,
       headers: h,
       payload: { rows },
     });
-    expect(commit2.statusCode).toBe(200);
+    expect(commit2.statusCode).toBe(409);
 
     const total = await prisma.transaction.count({ where: { workspaceId: ws!.id } });
     expect(total).toBe(3);
