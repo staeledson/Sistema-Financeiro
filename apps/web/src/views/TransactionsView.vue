@@ -7,6 +7,7 @@ import EntityBadge from "../components/ui/EntityBadge.vue";
 import EmptyState from "../components/ui/EmptyState.vue";
 import Money from "../components/ui/Money.vue";
 import { HttpError } from "../lib/http";
+import { downloadAnalysisCsv } from "../lib/export-client";
 import { isPendingReview } from "../lib/review-queue";
 import { formatDateOnly } from "../lib/date";
 import { localToday } from "../lib/dashboard-client";
@@ -79,6 +80,18 @@ async function runAction(key: string, action: () => Promise<unknown>) {
     await reload();
   } finally {
     busyKey.value = "";
+  }
+}
+const exportando = ref(false);
+async function exportar() {
+  actionErro.value = "";
+  exportando.value = true;
+  try {
+    await downloadAnalysisCsv();
+  } catch (e) {
+    actionErro.value = (e as Error).message || "Não foi possível exportar os lançamentos.";
+  } finally {
+    exportando.value = false;
   }
 }
 const desfazerPar = (tx: Transaction) => runAction(`pair:${tx.transferPairId}`, () => api.review.unpair(tx.transferPairId!));
@@ -215,7 +228,16 @@ const txTypeLabel: Record<TransactionType, string> = { income: "Receita", expens
 
 <template>
   <section class="transactions">
-    <h2>Transações</h2>
+    <header class="page-head">
+      <h2>Transações</h2>
+      <button
+        type="button"
+        class="btn-outline"
+        title="Baixa todos os lançamentos (não só os filtrados) com conta, PF/PJ, categoria, par e ignorado"
+        :disabled="exportando"
+        @click="exportar"
+      >{{ exportando ? "Exportando…" : "Exportar CSV" }}</button>
+    </header>
 
     <!-- Quick entry form -->
     <form class="quick-form" @submit.prevent="registrar">
@@ -366,6 +388,7 @@ button { white-space: nowrap; }
 .tx-tags { display: flex; gap: var(--space); align-items: center; flex-wrap: wrap; }
 .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); background: var(--surface-2); }
 .tag.paired { color: var(--c-transfer); background: color-mix(in srgb, var(--c-transfer) 15%, transparent); }
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--space) * 2); flex-wrap: wrap; }
 .tag.ignored { color: var(--text-muted); }
 .tag.pending { color: var(--warning); background: color-mix(in srgb, var(--warning) 15%, transparent); }
 .source { font-size: 0.75rem; color: var(--text-muted); }

@@ -16,6 +16,14 @@ export class ExportController {
     res.send(csv);
   }
 
+  @Get("analise.csv")
+  async analysis(@Req() req: { user: AuthenticatedUser }, @Res() res: FastifyReply) {
+    const csv = await this.exportService.analysisCsv(req.user.workspaceId);
+    res.header("Content-Type", "text/csv; charset=utf-8");
+    res.header("Content-Disposition", "attachment; filename=analise-lancamentos.csv");
+    res.send(csv);
+  }
+
   @Get("transactions.xlsx")
   async xlsx(@Req() req: { user: AuthenticatedUser }, @Res() res: FastifyReply) {
     const buf = await this.exportService.transactionsXlsx(req.user.workspaceId);
