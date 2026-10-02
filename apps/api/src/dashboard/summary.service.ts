@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { prisma } from "../database";
 import { pendingReviewWhere } from "../common/pending-review";
-import { previousPeriod } from "@app/shared";
+import { previousPeriod, type AccountEntity } from "@app/shared";
 import { parseDashboardFilter } from "./dashboard-filter";
 import { CardsService } from "./cards.service";
 import { CashflowService } from "./cashflow.service";
@@ -18,12 +18,13 @@ export class SummaryService {
   ) {}
 
   /**
-   * Resumo do Início: sempre o workspace inteiro (sem entidade/conta). Os gastos são do mês `month` (YYYY-MM);
-   * sem ele, o mês de `asOf`. Saldos, pendências e próxima fatura não dependem do mês.
+   * Resumo do Início: saldos, pendências e próxima fatura são sempre do workspace inteiro. Os gastos são do mês `month`
+   * (YYYY-MM; sem ele, o mês de `asOf`) e, se vier `entity`, só dessa entidade; `byEntity` mostra a divisão PF/PJ do
+   * mês inteiro em qualquer caso.
    */
-  async get(workspaceId: string, asOf: string, month?: string) {
+  async get(workspaceId: string, asOf: string, month?: string, entity?: AccountEntity) {
     const { period } = parseDashboardFilter({ month: month ?? asOf.slice(0, 7), asOf });
-    const [{ consolidated, cards: cardBalances, accounts: balanceRows }, meta, pendingCount, { cards }, spending] = await Promise.all([
+    const [{ consolidated, cards: cardBalances, accounts: balanceRows }, meta, pendingCount, { cards }, spending, byEntity] = await Promise.all([
       this.cashflow.consolidated(workspaceId, asOf),
       prisma.bankAccount.findMany({
         where: { workspaceId, archived: false },
@@ -31,7 +32,8 @@ export class SummaryService {
       }),
       prisma.transaction.count({ where: pendingReviewWhere(workspaceId) }),
       this.cards.get(workspaceId, { asOf }),
-      this.spending.get(workspaceId, { period, asOf }),
+      this.spending.get(workspaceId, { period, asOf, entity }),
+      this.spending.entityTotals(workspaceId, period),
     ]);
 
     // Próximo vencimento a pagar: faturas fechadas ainda em aberto/parciais (saldo devedor) e a fatura aberta do ciclo.
@@ -85,6 +87,7 @@ export class SummaryService {
         month: period.from.slice(0, 7),
         previousMonth: previousPeriod(period).from.slice(0, 7),
         totalCents: spending.totalCents,
+        byEntity,
         insight: spending.insight,
         byCategory: spending.byCategory.slice(0, TOP_CATEGORIES),
         byMonth: spending.byMonth,
