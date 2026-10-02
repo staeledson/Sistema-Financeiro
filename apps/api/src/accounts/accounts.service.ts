@@ -60,10 +60,17 @@ export class AccountsService {
   }
 
   async update(workspaceId: string, id: string, dto: AccountUpdateInput) {
-    const existing = await prisma.bankAccount.findFirst({ where: { id, workspaceId }, select: { type: true } });
+    const existing = await prisma.bankAccount.findFirst({ where: { id, workspaceId }, select: { type: true, entity: true } });
     if (!existing) throw new NotFoundException();
     if (existing.type !== "credit_card" && cardFieldsPresent(dto)) {
       throw new BadRequestException("closingDay, dueDay e creditLimitCents só valem para cartão de crédito");
+    }
+    if (dto.entity && dto.entity !== existing.entity) {
+      // categorias exclusivas da entidade atual deixariam de servir aos lançamentos desta conta
+      const conflicting = await prisma.transaction.count({ where: { workspaceId, accountId: id, category: { entity: existing.entity } } });
+      if (conflicting > 0) {
+        throw new ConflictException(`${conflicting} lançamento(s) desta conta usam categorias ${existing.entity.toUpperCase()}; recategorize-os antes de trocar a entidade`);
+      }
     }
     return prisma.bankAccount.update({ where: { id }, data: dto, select: ACCOUNT_SELECT });
   }

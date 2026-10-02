@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import type { AccountEntity, CategoryInput } from "@app/shared";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { foldText, isCatchAllCategoryName, type AccountEntity, type CategoryInput } from "@app/shared";
 import { prisma } from "../database";
 
 const CATEGORY_SELECT = {
@@ -31,8 +31,20 @@ export class CategoriesService {
   }
 
   async update(workspaceId: string, id: string, dto: Partial<CategoryInput>) {
-    const existing = await prisma.category.findFirst({ where: { id, workspaceId } });
+    const existing = await prisma.category.findFirst({ where: { id, workspaceId }, select: { name: true, isSystem: true, entity: true } });
     if (!existing) throw new NotFoundException();
+
+    if (dto.name && existing.isSystem && isCatchAllCategoryName(existing.name) && foldText(dto.name.trim()) !== foldText(existing.name)) {
+      throw new BadRequestException("esta é a categoria pega-tudo do sistema e não pode ser renomeada");
+    }
+    if (dto.entity && dto.entity !== existing.entity && dto.entity !== "both") {
+      const other = dto.entity === "pf" ? "pj" : "pf";
+      const conflicting = await prisma.transaction.count({ where: { workspaceId, categoryId: id, account: { entity: other } } });
+      if (conflicting > 0) {
+        throw new ConflictException(`${conflicting} lançamento(s) de contas ${other.toUpperCase()} usam esta categoria; recategorize-os antes`);
+      }
+    }
+
     return prisma.category.update({
       where: { id },
       data: {
