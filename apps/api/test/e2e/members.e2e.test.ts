@@ -175,4 +175,21 @@ describe("Permissões de membros", () => {
     expect(ok.json().email).toBe("ana@exemplo.com");
     expect(ok.json().role).toBe("member");
   });
+
+  it("viewer lê mas não escreve no workspace", async () => {
+    const owner = await signUp("perm_view");
+    const viewer = await signUp("perm_view2");
+    await app.inject({
+      method: "POST", url: `/workspaces/${owner.wsId}/members`, headers: owner.h,
+      payload: { userId: viewer.id, role: "viewer" },
+    });
+    const vh = { ...viewer.h, "x-workspace-id": owner.wsId };
+    const read = await app.inject({ method: "GET", url: "/accounts", headers: vh });
+    expect(read.statusCode).toBe(200);
+    const write = await app.inject({ method: "POST", url: "/accounts", headers: vh, payload: { type: "cash", name: "Bolso" } });
+    expect(write.statusCode).toBe(403);
+    // no próprio workspace (onde é owner) continua escrevendo
+    const ownWrite = await app.inject({ method: "POST", url: "/accounts", headers: viewer.h, payload: { type: "cash", name: "Bolso" } });
+    expect(ownWrite.statusCode).toBe(201);
+  });
 });

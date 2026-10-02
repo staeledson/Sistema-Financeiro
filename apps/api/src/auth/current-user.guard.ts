@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -9,6 +10,7 @@ import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyRequest } from "fastify";
 import { auth } from "./index";
 import { prisma } from "../database";
+import { viewerMayCall } from "./viewer-policy";
 
 export interface AuthenticatedUser {
   id: string;
@@ -53,6 +55,10 @@ export class CurrentUserGuard implements CanActivate {
         orderBy: { createdAt: "asc" },
       });
       if (!membership) throw new UnauthorizedException();
+    }
+
+    if (membership.role === "viewer" && !viewerMayCall(req.method, req.url)) {
+      throw new ForbiddenException("perfil leitor: somente leitura neste workspace");
     }
 
     req.user = {
