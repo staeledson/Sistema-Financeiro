@@ -243,7 +243,7 @@ describe("Fase 5 — Perfil PJ", () => {
       headers: { ...a.headers, "x-workspace-id": bizWsId },
     });
     expect(profileRes.statusCode).toBe(200);
-    expect(profileRes.json().cnpj).toBe("12.345.678/0001-90");
+    expect(profileRes.json().cnpj).toBe("12345678000190"); // o perfil guarda só os dígitos
 
     const getRes = await app.inject({
       method: "GET",

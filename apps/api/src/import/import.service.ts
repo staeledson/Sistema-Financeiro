@@ -24,6 +24,8 @@ export class ImportService {
     csv: string,
   ) {
     const mapping = csvMappingSchema.parse(mappingRaw);
+    const account = await prisma.bankAccount.findFirst({ where: { id: accountId, workspaceId }, select: { id: true } });
+    if (!account) throw new NotFoundException("conta não encontrada");
     const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
     const txs = parsed.data.map((r) => csvRowToTransaction(r, mapping, accountId));
 

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "../database";
 
 @Injectable()
@@ -11,9 +11,15 @@ export class BillsService {
     });
   }
 
-  async create(workspaceId: string, userId: string, body: {
-    name: string; amountCents: number; dueDate: string; recurrence?: string; categoryId?: string;
-  }) {
+  async create(
+    workspaceId: string,
+    userId: string,
+    body: { name: string; amountCents: number; dueDate: string; recurrence: "once" | "weekly" | "monthly" | "yearly"; categoryId?: string | null },
+  ) {
+    if (body.categoryId) {
+      const cat = await prisma.category.findFirst({ where: { id: body.categoryId, workspaceId }, select: { id: true } });
+      if (!cat) throw new BadRequestException("categoria inexistente no workspace");
+    }
     return prisma.scheduledBill.create({
       data: {
         workspaceId,
@@ -21,8 +27,8 @@ export class BillsService {
         name: body.name,
         amountCents: BigInt(body.amountCents),
         dueDate: new Date(body.dueDate),
-        recurrence: (body.recurrence as "once" | "weekly" | "monthly" | "yearly") ?? "monthly",
-        categoryId: body.categoryId,
+        recurrence: body.recurrence,
+        categoryId: body.categoryId ?? null,
       },
       select: { id: true, name: true, amountCents: true, dueDate: true, recurrence: true, active: true },
     });

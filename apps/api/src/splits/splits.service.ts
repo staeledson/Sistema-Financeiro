@@ -4,6 +4,11 @@ import { prisma } from "../database";
 @Injectable()
 export class SplitsService {
   async setSplits(workspaceId: string, transactionId: string, splits: { userId: string; shareCents: number }[]) {
+    const userIds = [...new Set(splits.map((s) => s.userId))];
+    if (userIds.length !== splits.length) throw new BadRequestException("usuário repetido nas cotas");
+    const members = await prisma.workspaceMember.count({ where: { workspaceId, userId: { in: userIds } } });
+    if (members !== userIds.length) throw new BadRequestException("todas as cotas devem ser de membros do workspace");
+
     const tx = await prisma.transaction.findFirst({ where: { id: transactionId, workspaceId }, select: { id: true, amountCents: true } });
     if (!tx) throw new NotFoundException("transação não encontrada");
 
