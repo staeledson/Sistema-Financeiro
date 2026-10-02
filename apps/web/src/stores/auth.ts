@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { authClient } from "../lib/auth-client";
+import { clearStoredWorkspace } from "./workspace";
 
 const STORAGE_KEY = "auth-session";
 
@@ -52,6 +53,7 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = null;
     userId.value = null;
     writeStored(null);
+    clearStoredWorkspace();
   }
 
   async function signOut() {

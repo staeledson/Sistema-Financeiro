@@ -16,6 +16,7 @@ vi.mock("../../lib/auth-client", () => ({
   },
 }));
 
+import { authClient } from "../../lib/auth-client";
 import { useAuthStore } from "../auth";
 
 describe("auth store", () => {
@@ -52,8 +53,12 @@ describe("auth store", () => {
   it("expire limpa a sessão sem chamar o servidor", async () => {
     const store = useAuthStore();
     await store.signIn("a@example.com", "senha123!");
+    localStorage.setItem("workspace-active", "w1");
+    vi.mocked(authClient.signOut).mockClear();
     store.expire();
     expect(store.token).toBeNull();
     expect(localStorage.getItem("auth-session")).toBeNull();
+    expect(localStorage.getItem("workspace-active")).toBeNull();
+    expect(authClient.signOut).not.toHaveBeenCalled();
   });
 });

@@ -47,7 +47,7 @@ export class CurrentUserGuard implements CanActivate {
         where: { workspaceId_userId: { workspaceId: requestedWorkspaceId, userId: session.user.id } },
         select: { workspaceId: true, role: true },
       });
-      if (!membership) throw new UnauthorizedException("não é membro deste workspace");
+      if (!membership) throw new ForbiddenException("não é membro deste workspace");
     } else {
       membership = await prisma.workspaceMember.findFirst({
         where: { userId: session.user.id },

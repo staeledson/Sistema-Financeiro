@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useAuthStore } from "./auth";
-import { http } from "../lib/http";
+import { http, HttpError } from "../lib/http";
 
 export interface WorkspaceInfo {
   id: string;
@@ -29,6 +29,11 @@ function writeStored(id: string | null) {
   }
 }
 
+/** Remove a seleção salva (usado ao encerrar a sessão, sem depender da store). */
+export function clearStoredWorkspace() {
+  writeStored(null);
+}
+
 export const useWorkspaceStore = defineStore("workspace", () => {
   const workspaces = ref<WorkspaceInfo[]>([]);
   const activeId = ref<string | null>(readStored());
@@ -36,8 +41,19 @@ export const useWorkspaceStore = defineStore("workspace", () => {
 
   async function load() {
     const auth = useAuthStore();
-    if (!auth.token) return;
-    workspaces.value = await http<WorkspaceInfo[]>("GET", "/workspaces");
+    if (!auth.token) {
+      workspaces.value = [];
+      setActive(null);
+      return;
+    }
+    try {
+      workspaces.value = await http<WorkspaceInfo[]>("GET", "/workspaces");
+    } catch (e) {
+      // x-workspace-id salvo de que o usuário não é mais membro: descarta e tenta de novo sem o cabeçalho
+      if (!(e instanceof HttpError && e.status === 403)) throw e;
+      setActive(null);
+      workspaces.value = await http<WorkspaceInfo[]>("GET", "/workspaces");
+    }
     // id salvo que não existe mais (removido do workspace, outro usuário no mesmo navegador) cai no primeiro
     if (!workspaces.value.some((w) => w.id === activeId.value)) {
       setActive(workspaces.value[0]?.id ?? null);

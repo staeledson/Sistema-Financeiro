@@ -48,7 +48,7 @@ describe("Fase 5 — Workspace X-Workspace-Id header", () => {
     expect(list.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("TF2: X-Workspace-Id de outro usuário retorna 401", async () => {
+  it("TF2: X-Workspace-Id de outro usuário retorna 403", async () => {
     const a = await signUp("tf2a");
     const b = await signUp("tf2b");
 
@@ -57,7 +57,7 @@ describe("Fase 5 — Workspace X-Workspace-Id header", () => {
       url: "/transactions",
       headers: { ...a.headers, "x-workspace-id": b.ws.id },
     });
-    expect(res.statusCode).toBe(401);
+    expect(res.statusCode).toBe(403);
   });
 
   it("TF3: sem X-Workspace-Id usa workspace pessoal (compat)", async () => {
