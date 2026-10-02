@@ -16,12 +16,13 @@ const db = vi.hoisted(() => ({
   findBills: vi.fn(),
   upsert: vi.fn(),
   findSubs: vi.fn(),
+  deleteSub: vi.fn(),
 }));
 vi.mock("../src/database", () => ({
   prisma: {
     scheduledBill: { findMany: db.findBills },
     insight: { upsert: db.upsert },
-    pushSubscription: { findMany: db.findSubs },
+    pushSubscription: { findMany: db.findSubs, delete: db.deleteSub },
   },
 }));
 
@@ -32,6 +33,7 @@ describe("lembretes diários", () => {
     db.findBills.mockReset();
     db.upsert.mockReset();
     db.findSubs.mockReset();
+    db.deleteSub.mockReset();
   });
 
   it("grava o insight por upsert com chave (workspace, tipo, dedupKey, período): rodar duas vezes não duplica", async () => {
@@ -62,5 +64,21 @@ describe("lembretes diários", () => {
     registerRemindersWorker({} as never, vi.fn());
     await captured.processor!();
     expect(db.upsert).not.toHaveBeenCalled();
+  });
+
+  it("inscrição expirada (410) é apagada; outras falhas não derrubam o job", async () => {
+    const today = new Date();
+    db.findBills.mockResolvedValue([{ id: "b1", name: "Luz", amountCents: 10000n, dueDate: today, workspaceId: "ws1" }]);
+    db.findSubs.mockResolvedValue([{ id: "s1", endpoint: "e", p256dh: "p", auth: "a" }]);
+    db.deleteSub.mockResolvedValue({});
+    const gone = Object.assign(new Error("Gone"), { statusCode: 410 });
+    registerRemindersWorker({} as never, vi.fn().mockRejectedValue(gone));
+    await captured.processor!();
+    expect(db.deleteSub).toHaveBeenCalledWith({ where: { id: "s1" } });
+
+    db.deleteSub.mockClear();
+    registerRemindersWorker({} as never, vi.fn().mockRejectedValue(new Error("rede")));
+    await captured.processor!();
+    expect(db.deleteSub).not.toHaveBeenCalled();
   });
 });

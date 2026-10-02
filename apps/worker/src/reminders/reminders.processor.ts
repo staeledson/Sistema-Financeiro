@@ -29,7 +29,7 @@ export function registerRemindersWorker(connection: Redis, sendPushFn = sendPush
       }
 
       for (const [workspaceId, bills] of byWs) {
-        // Create insight per bill
+        const subs = await prisma.pushSubscription.findMany({ where: { workspaceId } });
         for (const bill of bills) {
           const fmt = (c: number) => `R$ ${(c / 100).toFixed(2)}`;
           const period = today.toISOString().slice(0, 10);
@@ -46,14 +46,18 @@ export function registerRemindersWorker(connection: Redis, sendPushFn = sendPush
             },
           });
 
-          // Push notifications
-          const subs = await prisma.pushSubscription.findMany({ where: { workspaceId } });
           for (const sub of subs) {
-            await sendPushFn(sub as SubInfo, {
-              title: "Conta a vencer",
-              body: `${bill.name} — ${fmt(Number(bill.amountCents))} vence em breve`,
-              url: "/",
-            }).catch(() => {});
+            try {
+              await sendPushFn(sub as SubInfo, {
+                title: "Conta a vencer",
+                body: `${bill.name} — ${fmt(Number(bill.amountCents))} vence em breve`,
+                url: "/",
+              });
+            } catch (err) {
+              // 404/410: o navegador cancelou a inscrição; apagar evita tentar para sempre
+              const code = (err as { statusCode?: number }).statusCode;
+              if (code === 404 || code === 410) await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
+            }
           }
         }
       }

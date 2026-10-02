@@ -82,17 +82,17 @@ async function detectSubscriptions(workspaceId: string, period: string, today: s
 
   const rows = await prisma.$queryRaw<SubRow[]>`
     SELECT
-      t."counterparty",
+      LOWER(TRIM(t."counterparty")) AS "counterparty",
       COUNT(DISTINCT DATE_TRUNC('month', t."date")) AS months,
       AVG(t."amountCents") AS "avgCents"
     FROM transactions t
     WHERE t."workspaceId" = ${workspaceId}
       AND t."type" = 'expense'
-      AND t."counterparty" IS NOT NULL
+      AND NULLIF(TRIM(t."counterparty"), '') IS NOT NULL
       AND t."date" >= ${addMonths(today.slice(0, 7), -6) + "-01"}::date
       AND t."date" <= ${today}::date
       ${reportableSql("t")}
-    GROUP BY t."counterparty"
+    GROUP BY LOWER(TRIM(t."counterparty"))
     HAVING COUNT(DISTINCT DATE_TRUNC('month', t."date")) >= 3
     ORDER BY "avgCents" DESC
     LIMIT 20

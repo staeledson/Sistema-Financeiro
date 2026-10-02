@@ -1,4 +1,4 @@
-import { aiBatchResultSchema, type AiBatchResult } from "@app/shared";
+import { aiBatchResultSchema, redactForLlm, type AiBatchResult } from "@app/shared";
 import { extractedDraftSchema, type ExtractedDraft, DRAFT_JSON_SCHEMA, invoiceLineSchema, type InvoiceLine, INVOICE_JSON_SCHEMA, CATEGORIZE_JSON_SCHEMA } from "./draft-schema";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
@@ -57,7 +57,7 @@ export class OpenRouterGateway {
   }
 
   parseText(text: string) {
-    return this.call(this.textModel, text);
+    return this.call(this.textModel, redactForLlm(text));
   }
 
   parseImage(dataUrl: string) {
@@ -104,7 +104,7 @@ export class OpenRouterGateway {
               "type: income para créditos/pagamentos recebidos, expense para cobranças/débitos. " +
               "Responda SOMENTE com o JSON do schema.",
           },
-          { role: "user", content: text },
+          { role: "user", content: redactForLlm(text) },
         ],
         response_format: { type: "json_schema", json_schema: INVOICE_JSON_SCHEMA },
       }),

@@ -5,6 +5,7 @@ import { prisma } from "../database";
 import { OpenRouterGateway } from "./openrouter";
 import { GroqSttGateway } from "./stt-groq";
 import { mapCategory } from "./category-map";
+import { mimeFromPath } from "./mime";
 import { AI_QUEUE } from "../queue";
 import { processPdfInvoice } from "../import/pdf.processor";
 import { processCategorize } from "./categorize.processor";
@@ -59,12 +60,12 @@ export function registerIngestWorker(
           result = await deps.ai.parseText(text!);
         } else if (kind === "parse_image") {
           const bytes = await downloadFromS3(deps.s3, deps.s3Bucket, storagePath!);
-          const dataUrl = `data:image/jpeg;base64,${Buffer.from(bytes).toString("base64")}`;
+          const dataUrl = `data:${mimeFromPath(storagePath!, "image")};base64,${Buffer.from(bytes).toString("base64")}`;
           result = await deps.ai.parseImage(dataUrl);
         } else {
           // parse_audio
           const bytes = await downloadFromS3(deps.s3, deps.s3Bucket, storagePath!);
-          const blob = new Blob([Buffer.from(bytes)], { type: "audio/webm" });
+          const blob = new Blob([Buffer.from(bytes)], { type: mimeFromPath(storagePath!, "audio") });
           const transcript = await deps.stt.transcribe(blob);
           result = await deps.ai.parseText(transcript);
         }
