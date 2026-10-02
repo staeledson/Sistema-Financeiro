@@ -19,6 +19,47 @@ export class ExportService {
     return header + rows;
   }
 
+  /**
+   * CSV para análise: todos os lançamentos do workspace com conta, entidade (PF/PJ), categoria pelo nome e os sinais que
+   * decidem se entram nos relatórios (par de transferência, ignorado). `valor` em reais com sinal (despesa negativa).
+   * Começa com BOM para o Excel abrir os acentos.
+   */
+  async analysisCsv(workspaceId: string): Promise<string> {
+    const txs = await prisma.transaction.findMany({
+      where: { workspaceId },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      select: {
+        id: true, type: true, amountCents: true, date: true, description: true, counterparty: true, source: true,
+        categorySource: true, reviewStatus: true, transferPairId: true, ignored: true, importBatchId: true,
+        installmentCurrent: true, installmentTotal: true,
+        account: { select: { name: true, type: true, entity: true, institution: true } },
+        sourceAccount: { select: { name: true } },
+        destAccount: { select: { name: true } },
+        category: { select: { name: true } },
+      },
+    });
+    const cell = (v: string | number | null | undefined) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const reais = (t: { type: string; amountCents: bigint }) => {
+      const cents = Number(t.amountCents) * (t.type === "expense" ? -1 : 1);
+      return (cents / 100).toFixed(2);
+    };
+    const header = [
+      "data", "tipo", "valor", "amountCents", "entidade", "conta", "tipo_conta", "instituicao", "origem", "destino",
+      "categoria", "origem_categoria", "descricao", "contraparte", "par_transferencia", "ignorado", "revisao",
+      "parcela", "fonte", "lote_importacao", "id",
+    ].join(",");
+    const lines = txs.map((t) =>
+      [
+        t.date.toISOString().slice(0, 10), t.type, reais(t), t.amountCents.toString(), t.account?.entity, t.account?.name,
+        t.account?.type, t.account?.institution, t.sourceAccount?.name, t.destAccount?.name, t.category?.name,
+        t.categorySource, t.description, t.counterparty, t.transferPairId, t.ignored ? "sim" : "nao", t.reviewStatus,
+        t.installmentCurrent && t.installmentTotal ? `${t.installmentCurrent}/${t.installmentTotal}` : "", t.source,
+        t.importBatchId, t.id,
+      ].map(cell).join(","),
+    );
+    return "\uFEFF" + [header, ...lines].join("\n");
+  }
+
   async transactionsXlsx(workspaceId: string): Promise<Buffer> {
     const txs = await prisma.transaction.findMany({
       where: { workspaceId },

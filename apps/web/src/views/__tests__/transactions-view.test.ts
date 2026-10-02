@@ -22,6 +22,9 @@ vi.mock("../../lib/api", async (orig) => {
   };
 });
 
+const { exportMock } = vi.hoisted(() => ({ exportMock: vi.fn() }));
+vi.mock("../../lib/export-client", () => ({ downloadAnalysisCsv: exportMock }));
+
 import TransactionsView from "../TransactionsView.vue";
 
 async function mountAt(url: string) {
@@ -42,6 +45,7 @@ beforeEach(() => {
   unpairMock.mockReset().mockResolvedValue({ unpaired: 2 });
   unignoreMock.mockReset().mockResolvedValue({ unignored: 1 });
   ignoreMock.mockReset().mockResolvedValue({ ignored: 1 });
+  exportMock.mockReset().mockResolvedValue(undefined);
 });
 
 const row = (id: string, over: Record<string, unknown> = {}) => ({
@@ -168,6 +172,20 @@ describe("TransactionsView selos, ações e filtro rápido", () => {
     await flushPromises();
     expect(ignoreMock).toHaveBeenCalledWith(["i1"]);
     expect(listMock.mock.calls.length).toBe(before + 1);
+  });
+
+  it("Exportar CSV baixa o arquivo completo e mostra o erro se falhar", async () => {
+    const { w } = await mountAt("/transacoes");
+    const btn = () => w.findAll("button").find((b) => b.text().startsWith("Exportar"))!;
+    await btn().trigger("click");
+    await flushPromises();
+    expect(exportMock).toHaveBeenCalledTimes(1);
+    expect(w.find('[role="alert"]').exists()).toBe(false);
+
+    exportMock.mockRejectedValue(new Error("Não foi possível exportar os lançamentos."));
+    await btn().trigger("click");
+    await flushPromises();
+    expect(w.find('[role="alert"]').text()).toContain("Não foi possível exportar");
   });
 
   it("erro da API aparece como alerta e a lista não é recarregada", async () => {
