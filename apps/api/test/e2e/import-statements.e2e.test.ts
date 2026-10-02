@@ -346,6 +346,18 @@ describe("Fase 11 — POST /import/preview e commit (extrato C6)", () => {
     const res = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, other));
     expect(res.statusCode).toBe(400);
   });
+
+  it("a purga de previews antigos apaga o lote de extrato mas preserva o de PDF", async () => {
+    const u = await newUser("purga");
+    const accountId = await newAccount(u);
+    const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000);
+    const base = { workspaceId: u.workspaceId, accountId, status: "preview" as const, createdAt: twoDaysAgo, createdById: u.userId };
+    const stmt = await prisma.importBatch.create({ data: { ...base, format: "pdf_statement" } });
+    const pdf = await prisma.importBatch.create({ data: { ...base, format: "pdf" } });
+    await previewC6(u, accountId);
+    expect(await prisma.importBatch.findUnique({ where: { id: stmt.id } })).toBeNull();
+    expect(await prisma.importBatch.findUnique({ where: { id: pdf.id } })).not.toBeNull();
+  });
 });
 
 describe("Fase 11 — extratos com períodos sobrepostos", () => {

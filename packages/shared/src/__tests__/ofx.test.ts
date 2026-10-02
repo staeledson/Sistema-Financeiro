@@ -89,4 +89,9 @@ describe("parseOfx", () => {
       expect(parseOfx("<STMTTRN><DTPOSTED>20260605<FITID>x\n</STMTTRN>")[0].amountCents).toBeNaN();
     });
   });
+
+  it("entidade numérica fora da faixa fica como está e &nbsp; nas pontas é aparado", () => {
+    const txt = `<OFX><STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20260105<TRNAMT>-10.00<FITID>2<MEMO>&nbsp;Loja &#9999999; X&#0;&nbsp;</STMTTRN></OFX>`;
+    expect(parseOfx(txt)[0].memo).toBe("Loja &#9999999; X&#0;");
+  });
 });

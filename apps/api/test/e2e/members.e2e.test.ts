@@ -192,4 +192,17 @@ describe("Permissões de membros", () => {
     const ownWrite = await app.inject({ method: "POST", url: "/accounts", headers: viewer.h, payload: { type: "cash", name: "Bolso" } });
     expect(ownWrite.statusCode).toBe(201);
   });
+
+  it("convite antigo com papel owner entra como admin", async () => {
+    const owner = await signUp("perm_oldinv");
+    const invitee = await signUp("perm_oldinv2");
+    const { email } = await prisma.user.findUniqueOrThrow({ where: { id: invitee.id }, select: { email: true } });
+    const inv = await prisma.invitation.create({
+      data: { workspaceId: owner.wsId, email: email.toLowerCase(), role: "owner", expiresAt: new Date(Date.now() + 86_400_000), invitedById: owner.id },
+    });
+    const res = await app.inject({ method: "POST", url: "/invitations/accept", headers: invitee.h, payload: { token: inv.token } });
+    expect(res.statusCode).toBe(200);
+    const m = await prisma.workspaceMember.findUnique({ where: { workspaceId_userId: { workspaceId: owner.wsId, userId: invitee.id } } });
+    expect(m?.role).toBe("admin");
+  });
 });

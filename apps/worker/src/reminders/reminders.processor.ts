@@ -1,5 +1,6 @@
 import { Worker, Queue } from "bullmq";
 import type { Redis } from "ioredis";
+import { todayInTimeZone } from "@app/shared";
 import { prisma } from "../database";
 import { dueBills } from "./due-bills";
 import { sendPush, SubInfo } from "../push/push.gateway";
@@ -11,7 +12,8 @@ export function registerRemindersWorker(connection: Redis, sendPushFn = sendPush
   const worker = new Worker(
     REMINDERS_QUEUE,
     async () => {
-      const today = new Date();
+      const todayISO = todayInTimeZone(process.env["APP_TIMEZONE"]);
+      const today = new Date(`${todayISO}T00:00:00Z`);
 
       const allBills = await prisma.scheduledBill.findMany({
         where: { active: true },
@@ -32,7 +34,7 @@ export function registerRemindersWorker(connection: Redis, sendPushFn = sendPush
         const subs = await prisma.pushSubscription.findMany({ where: { workspaceId } });
         for (const bill of bills) {
           const fmt = (c: number) => `R$ ${(c / 100).toFixed(2)}`;
-          const period = today.toISOString().slice(0, 10);
+          const period = todayISO;
           const dedupKey = `bill:${bill.id}`;
           await prisma.insight.upsert({
             where: { workspaceId_type_dedupKey_period: { workspaceId, type: "bill_due", dedupKey, period } },

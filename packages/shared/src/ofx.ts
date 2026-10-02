@@ -20,7 +20,7 @@ export function decodeEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
     if (body[0] === "#") {
       const code = body[1].toLowerCase() === "x" ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : whole;
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
     }
     return NAMED[body.toLowerCase()] ?? whole;
   });
@@ -43,7 +43,7 @@ export function parseOfx(text: string): OfxTxn[] {
       fitid: tag(b, "FITID") || null,
       dateISO,
       amountCents: Math.round(amt * 100),
-      memo: decodeEntities(tag(b, "MEMO") ?? tag(b, "NAME") ?? "") || null,
+      memo: decodeEntities(tag(b, "MEMO") ?? tag(b, "NAME") ?? "").trim() || null,
     };
   });
 }

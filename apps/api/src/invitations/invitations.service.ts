@@ -60,10 +60,13 @@ export class InvitationsService {
       throw new ForbiddenException("e-mail não corresponde ao convite");
     }
 
+    // convite nunca concede owner: registros antigos entram como admin
+    const role = invitation.role === "owner" ? "admin" : invitation.role;
+
     await prisma.$transaction([
       prisma.workspaceMember.upsert({
         where: { workspaceId_userId: { workspaceId: invitation.workspaceId, userId: callerUserId } },
-        create: { workspaceId: invitation.workspaceId, userId: callerUserId, role: invitation.role },
+        create: { workspaceId: invitation.workspaceId, userId: callerUserId, role },
         update: {},
       }),
       prisma.invitation.update({ where: { id: invitation.id }, data: { status: "accepted" } }),

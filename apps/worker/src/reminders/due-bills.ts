@@ -7,10 +7,10 @@ export interface BillLike {
 }
 
 export function dueBills(bills: BillLike[], today: Date, windowDays = 3): BillLike[] {
-  const todayMs = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayMs = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
   const limitMs = todayMs + windowDays * 86_400_000;
   return bills.filter((b) => {
-    const dueMs = Date.UTC(b.dueDate.getFullYear(), b.dueDate.getMonth(), b.dueDate.getDate());
+    const dueMs = Date.UTC(b.dueDate.getUTCFullYear(), b.dueDate.getUTCMonth(), b.dueDate.getUTCDate());
     return dueMs >= todayMs && dueMs <= limitMs;
   });
 }

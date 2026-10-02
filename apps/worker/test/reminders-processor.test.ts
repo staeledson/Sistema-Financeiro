@@ -26,6 +26,7 @@ vi.mock("../src/database", () => ({
   },
 }));
 
+import { todayInTimeZone } from "@app/shared";
 import { registerRemindersWorker } from "../src/reminders/reminders.processor";
 
 describe("lembretes diários", () => {
@@ -37,7 +38,8 @@ describe("lembretes diários", () => {
   });
 
   it("grava o insight por upsert com chave (workspace, tipo, dedupKey, período): rodar duas vezes não duplica", async () => {
-    const today = new Date();
+    const period = todayInTimeZone(process.env["APP_TIMEZONE"]);
+    const today = new Date(`${period}T00:00:00Z`);
     db.findBills.mockResolvedValue([
       { id: "b1", name: "Luz", amountCents: 10000n, dueDate: today, workspaceId: "ws1" },
     ]);
@@ -48,7 +50,6 @@ describe("lembretes diários", () => {
     await captured.processor!();
     await captured.processor!();
 
-    const period = today.toISOString().slice(0, 10);
     expect(db.upsert).toHaveBeenCalledTimes(2);
     for (const [args] of db.upsert.mock.calls) {
       expect(args.where).toEqual({
@@ -67,7 +68,7 @@ describe("lembretes diários", () => {
   });
 
   it("inscrição expirada (410) é apagada; outras falhas não derrubam o job", async () => {
-    const today = new Date();
+    const today = new Date(`${todayInTimeZone(process.env["APP_TIMEZONE"])}T00:00:00Z`);
     db.findBills.mockResolvedValue([{ id: "b1", name: "Luz", amountCents: 10000n, dueDate: today, workspaceId: "ws1" }]);
     db.findSubs.mockResolvedValue([{ id: "s1", endpoint: "e", p256dh: "p", auth: "a" }]);
     db.deleteSub.mockResolvedValue({});
