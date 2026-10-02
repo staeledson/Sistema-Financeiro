@@ -48,6 +48,7 @@ export async function http<T = unknown>(method: Method, path: string, body?: unk
   });
 
   const text = await res.text();
+  if (res.status === 401) useAuthStore().expire();
   if (!res.ok) throw new HttpError(res.status, messageFrom(text), text);
   if (!text) return undefined as T;
   return JSON.parse(text) as T;

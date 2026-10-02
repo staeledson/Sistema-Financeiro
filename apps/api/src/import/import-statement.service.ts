@@ -21,6 +21,18 @@ import type { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../database";
 import { decodeText, extractPdfText, isPdf } from "./pdf-text";
 
+const STALE_PREVIEW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Previews nunca confirmados viram lixo: apaga os com mais de 24 h do workspace.
+ * Lotes de PDF (`format: "pdf"`, criados por `enqueuePdf`) ficam em preview para sempre por desenho e não entram na purga.
+ */
+export async function purgeStalePreviews(workspaceId: string): Promise<void> {
+  await prisma.importBatch.deleteMany({
+    where: { workspaceId, status: "preview", format: { not: "pdf" }, createdAt: { lt: new Date(Date.now() - STALE_PREVIEW_MS) } },
+  });
+}
+
 export type DetectedFormat = StatementFormat | "csv" | "pdf" | "unknown";
 
 export interface DetectResponse {
@@ -178,6 +190,7 @@ export class ImportStatementService {
       select: { id: true, type: true, entity: true },
     });
     if (!account) throw new NotFoundException("conta não encontrada");
+    await purgeStalePreviews(workspaceId);
 
     const hit = detectStatement(input.text);
     if (!hit) throw new UnprocessableEntityException("não reconheci o formato do extrato");

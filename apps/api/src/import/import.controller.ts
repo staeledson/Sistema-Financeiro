@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from "@nestjs
 import { z } from "zod";
 import { CurrentUserGuard, type AuthenticatedUser } from "../auth/current-user.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
+import { isoDateSchema } from "../common/zod";
 import { ImportService } from "./import.service";
 import { ImportStatementService } from "./import-statement.service";
 
@@ -13,17 +14,24 @@ const previewBody = z.object({
   cardRef: z.string().min(1).nullish(),
 });
 
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((v) => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, "data inválida");
+const csvPreviewBody = z.object({
+  accountId: z.string().min(1),
+  mapping: z.record(z.unknown()),
+  csv: z.string().min(1).max(5_000_000),
+});
+const pdfBody = z.object({ storagePath: z.string().min(1).max(300) });
+const mappingBody = z.object({
+  name: z.string().trim().min(1).max(80),
+  format: z.enum(["csv", "ofx", "pdf"]),
+  mapping: z.record(z.unknown()),
+});
 const commitBody = z.object({
   rows: z.array(
     z.object({
       type: z.enum(["income", "expense"]),
       amountCents: z.number().int().min(0),
-      date: isoDate,
-      postedDate: isoDate.nullish(),
+      date: isoDateSchema,
+      postedDate: isoDateSchema.nullish(),
       accountId: z.string().min(1),
       description: z.string().nullish(),
       categoryId: z.string().nullish(),
@@ -54,11 +62,9 @@ export class ImportController {
 
   @Post("csv/preview")
   @HttpCode(200)
-  csvPreview(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() body: { accountId: string; mapping: unknown; csv: string },
-  ) {
-    return this.service.csvPreview(user.workspaceId, user.id, body.accountId, body.mapping, body.csv);
+  csvPreview(@CurrentUser() user: AuthenticatedUser, @Body() body: unknown) {
+    const b = csvPreviewBody.parse(body);
+    return this.service.csvPreview(user.workspaceId, user.id, b.accountId, b.mapping, b.csv);
   }
 
   @Post(":batchId/commit")
@@ -86,11 +92,8 @@ export class ImportController {
 
   @Post("pdf")
   @HttpCode(201)
-  enqueuePdf(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() body: { storagePath: string },
-  ) {
-    return this.service.enqueuePdf(user.workspaceId, user.id, body.storagePath);
+  enqueuePdf(@CurrentUser() user: AuthenticatedUser, @Body() body: unknown) {
+    return this.service.enqueuePdf(user.workspaceId, user.id, pdfBody.parse(body).storagePath);
   }
 
   @Get("mappings")
@@ -100,10 +103,8 @@ export class ImportController {
 
   @Post("mappings")
   @HttpCode(201)
-  saveMapping(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() body: { name: string; format: "csv" | "ofx" | "pdf"; mapping: unknown },
-  ) {
-    return this.service.saveMapping(user.workspaceId, body.name, body.format, body.mapping);
+  saveMapping(@CurrentUser() user: AuthenticatedUser, @Body() body: unknown) {
+    const b = mappingBody.parse(body);
+    return this.service.saveMapping(user.workspaceId, b.name, b.format, b.mapping);
   }
 }

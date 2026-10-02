@@ -5,6 +5,7 @@ import { runChat, FetchFn } from "./chat.gateway";
 import { buildChart } from "./chart";
 
 const MODEL = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
+const HISTORY_LIMIT = 40;
 
 @Injectable()
 export class ChatService {
@@ -29,23 +30,22 @@ export class ChatService {
       });
     }
 
-    // Build full message history: prior messages + new user message
+    // grava a pergunta antes de chamar o modelo: uma falha do provedor não a perde
+    await prisma.chatMessage.create({ data: { conversationId: conversation.id, role: "user", content: message } });
+
     const priorMessages = await prisma.chatMessage.findMany({
       where: { conversationId: conversation.id },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
+      take: HISTORY_LIMIT,
       select: { role: true, content: true },
     });
-    const history = [
-      ...priorMessages.map((m) => ({ role: m.role, content: m.content })),
-      { role: "user", content: message },
-    ];
+    const history = priorMessages.reverse().map((m) => ({ role: m.role, content: m.content }));
 
     const ctx = { workspaceId };
     const { answer, toolResults } = await runChat(this.apiKey, MODEL, history, ctx, this.fetchFn);
 
     const chartSpec = buildChart(toolResults);
 
-    await prisma.chatMessage.create({ data: { conversationId: conversation.id, role: "user", content: message } });
     await prisma.chatMessage.create({
       data: {
         conversationId: conversation.id,

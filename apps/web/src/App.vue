@@ -93,7 +93,7 @@ function onInviteAcceptDone() {
     </aside>
 
     <main class="main">
-      <RouterView />
+      <RouterView :key="wsStore.activeId ?? ''" />
     </main>
 
     <nav class="bottom-nav" aria-label="Navegação rápida">

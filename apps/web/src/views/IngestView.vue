@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { http } from "../lib/http";
+import { imageUploadMeta } from "../lib/upload-meta";
 
 // text
 const text = ref("");
@@ -31,10 +32,10 @@ async function submitImage() {
   if (!imageFile.value) return;
   imageStatus.value = "Obtendo URL de upload...";
   try {
-    const ext = imageFile.value.name.split(".").pop() ?? "jpg";
-    const { url, storagePath } = await http<{ url: string; storagePath: string }>("POST", "/ingest/upload-url", { ext, contentType: imageFile.value.type });
+    const { ext, contentType } = imageUploadMeta(imageFile.value);
+    const { url, storagePath } = await http<{ url: string; storagePath: string }>("POST", "/ingest/upload-url", { ext, contentType });
     imageStatus.value = "Enviando imagem...";
-    await fetch(url, { method: "PUT", body: imageFile.value, headers: { "content-type": imageFile.value.type } });
+    await fetch(url, { method: "PUT", body: imageFile.value, headers: { "content-type": contentType } });
     const { jobId } = await http<{ jobId: string }>("POST", "/ingest/image", { storagePath });
     imageStatus.value = `Imagem enviada! Job: ${jobId}`;
     imageFile.value = null;

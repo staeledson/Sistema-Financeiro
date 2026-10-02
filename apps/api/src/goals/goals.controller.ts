@@ -1,7 +1,16 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, UseGuards } from "@nestjs/common";
+import { z } from "zod";
 import { CurrentUserGuard, type AuthenticatedUser } from "../auth/current-user.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
+import { centsSchema, isoDateSchema } from "../common/zod";
 import { GoalsService } from "./goals.service";
+
+const createBody = z.object({
+  name: z.string().trim().min(1).max(120),
+  targetCents: centsSchema,
+  deadline: isoDateSchema.nullish(),
+});
+const contributeBody = z.object({ amountCents: centsSchema, date: isoDateSchema.optional() });
 
 @Controller("goals")
 @UseGuards(CurrentUserGuard)
@@ -15,8 +24,8 @@ export class GoalsController {
 
   @Post()
   @HttpCode(201)
-  create(@CurrentUser() user: AuthenticatedUser, @Body() body: { name: string; targetCents: number; deadline?: string | null }) {
-    return this.service.create(user.workspaceId, body);
+  create(@CurrentUser() user: AuthenticatedUser, @Body() body: unknown) {
+    return this.service.create(user.workspaceId, createBody.parse(body));
   }
 
   @Delete(":id")
@@ -27,11 +36,7 @@ export class GoalsController {
 
   @Post(":id/contribute")
   @HttpCode(201)
-  contribute(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param("id") id: string,
-    @Body() body: { amountCents: number; date?: string },
-  ) {
-    return this.service.contribute(user.workspaceId, id, user.id, body);
+  contribute(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() body: unknown) {
+    return this.service.contribute(user.workspaceId, id, user.id, contributeBody.parse(body));
   }
 }

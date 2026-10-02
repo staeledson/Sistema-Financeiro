@@ -100,11 +100,15 @@ enum InsightType {
   summary
   budget_alert
   goal_alert
+  bill_due
 }
 
 enum BudgetMethod {
   fixed
   fifty_thirty_twenty
+  needs
+  wants
+  savings
 }
 
 enum CategoryBucket {

@@ -63,6 +63,12 @@ describe("http", () => {
     await expect(http("DELETE", "/x")).resolves.toBeUndefined();
   });
 
+  it("401 encerra a sessão local e lança HttpError", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(401, { message: "Unauthorized" }));
+    await expect(http("GET", "/accounts")).rejects.toMatchObject({ status: 401 });
+    expect(useAuthStore().token).toBeNull();
+  });
+
   it("authHeaders expõe só authorization e x-workspace-id", () => {
     expect(authHeaders()).toEqual({ authorization: "Bearer tok123", "x-workspace-id": "ws_abc" });
   });

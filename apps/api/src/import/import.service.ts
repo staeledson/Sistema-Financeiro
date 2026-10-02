@@ -3,7 +3,9 @@ import Papa from "papaparse";
 import { Queue } from "bullmq";
 import { csvMappingSchema, csvRowToTransaction, ordinalFingerprints, parseInstallment, reserveDirection } from "@app/shared";
 import { prisma } from "../database";
+import { purgeStalePreviews } from "./import-statement.service";
 import { StorageService } from "../storage/storage.service";
+import { assertWorkspacePath } from "../storage/storage-path";
 import { AI_QUEUE } from "../queue/queue.tokens";
 import type { IngestJobData } from "../ingest/ingest.types";
 import { TransactionsService } from "../transactions/transactions.service";
@@ -24,6 +26,9 @@ export class ImportService {
     csv: string,
   ) {
     const mapping = csvMappingSchema.parse(mappingRaw);
+    const account = await prisma.bankAccount.findFirst({ where: { id: accountId, workspaceId }, select: { id: true } });
+    if (!account) throw new NotFoundException("conta não encontrada");
+    await purgeStalePreviews(workspaceId);
     const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
     const txs = parsed.data.map((r) => csvRowToTransaction(r, mapping, accountId));
 
@@ -80,11 +85,15 @@ export class ImportService {
   ) {
     const batch = await prisma.importBatch.findFirst({
       where: { id: batchId, workspaceId },
-      select: { id: true, undoneAt: true },
+      select: { id: true, status: true, undoneAt: true, accountId: true },
     });
     if (!batch) throw new NotFoundException("lote não encontrado");
     // lote desfeito não volta a ser gravado: as linhas ficariam órfãs (undoneAt fica marcado e novo undo dá 409)
     if (batch.undoneAt) throw new ConflictException("o lote foi desfeito; gere um novo preview");
+    if (batch.status !== "preview") throw new ConflictException("o lote já foi confirmado");
+    if (batch.accountId && rows.some((r) => r.accountId !== batch.accountId)) {
+      throw new BadRequestException("as linhas devem ser da conta escolhida no preview");
+    }
 
     const accountIds = [...new Set(rows.map((r) => r.accountId))];
     const ownedAccounts = await prisma.bankAccount.findMany({
@@ -165,10 +174,10 @@ export class ImportService {
     const inserted = await prisma.$transaction(async (tx) => {
       // a troca condicional de status serializa o commit com um desfazer concorrente
       const claimed = await tx.importBatch.updateMany({
-        where: { id: batchId, workspaceId, undoneAt: null },
+        where: { id: batchId, workspaceId, undoneAt: null, status: "preview" },
         data: { status: "committed" },
       });
-      if (claimed.count === 0) throw new ConflictException("o lote foi desfeito; gere um novo preview");
+      if (claimed.count === 0) throw new ConflictException("o lote já foi confirmado ou desfeito; gere um novo preview");
       const { count } = await tx.transaction.createMany({ data: toInsert, skipDuplicates: true });
       return count;
     }, { timeout: 30_000 });
@@ -208,6 +217,7 @@ export class ImportService {
   }
 
   async enqueuePdf(workspaceId: string, userId: string, storagePath: string) {
+    assertWorkspacePath(storagePath, workspaceId);
     const job = await prisma.aiJob.create({
       data: { workspaceId, kind: "parse_invoice", inputRef: storagePath, createdById: userId },
       select: { id: true },

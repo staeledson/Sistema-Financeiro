@@ -17,10 +17,10 @@
         :class="['insight-card', ins.type, { unread: !ins.read }]"
         @click="markRead(ins)"
       >
-        <div class="insight-icon">{{ iconFor(ins.type) }}</div>
+        <div class="insight-icon">{{ insightIcon(ins.type) }}</div>
         <div class="insight-body">
-          <p class="insight-title">{{ titleFor(ins) }}</p>
-          <p class="insight-detail">{{ detailFor(ins) }}</p>
+          <p class="insight-title">{{ insightTitle(ins) }}</p>
+          <p class="insight-detail">{{ insightDetail(ins) }}</p>
           <span class="insight-period">{{ ins.period || ins.createdAt.slice(0, 10) }}</span>
         </div>
         <div v-if="!ins.read" class="unread-dot" />
@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { http } from "../lib/http";
-import { formatBRL } from "../lib/money";
+import { insightDetail, insightIcon, insightTitle } from "../lib/insight-text";
 import EmptyState from "../components/ui/EmptyState.vue";
 
 const insights = ref<any[]>([]);
@@ -59,49 +59,6 @@ async function triggerCompute() {
     setTimeout(load, 3000);
   } finally {
     computing.value = false;
-  }
-}
-
-function iconFor(type: string) {
-  const map: Record<string, string> = {
-    spike: "📈",
-    subscription: "🔄",
-    budget_alert: "⚠️",
-    cashflow_forecast: "🔮",
-  };
-  return map[type] ?? "💡";
-}
-
-function titleFor(ins: any) {
-  const p = ins.payload;
-  switch (ins.type) {
-    case "spike":
-      return `Gasto acima do normal em ${p.categoryName}`;
-    case "subscription":
-      return `Assinatura detectada: ${p.counterparty}`;
-    case "budget_alert":
-      return `Orçamento ${p.pct}% utilizado`;
-    case "cashflow_forecast":
-      return p.forecastBalanceCents >= 0 ? "Previsão positiva este mês" : "Atenção: déficit previsto";
-    default:
-      return ins.type;
-  }
-}
-
-function detailFor(ins: any) {
-  const p = ins.payload;
-  const fmt = formatBRL;
-  switch (ins.type) {
-    case "spike":
-      return `${p.pctAboveAvg}% acima da média (atual ${fmt(p.currentCents)} vs média ${fmt(p.avgCents)})`;
-    case "subscription":
-      return `Detectada por ${p.monthsDetected} meses · média ${fmt(p.avgCents)}/mês`;
-    case "budget_alert":
-      return `${fmt(p.spentCents)} gastos de ${fmt(p.limitCents)} planejados`;
-    case "cashflow_forecast":
-      return p.narrative ?? `Previsão: ${fmt(Math.abs(p.forecastBalanceCents))}`;
-    default:
-      return "";
   }
 }
 

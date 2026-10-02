@@ -76,7 +76,7 @@ describe("receita e despesa ignoram pareados, ignorados e transferências", () =
       payload: { categoryId: cat.id, method: "fixed", limitCents: 10000 },
     });
     expect([200, 201]).toContain(created.statusCode);
-    const status = await app.inject({ method: "GET", url: "/budgets/status", headers: h });
+    const status = await app.inject({ method: "GET", url: `/budgets/status?asOf=${MONTH}-28`, headers: h });
     const b = (status.json() as Array<{ categoryId: string | null; spentCents: number }>).find((x) => x.categoryId === cat.id);
     expect(b?.spentCents).toBe(1000);
   });

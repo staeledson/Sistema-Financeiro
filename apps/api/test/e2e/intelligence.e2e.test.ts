@@ -147,6 +147,22 @@ describe("Fase 4 — Budgets", () => {
     expect(statusRes.statusCode).toBe(200);
     expect(Array.isArray(statusRes.json())).toBe(true);
   });
+
+  it("orçamento por bucket (needs) é aceito e aparece no status; fixo exige categoria", async () => {
+    const { h } = await seed("ti7b");
+    const bucket = await app.inject({ method: "POST", url: "/budgets", payload: { method: "needs" }, headers: h });
+    expect(bucket.statusCode).toBe(200);
+    expect(bucket.json().method).toBe("needs");
+
+    const semCategoria = await app.inject({ method: "POST", url: "/budgets", payload: { method: "fixed", limitCents: 1000 }, headers: h });
+    expect(semCategoria.statusCode).toBe(400);
+
+    const status = await app.inject({ method: "GET", url: "/budgets/status", headers: h });
+    const row = status.json().find((b: { method: string }) => b.method === "needs");
+    expect(row).toBeTruthy();
+    expect(typeof row.spentCents).toBe("number");
+    expect(typeof row.limitCents).toBe("number");
+  });
 });
 
 describe("Fase 4 — Goals", () => {

@@ -3,6 +3,7 @@ import { Queue } from "bullmq";
 import { randomUUID } from "crypto";
 import { prisma } from "../database";
 import { StorageService } from "../storage/storage.service";
+import { assertWorkspacePath } from "../storage/storage-path";
 import { AI_QUEUE } from "../queue/queue.tokens";
 import type { IngestJobData } from "./ingest.types";
 
@@ -34,6 +35,7 @@ export class IngestService {
     kind: "parse_image" | "parse_audio",
     storagePath: string,
   ) {
+    assertWorkspacePath(storagePath, workspaceId);
     const job = await prisma.aiJob.create({
       data: { workspaceId, kind, inputRef: storagePath, createdById: userId },
       select: { id: true },

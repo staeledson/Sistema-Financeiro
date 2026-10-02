@@ -326,6 +326,38 @@ describe("Fase 11 — POST /import/preview e commit (extrato C6)", () => {
     expect(res.statusCode).toBe(400);
     expect(await prisma.transaction.count({ where: { workspaceId: b.workspaceId } })).toBe(0);
   });
+
+  it("confirmar o mesmo lote duas vezes responde 409 e não insere nada", async () => {
+    const u = await newUser("recommit");
+    const accountId = await newAccount(u);
+    const body = await previewC6(u, accountId);
+    const first = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, accountId));
+    expect(first.statusCode).toBe(200);
+    const again = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, accountId));
+    expect(again.statusCode).toBe(409);
+    expect(await prisma.transaction.count({ where: { importBatchId: body.batchId } })).toBe(first.json().inserted);
+  });
+
+  it("linhas de outra conta do mesmo workspace são recusadas (400)", async () => {
+    const u = await newUser("outraconta");
+    const accountId = await newAccount(u);
+    const other = await newAccount(u, { name: "Outra" });
+    const body = await previewC6(u, accountId);
+    const res = await post(u, `/import/${body.batchId}/commit`, commitPayload(body.rows, other));
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("a purga de previews antigos apaga o lote de extrato mas preserva o de PDF", async () => {
+    const u = await newUser("purga");
+    const accountId = await newAccount(u);
+    const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000);
+    const base = { workspaceId: u.workspaceId, accountId, status: "preview" as const, createdAt: twoDaysAgo, createdById: u.userId };
+    const stmt = await prisma.importBatch.create({ data: { ...base, format: "pdf_statement" } });
+    const pdf = await prisma.importBatch.create({ data: { ...base, format: "pdf" } });
+    await previewC6(u, accountId);
+    expect(await prisma.importBatch.findUnique({ where: { id: stmt.id } })).toBeNull();
+    expect(await prisma.importBatch.findUnique({ where: { id: pdf.id } })).not.toBeNull();
+  });
 });
 
 describe("Fase 11 — extratos com períodos sobrepostos", () => {
