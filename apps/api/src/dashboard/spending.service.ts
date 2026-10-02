@@ -64,6 +64,20 @@ export class SpendingService {
     return { period, previousPeriod: previous, totalCents, previousTotalCents, insight, byCategory, byMonth, vsBudget, topCounterparties, recurring };
   }
 
+  /** Despesas do período divididas por entidade da conta (PF/PJ), sempre do workspace inteiro. */
+  async entityTotals(workspaceId: string, period: Period) {
+    const rows = await prisma.$queryRaw<Array<{ entity: string | null; total: bigint }>>`
+      SELECT a."entity"::text AS "entity", SUM(t."amountCents") AS "total"
+      FROM transactions t
+      LEFT JOIN bank_accounts a ON a."id" = t."accountId" AND a."workspaceId" = t."workspaceId"
+      WHERE t."workspaceId" = ${workspaceId} AND t."type" = 'expense'
+        AND t."date" >= ${period.from}::date AND t."date" <= ${period.to}::date
+        ${reportableSql("t")}
+      GROUP BY a."entity"`;
+    const of = (e: string) => Number(rows.find((r) => r.entity === e)?.total ?? 0n);
+    return { pfCents: of("pf"), pjCents: of("pj") };
+  }
+
   private categoryTotals(workspaceId: string, period: Period, scope: Scope) {
     return prisma.$queryRaw<CatRow[]>`
       SELECT t."categoryId" AS "categoryId", c."name" AS "name", SUM(t."amountCents") AS "total", COUNT(*) AS "count"

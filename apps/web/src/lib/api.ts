@@ -289,6 +289,8 @@ export interface SummaryDashboard {
     month: string;
     previousMonth: string;
     totalCents: number;
+    /** Despesas do mês divididas por entidade da conta, sempre das duas (não muda com o filtro de entidade). */
+    byEntity: { pfCents: number; pjCents: number };
     insight: string | null;
     byCategory: SpendingCategory[];
     byMonth: SpendingByMonth;
@@ -361,11 +363,15 @@ export const api = {
     cards: (params: URLSearchParams) => req<CardsDashboard>("GET", dashboardPath("cards", params)),
     cashflow: (params: URLSearchParams) => req<CashflowDashboard>("GET", dashboardPath("cashflow", params)),
   },
-  /** Resumo do Início: sempre o workspace inteiro; só `asOf` (YYYY-MM-DD) e `month` (YYYY-MM, mês dos gastos) têm efeito. */
-  summary: (asOf?: string, month?: string) => {
+  /**
+   * Resumo do Início: saldos e pendências são sempre do workspace inteiro; `asOf` (YYYY-MM-DD), `month` (YYYY-MM, mês dos
+   * gastos) e `entity` (só filtra os gastos) têm efeito.
+   */
+  summary: (asOf?: string, month?: string, entity?: "pf" | "pj") => {
     const params = new URLSearchParams();
     if (asOf) params.set("asOf", asOf);
     if (month) params.set("month", month);
+    if (entity) params.set("entity", entity);
     return req<SummaryDashboard>("GET", dashboardPath("summary", params));
   },
   review: {

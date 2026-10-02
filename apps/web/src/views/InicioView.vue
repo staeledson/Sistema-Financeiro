@@ -8,7 +8,7 @@ import {
 import { averageMonthlyCents, budgetBars, PALETTE_SIZE, pieSlices, spendingPie, spendingStack, totalStackCents } from "../lib/dashboard-charts";
 import { formatDate } from "../lib/import-client";
 import { breakdownFor, type BreakdownKind } from "../lib/balance-breakdown";
-import { ACCOUNT_TYPE_LABEL, INSTITUTION_LABEL } from "../lib/entity";
+import { ACCOUNT_TYPE_LABEL, ENTITY_LABEL, INSTITUTION_LABEL, type EntityFilter } from "../lib/entity";
 import { formatBRL } from "../lib/money";
 import { useSection } from "../lib/use-section";
 import { useWorkspaceStore } from "../stores/workspace";
@@ -27,7 +27,11 @@ const workspace = useWorkspaceStore();
 // (o último completo: extratos e faturas costumam ser importados depois da virada). Não é guardado em lugar nenhum.
 const currentMonth = localToday().slice(0, 7);
 const month = ref(previousMonthOf(currentMonth));
-const summary = useSection(() => api.summary(localToday(), month.value));
+// Entidade só dos gastos (saldos e pendências são sempre do workspace inteiro); "all" não vai na chamada.
+const entity = ref<EntityFilter>("all");
+const summary = useSection(() =>
+  entity.value === "all" ? api.summary(localToday(), month.value) : api.summary(localToday(), month.value, entity.value),
+);
 const onInicio = () => route.path === "/";
 
 onMounted(() => {
@@ -51,8 +55,16 @@ function onMonth(e: Event) {
   void summary.run();
 }
 
-// Filtro usado só para montar os links da lista de transações (o mês escolhido, tudo).
-const monthFilter = computed<PainelFilter>(() => ({ entity: "all", accountId: "", month: month.value }));
+function onEntity(e: Event) {
+  const next = (e.target as HTMLSelectElement).value as EntityFilter;
+  if (next === entity.value) return;
+  entity.value = next;
+  void summary.run();
+}
+const entityTitle = computed(() => (entity.value === "all" ? "" : ` · ${ENTITY_LABEL[entity.value]}`));
+
+// Filtro usado só para montar os links da lista de transações (o mês e a entidade escolhidos).
+const monthFilter = computed<PainelFilter>(() => ({ entity: entity.value, accountId: "", month: month.value }));
 
 const monthExpensesLink = computed(() => expensesMonthLink(monthFilter.value, month.value));
 const monthTitle = computed(() => monthName(month.value));
@@ -275,13 +287,19 @@ const pendingText = computed(() => {
 
       <section class="spending" aria-labelledby="sec-inicio-gastos">
         <div class="spending-head">
-          <h3 id="sec-inicio-gastos" class="block-title">Para onde foi o dinheiro em {{ monthLabel(month) }}</h3>
+          <h3 id="sec-inicio-gastos" class="block-title">Para onde foi o dinheiro em {{ monthLabel(month) }}{{ entityTitle }}</h3>
           <div class="month-pick">
+            <select aria-label="Entidade dos gastos" :value="entity" @change="onEntity">
+              <option value="all">PF e PJ</option>
+              <option value="pf">{{ ENTITY_LABEL.pf }}</option>
+              <option value="pj">{{ ENTITY_LABEL.pj }}</option>
+            </select>
             <label for="inicio-mes">Mês</label>
             <input id="inicio-mes" type="month" :value="month" :max="currentMonth" @change="onMonth" />
           </div>
         </div>
-        <Card :title="`Despesas de ${monthTitle}`" :value="formatBRL(data.spending.totalCents)" :insight="spendingInsight" :to="monthExpensesLink" />
+        <Card :title="`Despesas de ${monthTitle}${entityTitle}`" :value="formatBRL(data.spending.totalCents)" :insight="spendingInsight" :to="monthExpensesLink" />
+        <p class="note split">PF {{ formatBRL(data.spending.byEntity.pfCents) }} · PJ {{ formatBRL(data.spending.byEntity.pjCents) }}</p>
         <div v-if="data.spending.totalCents > 0" class="grid two">
           <Card title="Por categoria">
             <EChart :option="pieOption" :label="`Despesas de ${monthTitle} por categoria`" :height="280" @click="onPieClick" />

@@ -45,12 +45,13 @@ export class DashboardController {
   }
 
   /**
-   * Resumo do Início. Aceita o filtro global mas só usa `asOf` e `month`: entity, accountId e os demais períodos são
-   * ignorados de propósito (a home é sempre o workspace inteiro; os gastos são do `month`, ou do mês de `asOf` sem ele).
+   * Resumo do Início. Aceita o filtro global mas só usa `asOf`, `month` e `entity` (esta só nos gastos): accountId e os
+   * demais períodos são ignorados de propósito (saldos, pendências e fatura são sempre do workspace inteiro; os gastos
+   * são do `month`, ou do mês de `asOf` sem ele).
    */
   @Get("summary")
   getSummary(@CurrentUser() user: AuthenticatedUser, @Query() query: Record<string, string>) {
-    const { asOf } = parseDashboardFilter(query);
-    return this.summary.get(user.workspaceId, asOf, query.month || undefined);
+    const { asOf, entity } = parseDashboardFilter(query);
+    return this.summary.get(user.workspaceId, asOf, query.month || undefined, entity);
   }
 }

@@ -34,6 +34,7 @@ const summary = {
     month: "2026-09",
     previousMonth: "2026-08",
     totalCents: 50000,
+    byEntity: { pfCents: 20000, pjCents: 30000 },
     insight: "Mercado subiu 18% vs. mês anterior",
     byCategory: [{ categoryId: "c1", name: "Mercado", totalCents: 50000, previousCents: 40000, pct: 100, count: 3 }],
     byMonth: { months: ["2026-09", "2026-10"], series: [{ key: "c1", categoryId: "c1", name: "Mercado", totalsCents: [100, 50000] }] },
@@ -111,6 +112,28 @@ describe("InicioView", () => {
     await flushPromises();
     expect(summaryMock).toHaveBeenCalledTimes(2);
     expect((w.find('input[type="month"]').element as HTMLInputElement).value).toBe("2026-03");
+  });
+
+  it("mostra a divisão PF/PJ dos gastos e filtra os gastos por entidade sem mexer nos saldos", async () => {
+    const { w } = await mountInicio();
+    expect(w.find(".split").text().replace(/\u00a0/g, " ")).toBe("PF R$ 200,00 · PJ R$ 300,00");
+    const sel = w.find('select[aria-label="Entidade dos gastos"]');
+    expect(sel.findAll("option").map((o) => o.text())).toEqual(["PF e PJ", "Pessoa Física", "Pessoa Jurídica"]);
+
+    summaryMock.mockResolvedValueOnce({ ...summary, spending: { ...summary.spending, totalCents: 30000 } });
+    await sel.setValue("pj");
+    await flushPromises();
+    expect(summaryMock).toHaveBeenCalledTimes(2);
+    expect(summaryMock.mock.calls[1]).toEqual([localToday(), previousMonthOf(localToday()), "pj"]);
+    expect(w.find("#sec-inicio-gastos").text()).toContain("Pessoa Jurídica");
+    // a divisão continua mostrando os dois lados e os saldos não dependem do filtro
+    expect(w.find(".split").text().replace(/\u00a0/g, " ")).toBe("PF R$ 200,00 · PJ R$ 300,00");
+
+    expect(w.find('a[href*="entity=pj"]').exists()).toBe(true);
+
+    await sel.setValue("all");
+    await flushPromises();
+    expect(summaryMock.mock.calls[2]).toEqual([localToday(), previousMonthOf(localToday())]);
   });
 
   it("resposta antiga do mês anterior é descartada quando o mês muda de novo", async () => {
