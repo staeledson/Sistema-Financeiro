@@ -65,12 +65,13 @@ describe("Fase 2 — Ingestão por IA", () => {
     const u = await auth.api.signUpEmail({ body: { email: `ti3_${ts}@test.com`, password: "senha123!", name: "TI3" } });
     const h = { authorization: `Bearer ${u!.token}`, "content-type": "application/json" };
 
-    const res = await app.inject({
-      method: "POST",
-      url: "/ingest/image",
-      headers: h,
-      payload: { storagePath: "fake-ws/some-file.jpg" },
-    });
+    const up = await app.inject({ method: "POST", url: "/ingest/upload-url", headers: h, payload: { ext: "jpg", contentType: "image/jpeg" } });
+    const storagePath = up.json().storagePath as string;
+
+    const alheio = await app.inject({ method: "POST", url: "/ingest/image", headers: h, payload: { storagePath: "fake-ws/some-file.jpg" } });
+    expect(alheio.statusCode).toBe(400);
+
+    const res = await app.inject({ method: "POST", url: "/ingest/image", headers: h, payload: { storagePath } });
     expect(res.statusCode).toBe(201);
     const { jobId } = res.json();
     const job = await prisma.aiJob.findUnique({ where: { id: jobId } });

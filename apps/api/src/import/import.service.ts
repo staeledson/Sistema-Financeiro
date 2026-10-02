@@ -4,6 +4,7 @@ import { Queue } from "bullmq";
 import { csvMappingSchema, csvRowToTransaction, ordinalFingerprints, parseInstallment, reserveDirection } from "@app/shared";
 import { prisma } from "../database";
 import { StorageService } from "../storage/storage.service";
+import { assertWorkspacePath } from "../storage/storage-path";
 import { AI_QUEUE } from "../queue/queue.tokens";
 import type { IngestJobData } from "../ingest/ingest.types";
 import { TransactionsService } from "../transactions/transactions.service";
@@ -210,6 +211,7 @@ export class ImportService {
   }
 
   async enqueuePdf(workspaceId: string, userId: string, storagePath: string) {
+    assertWorkspacePath(storagePath, workspaceId);
     const job = await prisma.aiJob.create({
       data: { workspaceId, kind: "parse_invoice", inputRef: storagePath, createdById: userId },
       select: { id: true },
