@@ -5,7 +5,7 @@ import { api } from "../lib/api";
 import {
   categoryLink, expensesMonthLink, isValidMonth, localToday, monthLabel, monthName, previousMonthOf, type PainelFilter,
 } from "../lib/dashboard-client";
-import { budgetBars, PALETTE_SIZE, pieSlices, spendingPie, spendingStack } from "../lib/dashboard-charts";
+import { averageMonthlyCents, budgetBars, PALETTE_SIZE, pieSlices, spendingPie, spendingStack, totalStackCents } from "../lib/dashboard-charts";
 import { formatDate } from "../lib/import-client";
 import { breakdownFor, type BreakdownKind } from "../lib/balance-breakdown";
 import { ACCOUNT_TYPE_LABEL, INSTITUTION_LABEL } from "../lib/entity";
@@ -63,6 +63,8 @@ const pieItems = computed(() => pieSlices(spending.value?.byCategory ?? [], PALE
 const pieOption = computed(() => (c: ThemeColors) => spendingPie(spending.value?.byCategory ?? [], c));
 const stackOption = computed(() => (c: ThemeColors) => spendingStack(spending.value?.byMonth ?? { months: [], series: [] }, c));
 const budgetOption = computed(() => (c: ThemeColors) => budgetBars(spending.value?.vsBudget ?? [], c));
+const stackTotal = computed(() => (spending.value ? totalStackCents(spending.value.byMonth) : 0));
+const stackAverage = computed(() => (spending.value ? averageMonthlyCents(spending.value.byMonth) : 0));
 
 const spendingInsight = computed(() => {
   const s = spending.value;
@@ -284,7 +286,11 @@ const pendingText = computed(() => {
           <Card title="Por categoria">
             <EChart :option="pieOption" :label="`Despesas de ${monthTitle} por categoria`" :height="280" @click="onPieClick" />
           </Card>
-          <Card title="Evolução mensal por categoria">
+          <Card
+            title="Evolução mensal por categoria"
+            :value="formatBRL(stackTotal)"
+            :insight="`Total dos últimos 12 meses · média de ${formatBRL(stackAverage)} por mês.`"
+          >
             <EChart :option="stackOption" label="Despesas dos últimos 12 meses, empilhadas por categoria" :height="280" @click="onStackClick" />
           </Card>
           <Card class="span-2" title="Orçamento">

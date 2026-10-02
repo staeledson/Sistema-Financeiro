@@ -4,7 +4,9 @@ import { createPinia, setActivePinia } from "pinia";
 import { createMemoryHistory, createRouter } from "vue-router";
 import { HttpError } from "../../lib/http";
 
-const { listMock, unpairMock, unignoreMock } = vi.hoisted(() => ({ listMock: vi.fn(), unpairMock: vi.fn(), unignoreMock: vi.fn() }));
+const { listMock, unpairMock, unignoreMock, ignoreMock } = vi.hoisted(() => ({
+  listMock: vi.fn(), unpairMock: vi.fn(), unignoreMock: vi.fn(), ignoreMock: vi.fn(),
+}));
 
 vi.mock("../../lib/api", async (orig) => {
   const mod = await orig<typeof import("../../lib/api")>();
@@ -15,7 +17,7 @@ vi.mock("../../lib/api", async (orig) => {
       accounts: { ...mod.api.accounts, list: vi.fn(async () => []) },
       categories: { list: vi.fn(async () => [{ id: "c1", type: "expense", name: "Mercado", parentId: null, icon: null, color: null, isSystem: false, entity: "both" }]) },
       transactions: { ...mod.api.transactions, list: listMock },
-      review: { ...mod.api.review, unpair: unpairMock, unignore: unignoreMock },
+      review: { ...mod.api.review, unpair: unpairMock, unignore: unignoreMock, ignore: ignoreMock },
     },
   };
 });
@@ -39,6 +41,7 @@ beforeEach(() => {
   listMock.mockReset().mockResolvedValue([]);
   unpairMock.mockReset().mockResolvedValue({ unpaired: 2 });
   unignoreMock.mockReset().mockResolvedValue({ unignored: 1 });
+  ignoreMock.mockReset().mockResolvedValue({ ignored: 1 });
 });
 
 const row = (id: string, over: Record<string, unknown> = {}) => ({
@@ -142,6 +145,29 @@ describe("TransactionsView selos, ações e filtro rápido", () => {
     await flushPromises();
     expect(unignoreMock).toHaveBeenCalledWith(["t3"]);
     expect(listMock.mock.calls.length).toBe(before + 2);
+  });
+
+  it("Ignorar aparece só em receita/despesa solta e chama a API e recarrega a lista", async () => {
+    listMock.mockResolvedValue([
+      row("i1"),
+      row("i2", { transferPairId: "p9" }),
+      row("i3", { ignored: true }),
+      row("i4", { type: "transfer" }),
+    ]);
+    const { w } = await mountAt("/transacoes");
+    const items = w.findAll(".tx-item");
+    const ignorarBtn = (i: number) => items[i].findAll("button").find((b) => b.text() === "Ignorar");
+    expect(ignorarBtn(0)).toBeDefined();
+    expect(ignorarBtn(1)).toBeUndefined();
+    expect(ignorarBtn(2)).toBeUndefined();
+    expect(ignorarBtn(3)).toBeUndefined();
+    expect(ignorarBtn(0)!.attributes("aria-label")).toBe("Ignorar lançamento: Lançamento i1");
+
+    const before = listMock.mock.calls.length;
+    await ignorarBtn(0)!.trigger("click");
+    await flushPromises();
+    expect(ignoreMock).toHaveBeenCalledWith(["i1"]);
+    expect(listMock.mock.calls.length).toBe(before + 1);
   });
 
   it("erro da API aparece como alerta e a lista não é recarregada", async () => {
