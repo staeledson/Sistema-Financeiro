@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { monthStartOf, todayInTimeZone } from "@app/shared";
 import { prisma } from "../database";
 import { reportableSql } from "../common/reportable";
 import type { BudgetUpsertInput } from "./budgets.controller";
@@ -54,14 +55,14 @@ export class BudgetsService {
    * separam por categoria (o campo `Category.bucket` existe, mas não é preenchido), então ambos mostram a despesa total.
    * Um orçamento legado `fifty_thirty_twenty` vira três linhas (mesmo id) para a tela não o esconder.
    */
-  async status(workspaceId: string, asOf: string = new Date().toISOString().slice(0, 10)): Promise<BudgetStatusRow[]> {
+  async status(workspaceId: string, asOf: string = todayInTimeZone(process.env["APP_TIMEZONE"])): Promise<BudgetStatusRow[]> {
     const budgets = await prisma.budget.findMany({
       where: { workspaceId },
       select: { id: true, method: true, categoryId: true, limitCents: true },
     });
     if (!budgets.length) return [];
 
-    const monthStart = `${asOf.slice(0, 7)}-01`;
+    const monthStart = monthStartOf(asOf);
     type SpendRow = { categoryId: string | null; total: bigint; incomeTotal: bigint };
     const spendRows = await prisma.$queryRaw<SpendRow[]>`
       SELECT "categoryId",

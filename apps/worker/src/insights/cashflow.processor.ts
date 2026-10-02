@@ -1,3 +1,4 @@
+import { addMonths, monthStartOf, todayInTimeZone } from "@app/shared";
 import { prisma } from "../database";
 import { reportableSql } from "./reportable";
 import type { OpenRouterGateway } from "../ai/openrouter";
@@ -10,6 +11,9 @@ export async function computeCashflowForecast(
 ) {
   const { workspaceId } = data;
 
+  const today = todayInTimeZone(process.env["APP_TIMEZONE"]);
+  const monthStart = monthStartOf(today);
+  const from = addMonths(monthStart.slice(0, 7), -3) + "-01";
   const rows = await prisma.$queryRaw<MonthRow[]>`
     SELECT
       DATE_TRUNC('month', "date") AS month,
@@ -17,8 +21,8 @@ export async function computeCashflowForecast(
       SUM(CASE WHEN "type" = 'expense' THEN "amountCents" ELSE 0 END) AS expenses
     FROM transactions
     WHERE "workspaceId" = ${workspaceId}
-      AND "date" >= NOW() - INTERVAL '3 months'
-      AND "date" < DATE_TRUNC('month', NOW())
+      AND "date" >= ${from}::date
+      AND "date" < ${monthStart}::date
       ${reportableSql()}
     GROUP BY 1
     ORDER BY 1 ASC
@@ -30,7 +34,7 @@ export async function computeCashflowForecast(
   const avgExpenses = rows.reduce((s, r) => s + Number(r.expenses), 0) / rows.length;
   const forecastBalance = Math.round(avgIncome - avgExpenses);
 
-  const period = new Date().toISOString().slice(0, 7);
+  const period = today.slice(0, 7);
 
   const narratePrompt =
     `Nos últimos ${rows.length} meses: receita média R$${(avgIncome / 100).toFixed(2)}, ` +

@@ -1,3 +1,4 @@
+import { addMonths, monthStartOf, todayInTimeZone } from "@app/shared";
 import { prisma } from "../database";
 import { reportableSql } from "./reportable";
 
@@ -18,7 +19,7 @@ async function upsertInsight(data: InsightUpsertData) {
   });
 }
 
-async function detectSpikes(workspaceId: string, period: string) {
+async function detectSpikes(workspaceId: string, period: string, today: string, monthStart: string) {
   type SpikRow = { categoryId: string; categoryName: string; currentCents: bigint; avgCents: bigint };
 
   const rows = await prisma.$queryRaw<SpikRow[]>`
@@ -31,19 +32,20 @@ async function detectSpikes(workspaceId: string, period: string) {
       WHERE t."workspaceId" = ${workspaceId}
         AND t."type" = 'expense'
         AND t."categoryId" IS NOT NULL
-        AND t."date" >= NOW() - INTERVAL '4 months'
+        AND t."date" >= ${addMonths(monthStart.slice(0, 7), -4) + "-01"}::date
+        AND t."date" <= ${today}::date
         ${reportableSql("t")}
       GROUP BY t."categoryId", DATE_TRUNC('month', t."date")
     ),
     current_month AS (
       SELECT "categoryId", total AS "currentCents"
       FROM monthly
-      WHERE month = DATE_TRUNC('month', NOW())
+      WHERE month = ${monthStart}::date
     ),
     history_avg AS (
       SELECT "categoryId", AVG(total) AS "avgCents"
       FROM monthly
-      WHERE month < DATE_TRUNC('month', NOW())
+      WHERE month < ${monthStart}::date
       GROUP BY "categoryId"
     )
     SELECT
@@ -75,7 +77,7 @@ async function detectSpikes(workspaceId: string, period: string) {
   }
 }
 
-async function detectSubscriptions(workspaceId: string, period: string) {
+async function detectSubscriptions(workspaceId: string, period: string, today: string) {
   type SubRow = { counterparty: string; months: bigint; avgCents: bigint };
 
   const rows = await prisma.$queryRaw<SubRow[]>`
@@ -87,7 +89,8 @@ async function detectSubscriptions(workspaceId: string, period: string) {
     WHERE t."workspaceId" = ${workspaceId}
       AND t."type" = 'expense'
       AND t."counterparty" IS NOT NULL
-      AND t."date" >= NOW() - INTERVAL '6 months'
+      AND t."date" >= ${addMonths(today.slice(0, 7), -6) + "-01"}::date
+      AND t."date" <= ${today}::date
       ${reportableSql("t")}
     GROUP BY t."counterparty"
     HAVING COUNT(DISTINCT DATE_TRUNC('month', t."date")) >= 3
@@ -110,7 +113,7 @@ async function detectSubscriptions(workspaceId: string, period: string) {
   }
 }
 
-async function detectBudgetAlerts(workspaceId: string, period: string) {
+async function detectBudgetAlerts(workspaceId: string, period: string, today: string, monthStart: string) {
   const budgets = await prisma.budget.findMany({
     where: { workspaceId, categoryId: { not: null } },
     select: { id: true, categoryId: true, limitCents: true },
@@ -126,7 +129,7 @@ async function detectBudgetAlerts(workspaceId: string, period: string) {
     WHERE "workspaceId" = ${workspaceId}
       AND "type" = 'expense'
       AND "categoryId" = ANY(${categoryIds}::text[])
-      AND "date" >= DATE_TRUNC('month', NOW())
+      AND "date" >= ${monthStart}::date AND "date" <= ${today}::date
       ${reportableSql()}
     GROUP BY "categoryId"
   `;
@@ -152,9 +155,11 @@ async function detectBudgetAlerts(workspaceId: string, period: string) {
 
 export async function computeInsights(data: { workspaceId: string }) {
   const { workspaceId } = data;
-  const period = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+  const today = todayInTimeZone(process.env["APP_TIMEZONE"]);
+  const period = today.slice(0, 7); // "YYYY-MM"
+  const monthStart = monthStartOf(today);
 
-  await detectSpikes(workspaceId, period);
-  await detectSubscriptions(workspaceId, period);
-  await detectBudgetAlerts(workspaceId, period);
+  await detectSpikes(workspaceId, period, today, monthStart);
+  await detectSubscriptions(workspaceId, period, today);
+  await detectBudgetAlerts(workspaceId, period, today, monthStart);
 }
