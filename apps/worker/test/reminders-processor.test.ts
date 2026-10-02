@@ -50,7 +50,7 @@ describe("lembretes diários", () => {
     expect(db.upsert).toHaveBeenCalledTimes(2);
     for (const [args] of db.upsert.mock.calls) {
       expect(args.where).toEqual({
-        workspaceId_type_dedupKey_period: { workspaceId: "ws1", type: "budget_alert", dedupKey: "bill:b1", period },
+        workspaceId_type_dedupKey_period: { workspaceId: "ws1", type: "bill_due", dedupKey: "bill:b1", period },
       });
       expect(args.update).toEqual({});
     }

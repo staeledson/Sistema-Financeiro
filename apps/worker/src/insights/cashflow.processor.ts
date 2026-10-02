@@ -44,14 +44,14 @@ export async function computeCashflowForecast(
     where: {
       workspaceId_type_dedupKey_period: {
         workspaceId,
-        type: "cashflow_forecast" as never,
+        type: "forecast",
         dedupKey: "cashflow",
         period,
       },
     },
     create: {
       workspaceId,
-      type: "cashflow_forecast" as never,
+      type: "forecast",
       dedupKey: "cashflow",
       period,
       payload: {

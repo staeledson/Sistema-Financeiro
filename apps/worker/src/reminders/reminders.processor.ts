@@ -35,11 +35,11 @@ export function registerRemindersWorker(connection: Redis, sendPushFn = sendPush
           const period = today.toISOString().slice(0, 10);
           const dedupKey = `bill:${bill.id}`;
           await prisma.insight.upsert({
-            where: { workspaceId_type_dedupKey_period: { workspaceId, type: "budget_alert", dedupKey, period } },
+            where: { workspaceId_type_dedupKey_period: { workspaceId, type: "bill_due", dedupKey, period } },
             update: {},
             create: {
               workspaceId,
-              type: "budget_alert",
+              type: "bill_due",
               dedupKey,
               period,
               payload: { billId: bill.id, name: bill.name, amountCents: Number(bill.amountCents), dueDate: bill.dueDate.toISOString().slice(0, 10) },
