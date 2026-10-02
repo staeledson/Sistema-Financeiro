@@ -63,10 +63,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useWorkspaceStore } from "../stores/workspace";
+import { useAuthStore } from "../stores/auth";
+import { canManageMembers } from "../lib/members";
 import { http, HttpError } from "../lib/http";
 import EmptyState from "../components/ui/EmptyState.vue";
 
 const wsStore = useWorkspaceStore();
+const auth = useAuthStore();
 
 const members = ref<any[]>([]);
 const invitations = ref<any[]>([]);
@@ -77,10 +80,7 @@ const sending = ref(false);
 const inviteMsg = ref("");
 const inviteError = ref(false);
 
-const canManage = computed(() => {
-  const me = members.value.find((m) => m.role === "owner" || m.role === "admin");
-  return !!me;
-});
+const canManage = computed(() => canManageMembers(members.value, auth.userId));
 
 async function loadAll() {
   if (!wsStore.activeId) return;

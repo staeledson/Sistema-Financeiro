@@ -31,7 +31,7 @@
 
         <template v-for="msg in messages" :key="msg.id ?? msg._tmp">
           <div :class="['bubble', msg.role]">
-            <div class="bubble-text" v-html="formatText(msg.content)" />
+            <div class="bubble-text" v-html="formatChatText(msg.content)" />
             <ChatChart v-if="msg.chartSpec" :spec="msg.chartSpec" class="bubble-chart" />
           </div>
         </template>
@@ -59,6 +59,7 @@
 import { ref, onMounted, nextTick } from "vue";
 import { http } from "../lib/http";
 import ChatChart from "../components/ChatChart.vue";
+import { formatChatText } from "../lib/chat-format";
 
 interface ConvSummary { id: string; title: string; createdAt: string; }
 interface Message { id?: string; _tmp?: number; role: string; content: string; chartSpec?: any; }
@@ -126,10 +127,6 @@ async function send() {
     thinking.value = false;
     scrollDown();
   }
-}
-
-function formatText(text: string) {
-  return text.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 }
 
 function scrollDown() {
