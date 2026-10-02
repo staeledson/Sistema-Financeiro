@@ -9,7 +9,12 @@ const ALLOWED_TO_INVITE = ["owner", "admin"];
 export class InvitationsService {
   constructor(private readonly mail: MailGateway) {}
 
-  async create(workspaceId: string, invitedById: string, callerRole: string, body: { email: string; role?: string }) {
+  async create(
+    workspaceId: string,
+    invitedById: string,
+    callerRole: string,
+    body: { email: string; role: "admin" | "member" | "viewer" },
+  ) {
     if (!ALLOWED_TO_INVITE.includes(callerRole)) {
       throw new ForbiddenException("apenas owner ou admin podem convidar");
     }
@@ -19,8 +24,8 @@ export class InvitationsService {
     const invitation = await prisma.invitation.create({
       data: {
         workspaceId,
-        email: body.email.toLowerCase(),
-        role: (body.role ?? "member") as never,
+        email: body.email,
+        role: body.role,
         expiresAt,
         invitedById,
       },

@@ -163,4 +163,16 @@ describe("Permissões de membros", () => {
     expect(ok.json().name).toBe("Casa");
     expect(ok.json().currency).toBe("BRL");
   });
+
+  it("convite recusa papel owner e e-mail inválido (400) e normaliza o e-mail", async () => {
+    const owner = await signUp("perm_inv");
+    const asOwner = await app.inject({ method: "POST", url: "/invitations", headers: owner.h, payload: { email: "x@y.com", role: "owner" } });
+    expect(asOwner.statusCode).toBe(400);
+    const badEmail = await app.inject({ method: "POST", url: "/invitations", headers: owner.h, payload: { email: "nao-e-email" } });
+    expect(badEmail.statusCode).toBe(400);
+    const ok = await app.inject({ method: "POST", url: "/invitations", headers: owner.h, payload: { email: "  Ana@Exemplo.com " } });
+    expect(ok.statusCode).toBe(201);
+    expect(ok.json().email).toBe("ana@exemplo.com");
+    expect(ok.json().role).toBe("member");
+  });
 });
