@@ -13,6 +13,19 @@ export function normalizeAmount(raw: string): string {
   return raw.replace(/\./g, "").replace(",", ".");
 }
 
+const NAMED: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+
+/** OFX em SGML/XML escapa `&`, `<`, `>` e aspas; bancos também mandam `&#39;`. */
+export function decodeEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
+    if (body[0] === "#") {
+      const code = body[1].toLowerCase() === "x" ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : whole;
+    }
+    return NAMED[body.toLowerCase()] ?? whole;
+  });
+}
+
 export function parseOfx(text: string): OfxTxn[] {
   const blocks = text.split(/<STMTTRN>/i).slice(1);
   const tag = (b: string, t: string): string | null => {
@@ -30,7 +43,7 @@ export function parseOfx(text: string): OfxTxn[] {
       fitid: tag(b, "FITID") || null,
       dateISO,
       amountCents: Math.round(amt * 100),
-      memo: tag(b, "MEMO") ?? tag(b, "NAME"),
+      memo: decodeEntities(tag(b, "MEMO") ?? tag(b, "NAME") ?? "") || null,
     };
   });
 }

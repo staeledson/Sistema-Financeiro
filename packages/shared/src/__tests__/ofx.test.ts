@@ -61,6 +61,11 @@ describe("parseOfx", () => {
     expect(txs[1].memo).toBe("Salário");
   });
 
+  it("decodifica entidades HTML/SGML do MEMO", () => {
+    const txt = `<OFX><STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20260105<TRNAMT>-10.00<FITID>1<MEMO>Padaria &amp; Cia &#39;Centro&#39; &lt;SP&gt;</STMTTRN></OFX>`;
+    expect(parseOfx(txt)[0].memo).toBe("Padaria & Cia 'Centro' <SP>");
+  });
+
   describe("formatos de TRNAMT", () => {
     const one = (amt: string) => parseOfx(`<STMTTRN><DTPOSTED>20260605<TRNAMT>${amt}<FITID>x\n</STMTTRN>`)[0].amountCents;
 

@@ -3,6 +3,7 @@ import Papa from "papaparse";
 import { Queue } from "bullmq";
 import { csvMappingSchema, csvRowToTransaction, ordinalFingerprints, parseInstallment, reserveDirection } from "@app/shared";
 import { prisma } from "../database";
+import { purgeStalePreviews } from "./import-statement.service";
 import { StorageService } from "../storage/storage.service";
 import { assertWorkspacePath } from "../storage/storage-path";
 import { AI_QUEUE } from "../queue/queue.tokens";
@@ -27,6 +28,7 @@ export class ImportService {
     const mapping = csvMappingSchema.parse(mappingRaw);
     const account = await prisma.bankAccount.findFirst({ where: { id: accountId, workspaceId }, select: { id: true } });
     if (!account) throw new NotFoundException("conta não encontrada");
+    await purgeStalePreviews(workspaceId);
     const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
     const txs = parsed.data.map((r) => csvRowToTransaction(r, mapping, accountId));
 

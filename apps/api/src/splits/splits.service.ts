@@ -42,16 +42,23 @@ export class SplitsService {
       GROUP BY t."createdById", s."userId"
     `;
 
+    const net = new Map<string, { payerId: string; debtorId: string; cents: number }>();
+    for (const r of rows) {
+      const key = [r.payerId, r.debtorId].sort().join("|");
+      const cur = net.get(key) ?? { payerId: r.payerId, debtorId: r.debtorId, cents: 0 };
+      cur.cents += r.payerId === cur.payerId ? Number(r.netCents) : -Number(r.netCents);
+      net.set(key, cur);
+    }
+    const settled = [...net.values()]
+      .filter((n) => n.cents !== 0)
+      .map((n) => (n.cents > 0 ? n : { payerId: n.debtorId, debtorId: n.payerId, cents: -n.cents }));
+
     const users = await prisma.user.findMany({
-      where: { id: { in: [...new Set(rows.flatMap((r) => [r.payerId, r.debtorId]))] } },
+      where: { id: { in: [...new Set(settled.flatMap((r) => [r.payerId, r.debtorId]))] } },
       select: { id: true, name: true, email: true },
     });
     const userMap = new Map(users.map((u) => [u.id, u]));
 
-    return rows.map((r) => ({
-      payer: userMap.get(r.payerId),
-      debtor: userMap.get(r.debtorId),
-      owedCents: Number(r.netCents),
-    }));
+    return settled.map((r) => ({ payer: userMap.get(r.payerId), debtor: userMap.get(r.debtorId), owedCents: r.cents }));
   }
 }
