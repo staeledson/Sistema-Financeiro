@@ -5,11 +5,12 @@
       <button type="button" class="btn-primary" @click="showForm = true">+ Novo</button>
     </div>
 
+    <p v-if="erro && !showForm" role="alert" class="text-error">{{ erro }}</p>
     <EmptyState v-if="loading" title="Carregando…" />
     <EmptyState v-else-if="!statuses.length" title="Nenhum orçamento configurado." />
 
     <div v-else class="budget-list">
-      <div v-for="b in statuses" :key="b.id" class="budget-card">
+      <div v-for="b in statuses" :key="`${b.id}:${b.method}`" class="budget-card">
         <div class="budget-info">
           <span class="budget-label">{{ labelFor(b) }}</span>
           <span class="budget-amounts">{{ fmt(b.spentCents) }} / {{ fmt(b.limitCents) }}</span>
@@ -36,12 +37,19 @@
             <option value="savings">Poupança (20%)</option>
           </select>
         </label>
-        <label v-if="form.method === 'fixed'">Limite (R$)
-          <input v-model.number="form.limitCents" type="number" min="0" step="0.01" placeholder="0.00" />
+        <label v-if="form.method === 'fixed'">Categoria
+          <select v-model="form.categoryId">
+            <option value="">— Categoria —</option>
+            <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
         </label>
+        <label v-if="form.method === 'fixed'">Limite (R$)
+          <input v-model.number="form.limitReais" type="number" min="0" step="0.01" placeholder="0.00" />
+        </label>
+        <p v-if="erro" role="alert" class="text-error">{{ erro }}</p>
         <div class="modal-actions">
           <button type="button" class="btn-secondary" @click="showForm = false">Cancelar</button>
-          <button type="button" class="btn-primary" @click="save">Salvar</button>
+          <button type="button" class="btn-primary" :disabled="!canSave" @click="save">Salvar</button>
         </div>
       </div>
     </div>
@@ -49,45 +57,76 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { http } from "../lib/http";
+import { api, type Category } from "../lib/api";
 import { formatBRL } from "../lib/money";
+import { localToday } from "../lib/dashboard-client";
 import EmptyState from "../components/ui/EmptyState.vue";
 
-const statuses = ref<any[]>([]);
+interface BudgetStatus { id: string; method: "fixed" | "needs" | "wants" | "savings"; categoryId: string | null; limitCents: number; spentCents: number; pct: number }
+
+const statuses = ref<BudgetStatus[]>([]);
+const categories = ref<Category[]>([]);
 const loading = ref(true);
 const showForm = ref(false);
-const form = ref({ method: "fixed", limitCents: 0 });
+const erro = ref("");
+const form = ref({ method: "fixed" as BudgetStatus["method"], categoryId: "", limitReais: 0 });
+
+const canSave = computed(() => form.value.method !== "fixed" || (form.value.categoryId !== "" && form.value.limitReais > 0));
 
 async function load() {
   loading.value = true;
+  erro.value = "";
   try {
-    statuses.value = await http<any[]>("GET", "/budgets/status");
+    statuses.value = await http<BudgetStatus[]>("GET", `/budgets/status?asOf=${localToday()}`);
+  } catch (e) {
+    erro.value = (e as Error).message;
   } finally {
     loading.value = false;
   }
 }
+
 async function save() {
-  await http("POST", "/budgets", {
-    method: form.value.method,
-    limitCents: form.value.method === "fixed" ? Math.round(form.value.limitCents * 100) : null,
-  });
-  showForm.value = false;
-  load();
+  erro.value = "";
+  try {
+    await http("POST", "/budgets", form.value.method === "fixed"
+      ? { method: "fixed", categoryId: form.value.categoryId, limitCents: Math.round(form.value.limitReais * 100) }
+      : { method: form.value.method });
+    showForm.value = false;
+    form.value = { method: "fixed", categoryId: "", limitReais: 0 };
+    await load();
+  } catch (e) {
+    erro.value = (e as Error).message;
+  }
 }
+
 async function deleteBudget(id: string) {
-  await http("DELETE", `/budgets/${id}`);
-  load();
+  erro.value = "";
+  try {
+    await http("DELETE", `/budgets/${id}`);
+    await load();
+  } catch (e) {
+    erro.value = (e as Error).message;
+  }
 }
 
 const fmt = formatBRL;
 
-function labelFor(b: any) {
-  const map: Record<string, string> = { fixed: "Fixo", needs: "Necessidades 50%", wants: "Desejos 30%", savings: "Poupança 20%" };
-  return map[b.method] ?? b.method;
+const LABEL: Record<string, string> = { fixed: "Fixo", needs: "Necessidades 50%", wants: "Desejos 30%", savings: "Poupança 20%" };
+function labelFor(b: BudgetStatus) {
+  if (b.method === "fixed") return `Fixo · ${categories.value.find((c) => c.id === b.categoryId)?.name ?? "categoria removida"}`;
+  return LABEL[b.method] ?? b.method;
 }
 
-onMounted(load);
+onMounted(async () => {
+  try {
+    categories.value = await api.categories.list("expense");
+  } catch {
+    /* nomes das categorias são secundários */
+  }
+  await load();
+});
 </script>
 
 <style scoped>

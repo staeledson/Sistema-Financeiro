@@ -105,6 +105,9 @@ enum InsightType {
 enum BudgetMethod {
   fixed
   fifty_thirty_twenty
+  needs
+  wants
+  savings
 }
 
 enum CategoryBucket {
